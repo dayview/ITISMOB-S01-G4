@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission android:name="android.permission.CAMERA" />
+
+    <uses-feature android:name="android.hardware.camera" android:required="false" />
+    <uses-feature android:name="android.hardware.microphone" android:required="false" />
+
+    <queries>
+        <intent>
+            <action android:name="android.speech.action.RECOGNIZE_SPEECH" />
+        </intent>
+    </queries>
+
+    <application
+        android:name=".PurrfolioApp"
+        android:allowBackup="true"
+        android:icon="@mipmap/ic_launcher"
+        android:label="@string/app_name"
+        android:roundIcon="@mipmap/ic_launcher_round"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.Purrfolio">
+
+        <activity android:name=".WelcomeActivity" android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+        <activity android:name=".RegisterActivity" android:exported="false" />
+        <activity android:name=".LoginActivity" android:exported="false" />
+        <activity android:name=".ResetPasswordActivity" android:exported="false" />
+        <activity android:name=".MainAcivity" android:exported="false" />
+        <activity android:name=".PetFormActivity" android:exported="false" />
+        <activity android:name=".PetDetailActivity" android:exported="false" />
+        <activity android:name=".PetHealthActivity" android:exported="false" />
+        <activity android:name=".QuickLogActivity" android:exported="false" />
+        <activity android:name=".VoiceLogActivity" android:exported="false" />
+        <activity android:name=".SoundJournalActivity" android:exported="false" />
+        <activity android:name=".CareLogActivity" android:exported="false" />
+        <activity android:name=".PetRecordsActivity" android:exported="false" />
+        <activity android:name=".DocumentDetailActivity" android:exported="false" />
+        <activity android:name=".RecordsActivity" android:exported="false" />
+        <activity android:name=".PassportActivity" android:exported="false" />
+        <activity android:name=".RemindersActivity" android:exported="false" />
+        <activity android:name=".AddReminderActivity" android:exported="false" />
+        <activity android:name=".CareCalendarActivity" android:exported="false" />
+        <activity android:name=".AccessControlActivity" android:exported="false" />
+        <activity android:name=".ActivityLogActivity" android:exported="false" />
+        <activity android:name=".PetQrActivity" android:exported="false" />
+        <activity android:name=".QrPrivacyActivity" android:exported="false" />
+        <activity android:name=".EmergencyActivity" android:exported="false" />
+        <activity android:name=".OfflineSyncActivity" android:exported="false" />
+        <activity android:name=".ProfileActivity" android:exported="false" />
+        <activity android:name=".PersonalInfoActivity" android:exported="false" />
+        <activity android:name=".AccountSettingsActivity" android:exported="false" />
+        <activity android:name=".NotificationSettingsActivity" android:exported="false" />
+
+        <receiver android:name=".ReminderReceiver" android:exported="false" />
+
+    </application>
+</manifest>

@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="purr_primary">#8E6BAE</color>
+    <color name="purr_on_primary">#FFFFFF</color>
+    <color name="purr_bg">#FFFFFF</color>
+    <color name="purr_field">#EEEEEE</color>
+    <color name="purr_text">#262626</color>
+    <color name="purr_subtle">#808080</color>
+    <color name="purr_danger">#B72222</color>
+</resources>
