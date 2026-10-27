@@ -12,14 +12,14 @@
         android:padding="24dp">
 
         <TextView
-            style="@style/Purr.Title"
+            style="@style/Purr_Title"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:id="@+id/registerTitleTv"
             android:text="Create Account" />
 
         <TextView
-            style="@style/Purr.Sub"
+            style="@style/Purr_Sub"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:id="@+id/registerSubtitleTv"
@@ -27,7 +27,7 @@
 
         <EditText
             android:id="@+id/fullNameEt"
-            style="@style/Purr.Field"
+            style="@style/Purr_Field"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="24dp"
@@ -36,7 +36,7 @@
 
         <EditText
             android:id="@+id/emailEt"
-            style="@style/Purr.Field"
+            style="@style/Purr_Field"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="12dp"
@@ -45,7 +45,7 @@
 
         <EditText
             android:id="@+id/passwordEt"
-            style="@style/Purr.Field"
+            style="@style/Purr_Field"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="12dp"
@@ -54,33 +54,33 @@
 
         <TextView
             android:id="@+id/ruleLenTv"
-            style="@style/Purr.Sub"
+            style="@style/Purr_Sub"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:layout_marginTop="8dp" />
 
         <TextView
             android:id="@+id/ruleMixTv"
-            style="@style/Purr.Sub"
+            style="@style/Purr_Sub"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content" />
 
         <TextView
             android:id="@+id/ruleSpecialTv"
-            style="@style/Purr.Sub"
+            style="@style/Purr_Sub"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content" />
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/continueBtn"
-            style="@style/Purr.Button"
+            style="@style/Purr_Button"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
             android:text="Continue" />
 
         <TextView
-            style="@style/Purr.Sub"
+            style="@style/Purr_Sub"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
@@ -96,7 +96,7 @@
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/googleBtn"
-                style="@style/Purr.TonalButton"
+                style="@style/Purr_TonalButton"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_marginEnd="6dp"
@@ -105,7 +105,7 @@
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/facebookBtn"
-                style="@style/Purr.TonalButton"
+                style="@style/Purr_TonalButton"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="6dp"
@@ -115,7 +115,7 @@
 
         <TextView
             android:id="@+id/loginLinkTv"
-            style="@style/Purr.Sub"
+            style="@style/Purr_Sub"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="24dp"

@@ -15,7 +15,7 @@
         android:textSize="72sp" />
 
     <TextView
-        style="@style/Purr.Title"
+        style="@style/Purr_Title"
         android:id="@+id/appNameTv"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
@@ -23,7 +23,7 @@
         android:textSize="40sp" />
 
     <TextView
-        style="@style/Purr.Sub"
+        style="@style/Purr_Sub"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:id="@+id/taglineTv"
@@ -31,7 +31,7 @@
 
     <com.google.android.material.button.MaterialButton
         android:id="@+id/getStartedBtn"
-        style="@style/Purr.Button"
+        style="@style/Purr_Button"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="48dp"
@@ -39,7 +39,7 @@
 
     <com.google.android.material.button.MaterialButton
         android:id="@+id/loginBtn"
-        style="@style/Purr.TonalButton"
+        style="@style/Purr_TonalButton"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="12dp"

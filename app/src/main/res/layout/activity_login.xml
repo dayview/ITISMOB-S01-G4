@@ -12,14 +12,14 @@
         android:padding="24dp">
 
         <TextView
-            style="@style/Purr.Title"
+            style="@style/Purr_Title"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:id="@+id/loginTitleTv"
             android:text="Welcome back!" />
 
         <TextView
-            style="@style/Purr.Sub"
+            style="@style/Purr_Sub"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:id="@+id/loginSubtitleTv"
@@ -36,7 +36,7 @@
 
         <EditText
             android:id="@+id/emailEt"
-            style="@style/Purr.Field"
+            style="@style/Purr_Field"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
@@ -45,7 +45,7 @@
 
         <EditText
             android:id="@+id/passwordEt"
-            style="@style/Purr.Field"
+            style="@style/Purr_Field"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="12dp"
@@ -54,7 +54,7 @@
 
         <TextView
             android:id="@+id/forgotTv"
-            style="@style/Purr.Sub"
+            style="@style/Purr_Sub"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:padding="8dp"
@@ -62,13 +62,13 @@
 
         <com.google.android.material.button.MaterialButton
             android:id="@+id/loginBtn"
-            style="@style/Purr.Button"
+            style="@style/Purr_Button"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:text="Log In" />
 
         <TextView
-            style="@style/Purr.Sub"
+            style="@style/Purr_Sub"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="16dp"
@@ -84,7 +84,7 @@
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/googleBtn"
-                style="@style/Purr.TonalButton"
+                style="@style/Purr_TonalButton"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_marginEnd="6dp"
@@ -93,7 +93,7 @@
 
             <com.google.android.material.button.MaterialButton
                 android:id="@+id/facebookBtn"
-                style="@style/Purr.TonalButton"
+                style="@style/Purr_TonalButton"
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_marginStart="6dp"
@@ -103,7 +103,7 @@
 
         <TextView
             android:id="@+id/createTv"
-            style="@style/Purr.Sub"
+            style="@style/Purr_Sub"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginTop="24dp"

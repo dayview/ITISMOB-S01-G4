@@ -1,0 +1,12 @@
+<resources>
+    <dimen name="purr_space_1">4dp</dimen>
+    <dimen name="purr_space_2">8dp</dimen>
+    <dimen name="purr_space_3">12dp</dimen>
+    <dimen name="purr_space_4">16dp</dimen>
+    <dimen name="purr_space_5">24dp</dimen>
+    <dimen name="purr_space_6">32dp</dimen>
+    <dimen name="purr_radius_card">22dp</dimen>
+    <dimen name="purr_radius_field">18dp</dimen>
+    <dimen name="purr_radius_pill">28dp</dimen>
+    <dimen name="purr_touch_target">48dp</dimen>
+</resources>

@@ -1,10 +1,29 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="purr_primary">#C9A8E6</color>
-    <color name="purr_on_primary">#1B1B1B</color>
-    <color name="purr_bg">#121212</color>
-    <color name="purr_field">#2A2A2A</color>
-    <color name="purr_text">#F2F2F2</color>
-    <color name="purr_subtle">#A0A0A0</color>
-    <color name="purr_danger">#FF6B6B</color>
+    <color name="purr_background">#101014</color>
+    <color name="purr_surface">#1C1D26</color>
+    <color name="purr_surface_variant">#242530</color>
+    <color name="purr_primary">#D8B4F8</color>
+    <color name="purr_primary_soft">#E6C8FF</color>
+    <color name="purr_on_primary">#30203C</color>
+    <color name="purr_on_background">#F8F2FF</color>
+    <color name="purr_on_surface">#F8F2FF</color>
+    <color name="purr_subtle">#BDB3CD</color>
+    <color name="purr_outline">#343442</color>
+    <color name="purr_accent_pink">#F3B6D7</color>
+    <color name="purr_accent_cream">#F8DFCA</color>
+    <color name="purr_success">#8FD4AF</color>
+    <color name="purr_warning">#F0C36A</color>
+    <color name="purr_danger">#F29CA9</color>
+    <color name="purr_category_feeding">#F0B48F</color>
+    <color name="purr_category_medication">#C79BE7</color>
+    <color name="purr_category_hydration">#98D0E4</color>
+    <color name="purr_category_grooming">#E8A6C9</color>
+    <color name="purr_category_activity">#9DD0B2</color>
+    <color name="purr_category_vet">#8AD1CD</color>
+    <color name="purr_category_vaccine">#C1A9E8</color>
+    <color name="purr_category_reminder">#F0C36A</color>
+    <color name="purr_bg">@color/purr_background</color>
+    <color name="purr_field">@color/purr_surface_variant</color>
+    <color name="purr_text">@color/purr_on_background</color>
 </resources>

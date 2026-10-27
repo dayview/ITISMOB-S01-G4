@@ -2,35 +2,56 @@
     <style name="Theme.Purrfolio" parent="Theme.Material3.DayNight.NoActionBar">
         <item name="colorPrimary">@color/purr_primary</item>
         <item name="colorOnPrimary">@color/purr_on_primary</item>
-        <item name="android:windowBackground">@color/purr_bg</item>
+        <item name="colorSurface">@color/purr_surface</item>
+        <item name="colorSurfaceVariant">@color/purr_surface_variant</item>
+        <item name="colorOnSurface">@color/purr_on_surface</item>
+        <item name="colorOnBackground">@color/purr_on_background</item>
+        <item name="colorOutline">@color/purr_outline</item>
+        <item name="colorError">@color/purr_danger</item>
+        <item name="android:fontFamily">sans-serif</item>
+        <item name="android:windowBackground">@color/purr_background</item>
+        <item name="android:navigationBarColor">@color/purr_background</item>
+        <item name="android:statusBarColor">@color/purr_background</item>
+        <item name="android:windowLightStatusBar">true</item>
+        <item name="android:windowLightNavigationBar">true</item>
     </style>
-    <style name="Purr.Title">
+    <style name="Purr">
+        <item name="android:textColor">@color/purr_text</item>
+    </style>
+    <style name="Purr_Title">
+        <item name="android:fontFamily">sans-serif-rounded</item>
         <item name="android:textSize">26sp</item>
         <item name="android:textStyle">bold</item>
         <item name="android:textColor">@color/purr_text</item>
     </style>
-    <style name="Purr.Sub">
+    <style name="Purr_Sub">
+        <item name="android:fontFamily">sans-serif-rounded</item>
         <item name="android:textSize">14sp</item>
         <item name="android:textColor">@color/purr_subtle</item>
     </style>
-    <style name="Purr.Field">
+    <style name="Purr_Field">
         <item name="android:background">@drawable/bg_field</item>
+        <item name="android:fontFamily">sans-serif-rounded</item>
         <item name="android:padding">16dp</item>
         <item name="android:textSize">16sp</item>
         <item name="android:textColor">@color/purr_text</item>
         <item name="android:textColorHint">@color/purr_subtle</item>
     </style>
-    <style name="Purr.Field.Banner">
+    <style name="Purr_Field_Banner">
         <item name="android:textStyle">bold</item>
     </style>
-    <style name="Purr.Button" parent="Widget.Material3.Button">
-        <item name="cornerRadius">14dp</item>
-        <item name="android:minHeight">56dp</item>
-        <item name="android:textSize">16sp</item>
+    <style name="Purr_Button" parent="Widget.Material3.Button">
+        <item name="cornerRadius">28dp</item>
+        <item name="android:minHeight">52dp</item>
+        <item name="android:fontFamily">sans-serif-rounded</item>
+        <item name="android:textSize">15sp</item>
+        <item name="android:textStyle">bold</item>
     </style>
-    <style name="Purr.TonalButton" parent="Widget.Material3.Button.TonalButton">
-        <item name="cornerRadius">14dp</item>
-        <item name="android:minHeight">56dp</item>
-        <item name="android:textSize">16sp</item>
+    <style name="Purr_TonalButton" parent="Widget.Material3.Button.TonalButton">
+        <item name="cornerRadius">28dp</item>
+        <item name="android:minHeight">52dp</item>
+        <item name="android:fontFamily">sans-serif-rounded</item>
+        <item name="android:textSize">15sp</item>
+        <item name="android:textStyle">bold</item>
     </style>
 </resources>

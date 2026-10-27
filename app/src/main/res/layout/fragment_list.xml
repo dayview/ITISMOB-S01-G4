@@ -7,19 +7,19 @@
 
     <TextView
         android:id="@+id/titleTv"
-        style="@style/Purr.Title"
+        style="@style/Purr_Title"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content" />
 
     <TextView
         android:id="@+id/subtitleTv"
-        style="@style/Purr.Sub"
+        style="@style/Purr_Sub"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content" />
 
     <TextView
         android:id="@+id/bannerTv"
-        style="@style/Purr.Field.Banner"
+        style="@style/Purr_Field_Banner"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="12dp"
@@ -33,7 +33,7 @@
 
     <com.google.android.material.button.MaterialButton
         android:id="@+id/actionBtn"
-        style="@style/Purr.Button"
+        style="@style/Purr_Button"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginTop="8dp"
