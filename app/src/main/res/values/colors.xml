@@ -1,10 +1,3 @@
-<?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="purr_primary">#8E6BAE</color>
-    <color name="purr_on_primary">#FFFFFF</color>
-    <color name="purr_bg">#FFFFFF</color>
-    <color name="purr_field">#EEEEEE</color>
-    <color name="purr_text">#262626</color>
-    <color name="purr_subtle">#808080</color>
-    <color name="purr_danger">#B72222</color>
+<color name="background">#FCF9FF</color><color name="surface">#FFFFFF</color><color name="surface_alt">#F5EEFA</color><color name="primary">#8756B0</color><color name="primary_soft">#E5C9FA</color><color name="pink">#DD84BA</color><color name="cream">#FFF1DF</color><color name="text_primary">#27212F</color><color name="text_secondary">#71667B</color><color name="border">#E9DEEE</color><color name="urgent">#BE3858</color><color name="green">#227E70</color><color name="amber">#99621E</color><color name="blue">#386DB1</color><color name="on_primary">#FFFFFF</color>
 </resources>

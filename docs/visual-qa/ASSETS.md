@@ -1,0 +1,15 @@
+# Asset provenance
+
+Bundled Fredoka and Nunito variable fonts are from google/fonts, with OFL licenses in app/src/main/assets/licenses.
+
+The original supplied PNGs remain unchanged. Two sibling PNGs were created with the built-in image generation tool, not the CLI:
+- app/src/main/res/drawable-nodpi/purrfolio_cat_hero.png — transparent photographic reconstruction from the supplied cropped cat. The complete source photo was not available locally; this is not an exact photograph match.
+- app/src/main/res/drawable-nodpi/purrfolio_wordmark_alpha.png — transparent extraction/reconstruction of the supplied wordmark; retains its custom lettering rather than using ordinary text. Generated extraction can differ slightly at edges.
+
+Cat prompt: “Use case: identity-preserve. Edit target: supplied cropped cream cat photo. Asset for native Android PURRFOLIO onboarding. Reconstruct a complete photographic fluffy cream and light brown cat from chest upward, head tilted looking up to the right, matching this cat face and fur. Entire ears, face, chest must be in frame. Wide square composition: cat occupies lower 75%, one small pastel pink heart above head, tiny lavender sparkles and outlined lavender heart at right, as in pet-care onboarding reference. Transparent background with softly feathered fur at bottom; no dark rectangular backdrop. No text, no UI. Preserve natural photographic cat texture, not cartoon.”
+
+Wordmark prompt: “Use case: background-extraction. Edit the supplied existing PURRFOLIO custom wordmark artwork ONLY to remove the dark background, replacing with genuine alpha transparency. Preserve exactly the lavender letters, unusual letter shapes, arrangement, word spelling PURRFOLIO, dots, colors, proportions. Do not redesign or re-typeset. Crop to the existing wordmark with a small transparent margin. No subtitle, no additional decoration.”
+
+Care icons, progress rings, status badges, timeline rails, and social marks are drawn locally using Canvas paths. No emoji are used on the seven reconstructed screens.
+
+Sitter asset: app/src/main/res/drawable-nodpi/sitter_friends.png, generated with the built-in image tool. Prompt: “Asset for PURRFOLIO Sitter Mode mobile UI: cute flat pastel illustration of a light gray and white kitten beside a honey-gold floppy-eared puppy, chest-up with their little front paws visible resting along the bottom edge. Kitten left with triangular pink inner ears, gray patches on forehead, closed happy smiling eyes, tiny pink nose, thin dark whiskers. Puppy right with drooping tan ears, small round black eyes and nose, friendly curved smile. Both nestle closely side-by-side, consistent soft hand-drawn dark charcoal rounded outlines and minimal shading, warm kawaii storybook style. One small pastel pink heart above them, small lavender sparkles and short decorative strokes around sides. Wide composition 2.7:1, transparent background, no text, no border, no UI. Figures fully in frame with lower bodies ending at common horizontal baseline.” This replaces the initial Canvas sitter sketch; it is an approximation of the supplied illustration.

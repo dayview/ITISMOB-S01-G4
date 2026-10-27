@@ -1,0 +1,9 @@
+PASS Home → Log Care → existing Water entry form
+PASS Pet options → Passport → demo ID → QR Privacy
+PASS Profile → editable personal form → back without saving
+PASS Pet species dropdown selects Dog without creating a pet
+PASS Calendar month navigation and date selection update the visible date
+PASS Record type filter narrows the sample results
+PASS Access Control → distinct activity log destination
+PASS Sound preview timer is visible and save opens the written log form
+PASS Protected Sitter Mode and new Care Circle remain separate routes
