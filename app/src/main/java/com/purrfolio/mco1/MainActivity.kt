@@ -133,12 +133,8 @@ class MainActivity : AppCompatActivity() {
         binding.petChooser.setOnClickListener { choosePet() }
     }
 
-    private fun bindCareDock(binding: FloatingBottomNavBinding) {
-        binding.navHome.setOnClickListener { render("Home") }
-        binding.navPets.setOnClickListener { render("Pets") }
-        binding.navCare.setOnClickListener { render("Pet Timeline") }
-        binding.navMore.setOnClickListener { render("More") }
-        binding.navLogCare.setOnClickListener { render("Care") }
+    private fun bindCareDock(binding: FloatingBottomNavBinding, screen: String) {
+        ReferenceScreens(this, selectedPet(), { render(it) }, { choosePet() }).bindDock(binding, screen)
     }
 
     private fun showQuickLog() {
@@ -146,7 +142,7 @@ class MainActivity : AppCompatActivity() {
         setContentView(binding.root)
         applyLegacyInsets(binding.quickLogRoot)
         bindLegacyHeader(binding.header, "Quick Log")
-        bindCareDock(binding.bottomNav)
+        bindCareDock(binding.bottomNav, "Quick Log")
         BrandType.apply(binding.eyebrow, false, 700)
         BrandType.apply(binding.pageTitle, true, 600)
         BrandType.apply(binding.pageSubtitle, false, 400)
@@ -172,7 +168,7 @@ class MainActivity : AppCompatActivity() {
         setContentView(binding.root)
         applyLegacyInsets(binding.careHistoryRoot)
         bindLegacyHeader(binding.header, "Care History")
-        bindCareDock(binding.bottomNav)
+        bindCareDock(binding.bottomNav, "Care History")
         BrandType.apply(binding.eyebrow, false, 700)
         BrandType.apply(binding.pageTitle, true, 600)
         BrandType.apply(binding.pageSubtitle, false, 400)

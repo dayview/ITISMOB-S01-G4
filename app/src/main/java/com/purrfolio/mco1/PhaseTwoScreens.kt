@@ -169,7 +169,7 @@ class PhaseTwoScreens(
     private fun sectionLabel(label:String,gap:Int=12){add(section(label),-2,gap)}
     private fun social(){
         gap(16);val divider=row();divider.addView(View(a).apply{setBackgroundColor(outline)},LinearLayout.LayoutParams(0,dp(1),1f));divider.addView(center("or continue with",13f),LinearLayout.LayoutParams(dp(136),dp(26)));divider.addView(View(a).apply{setBackgroundColor(outline)},LinearLayout.LayoutParams(0,dp(1),1f));add(divider,30,8)
-        val r=row().apply{gravity=Gravity.CENTER};listOf("Apple","Google","Facebook").forEach{s->val cell=FrameLayout(a).apply{background=shape(bg,40,true);contentDescription="Continue with $s";setOnClickListener{preview("$s sign-in is not connected.")};addView(icon(s,30,ink),FrameLayout.LayoutParams(dp(30),dp(30),Gravity.CENTER))};r.addView(cell,LinearLayout.LayoutParams(dp(58),dp(58)).apply{setMargins(dp(12),0,dp(12),0)})};add(r,62,12)
+        val r=row().apply{gravity=Gravity.CENTER};listOf("Apple","Google","Facebook").forEach{s->val iconSize=if(s=="Apple")30 else 34;val cell=FrameLayout(a).apply{background=shape(surface,40,true);contentDescription="Continue with $s";setOnClickListener{preview("$s sign-in is not connected.")};addView(icon(s,iconSize,ink),FrameLayout.LayoutParams(dp(iconSize),dp(iconSize),Gravity.CENTER))};r.addView(cell,LinearLayout.LayoutParams(dp(58),dp(58)).apply{setMargins(dp(12),0,dp(12),0)})};add(r,62,12)
     }
     private fun chips(labels:List<String>,selected:String=labels.first(),onSelect:(String)->Unit):View{
         val r=row();labels.forEach{label->r.addView(text(label,12f,if(label==selected)color("#24192E") else ink,700).apply{gravity=Gravity.CENTER;background=shape(if(label==selected)lavender else surface,24,true);pad(this,10,9);isFocusable=true;setOnClickListener{onSelect(label)}},LinearLayout.LayoutParams(0,dp(38),1f).apply{setMargins(dp(2),0,dp(2),0)})};return r
@@ -489,6 +489,20 @@ class PhaseTwoScreens(
     }
     private fun more(){
         header("More to care for.","Everything you need, right where you expect it.",back="Home")
-        listOf(Triple("Person","My Profile","Profile"),Triple("Document","Pet Records","Records"),Triple("Search","Search Records","Browse Records"),Triple("Bell","Reminders","Reminders"),Triple("Care","Care Calendar","Calendar"),Triple("Pets","Care Circle","Care Circle"),Triple("Link","Sitter Mode","Sitter Mode"),Triple("Lock","Care Circle Access","Care Circle Access"),Triple("Notes","Activity Log","Activity Log"),Triple("QR","Pet ID QR","Pet ID QR"),Triple("Emergency","Emergency Mode","Emergency"),Triple("Cloud","Offline & Sync","Offline & Sync"),Triple("Lock","QR Information Privacy","QR Privacy"),Triple("Wave","Sound Event Journal","Sound Journal"),Triple("Notes","Care History","Care History")).forEach{(kind,label,target)->add(infoRow(kind,label){go(target)},58,5)}
+        val groups=listOf(
+            "Account" to listOf(Triple("Person","My Profile","Profile")),
+            "Care & Routines" to listOf(Triple("Bell","Reminders","Reminders"),Triple("Care","Care Calendar","Calendar"),Triple("Wave","Sound Event Journal","Sound Journal"),Triple("Notes","Care History","Care History")),
+            "Care Circle" to listOf(Triple("Pets","Care Circle","Care Circle"),Triple("Link","Sitter Mode","Sitter Mode"),Triple("Lock","Care Circle Access","Care Circle Access"),Triple("Notes","Activity Log","Activity Log")),
+            "Records & Safety" to listOf(Triple("Document","Pet Records","Records"),Triple("Search","Search Records","Browse Records"),Triple("QR","Pet ID QR","Pet ID QR"),Triple("Emergency","Emergency Mode","Emergency"),Triple("Cloud","Offline & Sync","Offline & Sync"),Triple("Lock","QR Information Privacy","QR Privacy"))
+        )
+        groups.forEachIndexed{groupIndex,(label,items)->
+            add(text(label,13f,sub,700),20,6)
+            val list=col().apply{background=shape(surface,18);pad(this,0,3)}
+            items.forEachIndexed{index,(kind,item,target)->
+                list.addView(infoRow(kind,item){go(target)}.apply{background=null},LinearLayout.LayoutParams(-1,dp(54)))
+                if(index<items.lastIndex)list.addView(View(a).apply{setBackgroundColor(outline)},LinearLayout.LayoutParams(-1,dp(1)).apply{leftMargin=dp(57);rightMargin=dp(12)})
+            }
+            add(list,-2,if(groupIndex<groups.lastIndex)12 else 0)
+        }
     }
 }

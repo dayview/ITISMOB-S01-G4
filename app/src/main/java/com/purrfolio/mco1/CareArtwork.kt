@@ -36,8 +36,8 @@ class CareArtwork @JvmOverloads constructor(context: Context, attrs: AttributeSe
     override fun onDraw(c: Canvas) {
         super.onDraw(c);c.save();val s=min(width,height)/48f;c.translate((width-48*s)/2,(height-48*s)/2);c.scale(s,s)
         when(kind) {
-            "Google" -> {stroke(Color.rgb(66,133,244),6f);c.drawArc(7f,7f,41f,41f,-40f,85f,false,p);p.color=Color.rgb(52,168,83);c.drawArc(7f,7f,41f,41f,45f,90f,false,p);p.color=Color.rgb(251,188,5);c.drawArc(7f,7f,41f,41f,135f,65f,false,p);p.color=Color.rgb(234,67,53);c.drawArc(7f,7f,41f,41f,200f,85f,false,p);p.color=Color.rgb(66,133,244);c.drawLine(25f,24f,41f,24f,p);c.drawLine(41f,24f,40f,31f,p)}
-            "Facebook" -> {fill(c,Color.rgb(80,133,239)){c.drawCircle(24f,24f,20f,p)};fill(c,Color.rgb(24,25,35)){val q=androidx.core.graphics.PathParser.createPathFromPathData("M27,43 V27 H33 L34,20 H27 V16 Q27,12 31,12 H35 V6 H30 Q20,6 20,16 V20 H15 V27 H20 V43 Z");c.drawPath(q!!,p)}}
+            "Google" -> {fill(c,Color.rgb(66,133,244)){p.textSize=39f;p.typeface=Typeface.create("sans-serif",Typeface.BOLD);p.textAlign=Paint.Align.CENTER;c.drawText("G",24f,37f,p)}}
+            "Facebook" -> {fill(c,Color.rgb(24,119,242)){c.drawCircle(24f,24f,20f,p)};fill(c,Color.WHITE){val q=androidx.core.graphics.PathParser.createPathFromPathData("M27,43 V27 H33 L34,20 H27 V16 Q27,12 31,12 H35 V6 H30 Q20,6 20,16 V20 H15 V27 H20 V43 Z");c.drawPath(q!!,p)}}
             "Apple" -> {fill(c,tint){val q=androidx.core.graphics.PathParser.createPathFromPathData("M25,12 C24,6 29,2 34,2 C34,7 30,12 25,12 M25,15 C16,9 7,16 9,27 C10,35 16,44 20,43 C24,40 26,40 30,43 C34,44 39,36 41,31 C32,27 32,18 39,15 C34,10 29,13 25,15 Z");c.drawPath(q!!,p)}}
             "Feeding" -> { fill(c,lavender){val q=Path();q.moveTo(11f,15f);q.lineTo(5f,36f);q.cubicTo(5f,44f,43f,44f,43f,36f);q.lineTo(37f,15f);q.close();c.drawPath(q,p)};stroke(dark,2f);c.drawOval(10f,10f,38f,23f,p);fill(c,peach){c.drawOval(10f,9f,38f,20f,p)} }
             "Medication" -> {c.rotate(40f,24f,24f);fill(c,lavender){c.drawRoundRect(14f,3f,34f,45f,10f,10f,p)};c.save();c.clipRect(10f,0f,38f,24f);fill(c,pink){c.drawRoundRect(14f,3f,34f,45f,10f,10f,p)};c.restore();stroke(dark,1.5f);c.drawLine(14f,24f,34f,24f,p)}
@@ -57,7 +57,7 @@ class CareArtwork @JvmOverloads constructor(context: Context, attrs: AttributeSe
             "Check" -> {stroke(tint,3.3f);path(c,13f,24f,21f,32f,35f,16f)}
             "Energy", "Allergies" -> fill(c,Color.rgb(255,209,140)){val q=Path();q.moveTo(26f,2f);q.lineTo(9f,26f);q.lineTo(22f,26f);q.lineTo(18f,45f);q.lineTo(39f,19f);q.lineTo(26f,19f);q.close();c.drawPath(q,p)}
             "Food" -> {stroke(pink,3f);path(c,13f,5f,13f,42f);path(c,7f,5f,7f,17f,19f,17f,19f,5f);path(c,34f,5f,34f,42f);c.drawOval(29f,4f,37f,23f,p)}
-            "Mood" -> {fill(c,pink){c.drawCircle(24f,24f,20f,p)};fill(c,dark){c.drawCircle(17f,19f,2f,p);c.drawCircle(31f,19f,2f,p);c.drawArc(14f,22f,34f,37f,0f,180f,true,p)}}
+            "Mood" -> {val moodInk=if(context.resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK==android.content.res.Configuration.UI_MODE_NIGHT_YES)dark else Color.rgb(98,81,112);fill(c,pink){c.drawCircle(24f,24f,20f,p)};fill(c,moodInk){c.drawCircle(17f,19f,2f,p);c.drawCircle(31f,19f,2f,p);c.drawArc(14f,22f,34f,37f,0f,180f,true,p)}}
             "Mic" -> {fill(c,tint){c.drawRoundRect(18f,3f,30f,30f,6f,6f,p)};stroke(tint,3f);c.drawArc(12f,15f,36f,36f,0f,180f,false,p);path(c,24f,36f,24f,44f);path(c,18f,44f,30f,44f)}
             "Wave" -> {stroke(tint,3f);for(i in 0..4){val h=listOf(8,18,30,20,10)[i];c.drawLine(8f+i*8,24f-h/2,8f+i*8,24f+h/2,p)}}
             "Link" -> {stroke(tint,3f);c.rotate(40f,24f,24f);c.drawRoundRect(16f,2f,32f,28f,8f,8f,p);c.drawRoundRect(16f,20f,32f,46f,8f,8f,p)}
@@ -84,8 +84,10 @@ class PetRings(context: Context, private val photo: Bitmap, private val light: B
         }
         c.save();val clip=Path();clip.addCircle(160f,160f,65f,Path.Direction.CW);c.clipPath(clip);p.style=Paint.Style.FILL;c.drawBitmap(photo,Rect((photo.width*.18f).toInt(),(photo.height*.22f).toInt(),(photo.width*.83f).toInt(),(photo.height*.87f).toInt()),RectF(90f,90f,230f,230f),p);c.restore()
         p.style=Paint.Style.STROKE;p.strokeWidth=3f;p.color=colors[1];c.drawCircle(160f,160f,68f,p)
+        val moodOutline=if(light)Color.rgb(252,249,255) else Color.rgb(16,16,20)
+        val moodInk=if(light)Color.rgb(98,81,112) else Color.rgb(16,16,20)
         for((x,y,col) in listOf(Triple(296f,160f,Color.rgb(145,229,200)),Triple(92f,278f,Color.rgb(145,229,200)),Triple(220f,244f,Color.rgb(155,203,255)))){
-            p.style=Paint.Style.FILL;p.color=Color.rgb(16,16,20);c.drawCircle(x,y,17f,p);p.color=col;c.drawCircle(x,y,13f,p);p.color=Color.rgb(16,16,20);c.drawCircle(x-4,y-3,1.8f,p);c.drawCircle(x+4,y-3,1.8f,p);c.drawArc(x-7,y-1,x+7,y+9,0f,180f,true,p)
+            p.style=Paint.Style.FILL;p.color=moodOutline;c.drawCircle(x,y,17f,p);p.color=col;c.drawCircle(x,y,13f,p);p.color=moodInk;c.drawCircle(x-4,y-3,1.8f,p);c.drawCircle(x+4,y-3,1.8f,p);c.drawArc(x-7,y-1,x+7,y+9,0f,180f,true,p)
         };c.restore()
     }
 }

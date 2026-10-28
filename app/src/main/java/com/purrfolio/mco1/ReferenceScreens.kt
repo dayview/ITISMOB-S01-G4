@@ -84,6 +84,10 @@ class ReferenceScreens(private val a: Activity, private val pet: org.json.JSONOb
     }
     fun dock(screen:String):View{
         val binding=FloatingBottomNavBinding.inflate(a.layoutInflater)
+        bindDock(binding,screen)
+        return binding.root
+    }
+    fun bindDock(binding:FloatingBottomNavBinding,screen:String){
         val active=when(screen){"Home"->"Home";"Pet Detail","Pets"->"Pets";"Profile","Account Settings","Notifications","More"->"More";else->"Care"}
         listOf(
             Triple("Home",binding.navHome,"Home"),
@@ -98,7 +102,6 @@ class ReferenceScreens(private val a: Activity, private val pet: org.json.JSONOb
             cell.setOnClickListener{go(target)}
         }
         binding.navLogCare.setOnClickListener{go("Care")}
-        return binding.root
     }
     private fun week(capsules:Boolean){
         val r=row();val colors=listOf(yellow,sub,blue,lavender,pink,lavender,mint)
