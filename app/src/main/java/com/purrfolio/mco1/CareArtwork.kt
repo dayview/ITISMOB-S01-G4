@@ -40,8 +40,8 @@ class CareArtwork @JvmOverloads constructor(context: Context, attrs: AttributeSe
     override fun onDraw(c: Canvas) {
         super.onDraw(c);c.save();val s=min(width,height)/48f;c.translate((width-48*s)/2,(height-48*s)/2);c.scale(s,s)
         when(kind) {
-            "Google" -> {fill(c,Color.rgb(66,133,244)){p.textSize=39f;p.typeface=Typeface.create("sans-serif",Typeface.BOLD);p.textAlign=Paint.Align.CENTER;c.drawText("G",24f,37f,p)}}
-            "Facebook" -> {fill(c,Color.rgb(24,119,242)){c.drawCircle(24f,24f,20f,p)};fill(c,Color.WHITE){val q=androidx.core.graphics.PathParser.createPathFromPathData("M27,43 V27 H33 L34,20 H27 V16 Q27,12 31,12 H35 V6 H30 Q20,6 20,16 V20 H15 V27 H20 V43 Z");c.drawPath(q!!,p)}}
+            "Google" -> {fill(c,tint){p.textSize=39f;p.typeface=Typeface.create("sans-serif",Typeface.BOLD);p.textAlign=Paint.Align.CENTER;c.drawText("G",24f,37f,p)}}
+            "Facebook" -> fill(c,tint){val q=androidx.core.graphics.PathParser.createPathFromPathData("M27,43 V27 H33 L34,20 H27 V16 Q27,12 31,12 H35 V6 H30 Q20,6 20,16 V20 H15 V27 H20 V43 Z");c.drawPath(q!!,p)}
             "Apple" -> {fill(c,tint){val q=androidx.core.graphics.PathParser.createPathFromPathData("M25,12 C24,6 29,2 34,2 C34,7 30,12 25,12 M25,15 C16,9 7,16 9,27 C10,35 16,44 20,43 C24,40 26,40 30,43 C34,44 39,36 41,31 C32,27 32,18 39,15 C34,10 29,13 25,15 Z");c.drawPath(q!!,p)}}
             "Feeding" -> { fill(c,lavender){val q=Path();q.moveTo(11f,15f);q.lineTo(5f,36f);q.cubicTo(5f,44f,43f,44f,43f,36f);q.lineTo(37f,15f);q.close();c.drawPath(q,p)};stroke(iconInk,2f);c.drawOval(10f,10f,38f,23f,p);fill(c,peach){c.drawOval(10f,9f,38f,20f,p)} }
             "Medication" -> {c.rotate(40f,24f,24f);fill(c,lavender){c.drawRoundRect(14f,3f,34f,45f,10f,10f,p)};c.save();c.clipRect(10f,0f,38f,24f);fill(c,pink){c.drawRoundRect(14f,3f,34f,45f,10f,10f,p)};c.restore();stroke(iconInk,1.5f);c.drawLine(14f,24f,34f,24f,p)}
@@ -91,10 +91,10 @@ class PetRings(context: Context, private val photo: Bitmap, private val light: B
         addView(ringLayer,LayoutParams(LayoutParams.MATCH_PARENT,LayoutParams.MATCH_PARENT))
         addView(photoTapTarget,LayoutParams(1,1))
         val badges=listOf(
-            Badge("Energy",Color.rgb(145,229,200),296f,160f),
-            Badge("Food",Color.rgb(243,182,215),160f,296f),
-            Badge("Water",Color.rgb(155,203,255),24f,160f),
-            Badge("Mood",Color.rgb(216,180,248),160f,24f)
+            Badge("Energy",Color.rgb(255,209,140),296f,160f),
+            Badge("Food",Color.rgb(243,182,215),88f,114f),
+            Badge("Water",Color.rgb(155,203,255),220f,246f),
+            Badge("Mood",Color.rgb(145,229,200),32f,207f)
         )
         badges.forEach{badge->
             val marker=FrameLayout(context).apply{

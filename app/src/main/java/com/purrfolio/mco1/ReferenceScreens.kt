@@ -16,7 +16,7 @@ import androidx.core.view.WindowInsetsCompat
 import com.purrfolio.mco1.databinding.FloatingBottomNavBinding
 
 /** Reference-specific presentation. Persistence and existing forms remain owned by MainActivity. */
-class ReferenceScreens(private val a: Activity, private val pet: org.json.JSONObject, private val go: (String)->Unit, private val choose: ()->Unit, private val onPetPhoto: ()->Unit = {}) {
+class ReferenceScreens(private val a: Activity, private val pet: org.json.JSONObject, private val go: (String)->Unit, private val choose: ()->Unit, private val onPetPhoto: ()->Unit = {}, private val onBack:()->Unit = { go("Home") }) {
     private val name get()=pet.optString("name","Mochi")
     companion object { val destinations=setOf("Home","Pet Detail","Care","Pet Timeline","Sitter Mode","Pet Passport") }
     private val night=a.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK == Configuration.UI_MODE_NIGHT_YES
@@ -63,7 +63,7 @@ class ReferenceScreens(private val a: Activity, private val pet: org.json.JSONOb
     }
     private fun preview(s:String){AlertDialog.Builder(a).setTitle("Frontend preview").setMessage(s).setPositiveButton("OK",null).show()}
     private fun header(s:String,extra:String?=null,back:String="Home"){
-        val r=row();r.addView(action("Back","Back"){go(back)})
+        val r=row();r.addView(action("Back","Back",onBack))
         r.addView(title(s).apply{gravity=Gravity.CENTER;maxLines=1;if(s.contains("⌄"))setOnClickListener{choose()};if(s.startsWith("•"))text=android.text.SpannableString(s).apply{setSpan(android.text.style.ForegroundColorSpan(mint),0,1,0)}},LinearLayout.LayoutParams(0,dp(56),1f))
         r.addView(if(extra!=null)action(extra,if(extra=="More")"Pet options" else "Share passport"){if(extra=="More")petOptions() else go("Pet ID QR")} else View(a),LinearLayout.LayoutParams(dp(48),dp(48)))
         add(r,64,12)
@@ -139,7 +139,7 @@ class ReferenceScreens(private val a: Activity, private val pet: org.json.JSONOb
     private fun petOptions(){AlertDialog.Builder(a).setTitle(name).setItems(arrayOf("Switch pet","Edit pet profile","Pet Passport","Sitter Mode","Care History","Care Circle","Pet Records")){_,i->when(i){0->choose();1->go("Edit Pet Profile");2->go("Pet Passport");3->go("Sitter Mode");4->go("Care History");5->go("Care Circle");6->go("Records")}}.show()}
     private fun overviewHeader(){
         val header=FrameLayout(a)
-        header.addView(action("Back","Back"){go("Home")},FrameLayout.LayoutParams(dp(48),dp(48),Gravity.START or Gravity.CENTER_VERTICAL))
+        header.addView(action("Back","Back",onBack),FrameLayout.LayoutParams(dp(48),dp(48),Gravity.START or Gravity.CENTER_VERTICAL))
         val nameAndChevron=row().apply{gravity=Gravity.CENTER_VERTICAL;contentDescription="Choose pet";setOnClickListener{choose()}}
         nameAndChevron.addView(title(name).apply{gravity=Gravity.CENTER_VERTICAL;maxLines=1},LinearLayout.LayoutParams(-2,dp(56)))
         val chevron=object:View(a){
@@ -167,7 +167,7 @@ class ReferenceScreens(private val a: Activity, private val pet: org.json.JSONOb
     private fun logCare(){
         spacer(4);content.background=shape(surface,28,true)
         val handle=View(a).apply{background=shape(sub,4)};content.addView(handle,LinearLayout.LayoutParams(dp(40),dp(4)).apply{gravity=Gravity.CENTER_HORIZONTAL;bottomMargin=dp(4)})
-        val h=row();h.addView(action("Close","Close log care"){go("Home")});h.addView(title("Log Care",27f).apply{gravity=Gravity.CENTER},LinearLayout.LayoutParams(0,dp(52),1f));h.addView(View(a),LinearLayout.LayoutParams(dp(48),1));add(h,56,12)
+        val h=row();h.addView(action("Close","Close log care",onBack));h.addView(title("Log Care",27f).apply{gravity=Gravity.CENTER},LinearLayout.LayoutParams(0,dp(52),1f));h.addView(View(a),LinearLayout.LayoutParams(dp(48),1));add(h,56,12)
         val circleSize=minOf(116,((a.resources.displayMetrics.widthPixels/a.resources.displayMetrics.density-44-48)/2).toInt())
         val categories=listOf("Feeding","Medication","Water","Playtime","Vet Visit","Grooming")
         categories.chunked(2).forEach{pair->val r=row().apply{gravity=Gravity.CENTER};pair.forEach{s->val cell=col().apply{gravity=Gravity.CENTER;background=shape(if(night)color("#201E29") else elevated,80,true);contentDescription="Log $s";setOnClickListener{go("Quick Log:$s")}}

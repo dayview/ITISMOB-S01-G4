@@ -28,12 +28,14 @@ import com.purrfolio.mco1.databinding.ThemeOptionBinding
 import org.json.JSONArray
 import org.json.JSONObject
 import java.text.SimpleDateFormat
+import java.util.ArrayDeque
 import java.util.Date
 import java.util.Locale
 
 /** Coordinates screen navigation, local state, and XML-backed screen controllers. */
 class MainActivity : AppCompatActivity() {
     private var screen = "Welcome"
+    private val screenHistory = ArrayDeque<String>()
     private var pendingCareCategory = "Feeding"
     private var petIndex = 0
     private val preferences by lazy { getSharedPreferences("purrfolio_demo", MODE_PRIVATE) }
@@ -55,14 +57,16 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         night = resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK == Configuration.UI_MODE_NIGHT_YES
         restore()
+        savedInstanceState?.getStringArrayList("screenHistory")?.forEach { screenHistory.addLast(it) }
         val destination = savedInstanceState?.getString("screen")
             ?: if (applicationInfo.flags and android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE != 0)
                 intent.getStringExtra("preview_screen") ?: "Welcome" else "Welcome"
-        render(destination)
+        render(destination, recordHistory = false)
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
         outState.putString("screen", screen)
+        outState.putStringArrayList("screenHistory", ArrayList(screenHistory))
         super.onSaveInstanceState(outState)
     }
 
@@ -91,12 +95,29 @@ class MainActivity : AppCompatActivity() {
         }.show()
     }
 
-    private fun render(destination: String) {
+    private fun navigateBack() {
+        if (screenHistory.isNotEmpty()) {
+            render(screenHistory.removeLast(), false)
+        } else {
+            render(when(screen){
+                "Create Account","Log In","Reset Password"->"Welcome"
+                "Pet Detail","Edit Pet Profile","Add Your Pet"->"Pets"
+                "Quick Log","Voice Log","Sound Journal","Care History"->"Care"
+                "Paperless Inbox","Pet Timeline","Pet Passport","Browse Records","Vaccination Card"->"Records"
+                "Personal Information","Account Settings","Notifications"->"Profile"
+                "App Theme"->"Account Settings"
+                else->"More"
+            }, false)
+        }
+    }
+
+    private fun render(destination: String, recordHistory: Boolean = true) {
         if (destination.startsWith("Quick Log:")) {
             pendingCareCategory = destination.substringAfter(":")
-            render("Quick Log")
+            render("Quick Log", recordHistory)
             return
         }
+        if (recordHistory && destination != screen) screenHistory.addLast(screen)
         screen = destination
         when (destination) {
             "Welcome" -> { showWelcome(); return }
@@ -105,7 +126,7 @@ class MainActivity : AppCompatActivity() {
             "Care History" -> { showCareHistory(); return }
         }
         if (destination in ReferenceScreens.destinations) {
-            val view = ReferenceScreens(this, selectedPet(), { render(it) }, { choosePet() }, { editPetPhoto() }).build(destination)
+            val view = ReferenceScreens(this, selectedPet(), { render(it) }, { choosePet() }, { editPetPhoto() }, { navigateBack() }).build(destination)
             setContentView(view)
             ViewCompat.requestApplyInsets(view)
             return
@@ -129,7 +150,8 @@ class MainActivity : AppCompatActivity() {
                 },
                 { addReminder() },
                 { reminder -> reminder.put("done", !reminder.optBoolean("done")); save(); render("Reminders") },
-                { render("Home") }
+                { render("Home") },
+                { navigateBack() }
             ).build(destination)
             setContentView(view)
             ViewCompat.requestApplyInsets(view)
@@ -161,7 +183,7 @@ class MainActivity : AppCompatActivity() {
         BrandType.apply(binding.backButton, true, 600)
         BrandType.apply(binding.screenTitle, true, 600)
         BrandType.apply(binding.petChooser, false, 700)
-        binding.backButton.setOnClickListener { render("Care") }
+        binding.backButton.setOnClickListener { navigateBack() }
         binding.petChooser.setOnClickListener { choosePet() }
     }
 
@@ -286,7 +308,7 @@ class MainActivity : AppCompatActivity() {
         androidx.core.view.ViewCompat.requestApplyInsets(binding.themeRoot)
         BrandType.apply(binding.themeHeading, true, 600)
         BrandType.apply(binding.themeSubtitle, false, 400)
-        binding.themeBack.setOnClickListener { render("Account Settings") }
+        binding.themeBack.setOnClickListener { navigateBack() }
         val selected = AppTheme.selected(this)
         fun option(view: ThemeOptionBinding, choice: String, title: String, description: String) {
             val checked = selected == choice
@@ -371,5 +393,8 @@ class MainActivity : AppCompatActivity() {
     }
 
     @Deprecated("Back navigation handled by main tab scaffold")
-    override fun onBackPressed() { if (screen=="Home" || screen=="Welcome") super.onBackPressed() else render(when(screen){"Create Account","Log In","Reset Password"->"Welcome";"Pet Detail","Edit Pet Profile","Add Your Pet"->"Pets";"Quick Log","Voice Log","Sound Journal","Care History"->"Care";"Paperless Inbox","Pet Timeline","Pet Passport","Browse Records","Vaccination Card"->"Records";"Personal Information","Account Settings","Notifications"->"Profile";"App Theme"->"Account Settings";else->"More"}) }
+    override fun onBackPressed() {
+        if (screenHistory.isEmpty() && (screen == "Home" || screen == "Welcome")) super.onBackPressed()
+        else navigateBack()
+    }
 }

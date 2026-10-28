@@ -40,7 +40,8 @@ class PhaseTwoScreens(
     private val saveLog:(String,String)->Unit,
     private val addReminder:()->Unit,
     private val toggleReminder:(JSONObject)->Unit,
-    private val login:()->Unit
+    private val login:()->Unit,
+    private val goBack:()->Unit={go("More")}
 ) {
     companion object {
         val destinations=setOf("Create Account","Log In","Reset Password","Profile","Personal Information",
@@ -110,7 +111,7 @@ class PhaseTwoScreens(
     private fun header(title:String,subtitle:String?=null,back:String="More",extra:String?=null,onExtra:(()->Unit)?=null,size:Float=30f,left:Boolean=false){
         val panel=FrameLayout(a)
         val h=if(title.length>23)92 else 68
-        if(!left)panel.addView(action("Back","Back"){go(back)},FrameLayout.LayoutParams(dp(40),dp(40),Gravity.TOP or Gravity.START))
+        if(!left)panel.addView(action("Back","Back",goBack),FrameLayout.LayoutParams(dp(40),dp(40),Gravity.TOP or Gravity.START))
         panel.addView(heading(title,size).apply{if(title=="Emergency Mode")setTextColor(coral);gravity=if(left)Gravity.START or Gravity.CENTER_VERTICAL else Gravity.CENTER;maxLines=2},FrameLayout.LayoutParams(-1,dp(h-16)).apply{topMargin=dp(16);if(left)rightMargin=dp(50)})
         if(extra!=null)panel.addView(action(extra,if(extra=="Plus")"Add" else extra){onExtra?.invoke()},FrameLayout.LayoutParams(dp(44),dp(44),Gravity.TOP or Gravity.END))
         add(panel,h,if(subtitle==null)10 else 0)
@@ -170,7 +171,7 @@ class PhaseTwoScreens(
     private fun sectionLabel(label:String,gap:Int=12){add(section(label),-2,gap)}
     private fun social(){
         gap(16);val divider=row();divider.addView(View(a).apply{setBackgroundColor(outline)},LinearLayout.LayoutParams(0,dp(1),1f));divider.addView(center("or continue with",13f),LinearLayout.LayoutParams(dp(136),dp(26)));divider.addView(View(a).apply{setBackgroundColor(outline)},LinearLayout.LayoutParams(0,dp(1),1f));add(divider,30,8)
-        val r=row().apply{gravity=Gravity.CENTER};listOf("Apple","Google","Facebook").forEach{s->val iconSize=if(s=="Apple")30 else 34;val cell=FrameLayout(a).apply{background=shape(surface,40,true);contentDescription="Continue with $s";setOnClickListener{preview("$s sign-in is not connected.")};addView(icon(s,iconSize,ink),FrameLayout.LayoutParams(dp(iconSize),dp(iconSize),Gravity.CENTER))};r.addView(cell,LinearLayout.LayoutParams(dp(58),dp(58)).apply{setMargins(dp(12),0,dp(12),0)})};add(r,62,12)
+        val r=row().apply{gravity=Gravity.CENTER};listOf("Apple","Google","Facebook").forEach{s->val iconSize=if(s=="Apple")30 else 34;val cell=FrameLayout(a).apply{background=shape(surface,40,true);contentDescription="Continue with $s";setOnClickListener{preview("$s sign-in is not connected.")};addView(icon(s,iconSize,primary),FrameLayout.LayoutParams(dp(iconSize),dp(iconSize),Gravity.CENTER))};r.addView(cell,LinearLayout.LayoutParams(dp(58),dp(58)).apply{setMargins(dp(12),0,dp(12),0)})};add(r,62,12)
     }
     private fun chips(labels:List<String>,selected:String=labels.first(),onSelect:(String)->Unit):View{
         val r=row();labels.forEach{label->r.addView(text(label,12f,if(label==selected)color("#24192E") else ink,700).apply{gravity=Gravity.CENTER;background=shape(if(label==selected)lavender else surface,24,true);pad(this,10,9);isFocusable=true;setOnClickListener{onSelect(label)}},LinearLayout.LayoutParams(0,dp(38),1f).apply{setMargins(dp(2),0,dp(2),0)})};return r
@@ -199,7 +200,7 @@ class PhaseTwoScreens(
 
     // Individual compositions follow; shared helpers only cover visually identical controls.
     private fun createAccount(){
-        val top=row();top.addView(action("Back","Back"){go("Welcome")},LinearLayout.LayoutParams(dp(44),dp(44)));top.addView(steps(3),LinearLayout.LayoutParams(0,dp(44),1f));top.addView(View(a),LinearLayout.LayoutParams(dp(44),1));add(top,48,12)
+        val top=row();top.addView(action("Back","Back",goBack),LinearLayout.LayoutParams(dp(44),dp(44)));top.addView(steps(3),LinearLayout.LayoutParams(0,dp(44),1f));top.addView(View(a),LinearLayout.LayoutParams(dp(44),1));add(top,48,12)
         add(heading("Create Account",32f).apply{gravity=Gravity.CENTER},48,4);add(center("Let's get to know you!",17f,ink,600),28,24)
         field("Full Name","Gracezel Castrence");field("Email Address","youremail@dlsu.edu.ph","Mail")
         val password=field("Password","","Lock",password=true)
@@ -215,12 +216,12 @@ class PhaseTwoScreens(
         add(text("Forgot password?",14f,primary,700).apply{gravity=Gravity.END;setOnClickListener{go("Reset Password")};minHeight=dp(40)},40,8)
         add(button("Log In"){login()},52);social()
         val card=row().apply{background=shape();pad(this,12,12);setOnClickListener{go("Create Account")}}
-        card.addView(art(R.drawable.pdf_sleeping_cat,105),LinearLayout.LayoutParams(dp(120),dp(105)))
+        card.addView(FrameLayout(a).apply{contentDescription="Create a new account";addView(icon("Person",48,primary),FrameLayout.LayoutParams(dp(48),dp(48),Gravity.CENTER))},LinearLayout.LayoutParams(dp(96),dp(72)))
         val copy=col();copy.addView(section("New here?"));copy.addView(text("Create an account to start\nyour pet care journey.",13f,sub),LinearLayout.LayoutParams(-1,-2).apply{topMargin=dp(7)});copy.addView(text("Create Account  →",15f,primary,700),LinearLayout.LayoutParams(-1,-2).apply{topMargin=dp(12)});card.addView(copy,LinearLayout.LayoutParams(0,-2,1f));add(card,136)
     }
     private fun resetPassword(){
-        header("Reset Password",back="Log In",size=31f);add(center("No worries!",20f,ink,600),30,6);add(center("We'll send you a link to reset\nyour password.",14f),44,12)
-        add(art(R.drawable.pdf_reset_cat,175),175,10);field("Email Address","youremail@dlsu.edu.ph","Person")
+        header("Reset Password",back="Log In",size=31f);add(center("We'll send you a link to reset\nyour password.",14f),44,12)
+        field("Email Address","youremail@dlsu.edu.ph","Person")
         add(button("Send Reset Link"){preview("Password recovery requires the existing authentication integration. No reset email has been sent.")},52,26)
         val card=col().apply{background=shape();pad(this,18,18)};card.addView(section("Didn't receive the email?"))
         listOf("Check your spam folder","Make sure you entered the\ncorrect email","Try again in a few minutes").forEach{s->val r=row();r.addView(icon("Check",25),LinearLayout.LayoutParams(dp(32),dp(32)).apply{rightMargin=dp(12)});r.addView(text(s,14f,sub));card.addView(r,LinearLayout.LayoutParams(-1,dp(54)))};add(card)
@@ -260,7 +261,7 @@ class PhaseTwoScreens(
     }
     private fun petForm(edit:Boolean){
         if(edit)header("Edit Pet Profile",back="Pet Detail") else{
-            val top=row();top.addView(action("Back","Back"){go("Create Account")},LinearLayout.LayoutParams(dp(44),dp(44)));top.addView(steps(4),LinearLayout.LayoutParams(0,dp(44),1f));top.addView(text("Skip",14f,primary,700).apply{setOnClickListener{go("Home")}},LinearLayout.LayoutParams(dp(42),dp(44)));add(top,48,8)
+            val top=row();top.addView(action("Back","Back",goBack),LinearLayout.LayoutParams(dp(44),dp(44)));top.addView(steps(4),LinearLayout.LayoutParams(0,dp(44),1f));top.addView(text("Skip",14f,primary,700).apply{setOnClickListener{go("Home")}},LinearLayout.LayoutParams(dp(42),dp(44)));add(top,48,8)
             add(heading("Add Your Pet").apply{gravity=Gravity.CENTER},44,4);add(center("Let's create their profile!",17f,primary,600),28,10)
         }
         if(edit){val r=row();r.addView(portraitHero(125,false),LinearLayout.LayoutParams(0,dp(145),1f));r.addView(button("Remove",true){preview("Photo editing is a preview; the reference portrait is retained.")},LinearLayout.LayoutParams(dp(130),dp(50)));add(r,145,12)}else add(portraitHero(140),166,10)
@@ -490,7 +491,7 @@ class PhaseTwoScreens(
     }
     private fun more(){
         val brandHeader=FrameLayout(a)
-        brandHeader.addView(action("Back","Back"){go("Home")},FrameLayout.LayoutParams(dp(48),dp(48),Gravity.START or Gravity.CENTER_VERTICAL))
+        brandHeader.addView(action("Back","Back",goBack),FrameLayout.LayoutParams(dp(48),dp(48),Gravity.START or Gravity.CENTER_VERTICAL))
         brandHeader.addView(ImageView(a).apply{setImageResource(R.drawable.purrfolio_wordmark_alpha);setColorFilter(primary,PorterDuff.Mode.SRC_IN);scaleType=ImageView.ScaleType.FIT_CENTER;contentDescription="PURRFOLIO logo"},FrameLayout.LayoutParams(dp(190),dp(48),Gravity.CENTER))
         add(brandHeader,64,12)
         val groups=listOf(
