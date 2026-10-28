@@ -446,7 +446,6 @@ class MainActivity : AppCompatActivity() {
             insets
         }
         androidx.core.view.ViewCompat.requestApplyInsets(binding.welcomeRoot)
-        BrandType.apply(binding.welcomeTagline, true, 600)
         BrandType.apply(binding.getStartedButton, false, 700)
         BrandType.apply(binding.logInButton, false, 700)
         BrandType.apply(binding.continueWithLabel, false, 400)

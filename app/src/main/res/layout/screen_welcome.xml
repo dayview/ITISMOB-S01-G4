@@ -25,37 +25,28 @@
             android:paddingEnd="@dimen/welcome_horizontal_padding"
             android:paddingBottom="12dp">
 
-            <Space android:layout_width="1dp" android:layout_height="90dp" />
+            <Space android:layout_width="1dp" android:layout_height="132dp" />
 
             <ImageView
                 android:id="@+id/welcomeLogo"
                 android:layout_width="match_parent"
-                android:layout_height="100dp"
+                android:layout_height="105dp"
                 android:contentDescription="PURRFOLIO"
+                android:elevation="1dp"
                 android:scaleType="fitCenter"
                 android:src="@drawable/purrfolio_wordmark_alpha" />
-
-            <TextView
-                android:id="@+id/welcomeTagline"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:fontFamily="@font/fredoka"
-                android:gravity="center"
-                android:includeFontPadding="false"
-                android:lineSpacingExtra="2dp"
-                android:text="their care, their story."
-                android:textColor="@color/welcome_primary"
-                android:textSize="21sp" />
 
             <Space android:layout_width="1dp" android:layout_height="30dp" />
 
             <ImageView
                 android:id="@+id/welcomeCat"
                 android:layout_width="match_parent"
-                android:layout_height="265dp"
-                android:contentDescription="Fluffy cream cat with pink heart"
+                android:layout_height="300dp"
+                android:layout_marginTop="-90dp"
+                android:layout_marginBottom="-35dp"
+                android:contentDescription="Purple illustration of a dog, cat, and rabbit with small purr lettering"
                 android:scaleType="fitCenter"
-                android:src="@drawable/purrfolio_cat_hero" />
+                android:src="@drawable/welcome_pet_trio" />
 
             <Space android:layout_width="1dp" android:layout_height="5dp" />
 
