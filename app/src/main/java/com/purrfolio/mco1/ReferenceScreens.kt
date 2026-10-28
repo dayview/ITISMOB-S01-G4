@@ -138,9 +138,29 @@ class ReferenceScreens(private val a: Activity, private val pet: org.json.JSONOb
         add(summary,76,7);tasks.indices.forEach{add(careRow(it),72,5)};flexible(12)
     }
     private fun petOptions(){AlertDialog.Builder(a).setTitle(name).setItems(arrayOf("Switch pet","Edit pet profile","Pet Passport","Sitter Mode","Care History","Care Circle","Pet Records")){_,i->when(i){0->choose();1->go("Edit Pet Profile");2->go("Pet Passport");3->go("Sitter Mode");4->go("Care History");5->go("Care Circle");6->go("Records")}}.show()}
+    private fun overviewHeader(){
+        val header=FrameLayout(a)
+        header.addView(action("Back","Back"){go("Home")},FrameLayout.LayoutParams(dp(48),dp(48),Gravity.START or Gravity.CENTER_VERTICAL))
+        val nameAndChevron=row().apply{gravity=Gravity.CENTER_VERTICAL;contentDescription="Choose pet";setOnClickListener{choose()}}
+        nameAndChevron.addView(title(name).apply{gravity=Gravity.CENTER_VERTICAL;maxLines=1},LinearLayout.LayoutParams(-2,dp(56)))
+        val chevron=object:View(a){
+            private val paint=Paint(Paint.ANTI_ALIAS_FLAG).apply{color=primary;style=Paint.Style.STROKE;strokeWidth=dp(2).toFloat();strokeCap=Paint.Cap.ROUND;strokeJoin=Paint.Join.ROUND}
+            override fun onDraw(canvas:Canvas){super.onDraw(canvas);val centerY=height/2f-dp(1);val half=dp(5).toFloat();val drop=dp(4).toFloat();val path=Path().apply{moveTo(width/2f-half,centerY-drop/2f);lineTo(width/2f,centerY+drop/2f);lineTo(width/2f+half,centerY-drop/2f)};canvas.drawPath(path,paint)}
+        }.apply{importantForAccessibility=View.IMPORTANT_FOR_ACCESSIBILITY_NO}
+        nameAndChevron.addView(chevron,LinearLayout.LayoutParams(dp(18),dp(18)).apply{leftMargin=dp(7)})
+        header.addView(nameAndChevron,FrameLayout.LayoutParams(-2,dp(56),Gravity.CENTER))
+        header.addView(action("More","Pet options"){petOptions()},FrameLayout.LayoutParams(dp(48),dp(48),Gravity.END or Gravity.CENTER_VERTICAL))
+        add(header,64,12)
+    }
     private fun overview(){
-        header("$name ⌄","More");add(PetRings(a,photo,!night).apply{contentDescription="Sample wellness rings: energy good, food 3 of 4, water 2 of 3, mood great"},330,12)
-        val metrics=row();listOf(Triple("Energy","Good",mint),Triple("Food","3/4",primary),Triple("Water","2/3",blue),Triple("Mood","Great",mint)).forEach{(s,value,c)->val cell=col().apply{gravity=Gravity.CENTER};cell.addView(icon(s,34));cell.addView(text(s,12f,ink,600),LinearLayout.LayoutParams(-2,-2).apply{topMargin=dp(6)});cell.addView(text(value,18f,if(night)c else if(c==mint)color("#28755F") else if(c==blue)color("#396B9C") else primary,800));metrics.addView(cell,LinearLayout.LayoutParams(0,dp(90),1f))};add(metrics,92,18)
+        overviewHeader();add(PetRings(a,photo,!night).apply{contentDescription="Sample wellness rings: energy good, food 3 of 4, water 2 of 3, mood great"},330,12)
+        val metrics=row();listOf(Triple("Energy","Good",mint),Triple("Food","3/4",primary),Triple("Water","2/3",blue),Triple("Mood","Great",mint)).forEach{(s,value,c)->
+            val cell=col().apply{gravity=Gravity.CENTER}
+            cell.addView(icon(s,34),LinearLayout.LayoutParams(dp(34),dp(34)))
+            cell.addView(text(s,12f,ink,600).apply{gravity=Gravity.CENTER;textAlignment=View.TEXT_ALIGNMENT_CENTER},LinearLayout.LayoutParams(-1,-2).apply{topMargin=dp(6)})
+            cell.addView(text(value,18f,if(night)c else if(c==mint)color("#28755F") else if(c==blue)color("#396B9C") else primary,800).apply{gravity=Gravity.CENTER;textAlignment=View.TEXT_ALIGNMENT_CENTER},LinearLayout.LayoutParams(-1,-2))
+            metrics.addView(cell,LinearLayout.LayoutParams(0,dp(90),1f))
+        };add(metrics,92,18)
         spacer(10)
         val card=row().apply{background=shape(surface,22,true);pad(this,20,18)};val copy=col();copy.addView(title("Insights",20f));copy.addView(text("$name seems more playful\ntoday! +20% playtime\ncompared to last week.",15f,sub),LinearLayout.LayoutParams(-1,-2).apply{topMargin=dp(8)})
         card.addView(copy,LinearLayout.LayoutParams(0,-2,1f));val side=col();side.addView(icon("Wave",50).apply{background=shape(elevated,30)});side.addView(action("Arrow","View care history"){go("Care History")});card.addView(side);card.contentDescription="Illustrative insights preview. No health analysis is connected.";card.setOnClickListener{preview("These wellness rings and insights are reference examples. Open Care History to view your saved entries.")};add(card,150,0)

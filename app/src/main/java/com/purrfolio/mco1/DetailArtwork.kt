@@ -39,6 +39,7 @@ class DetailIcon(context: Context, private val kind: String, private val tint: I
         fun box(l:Float,t:Float,r:Float,b:Float,rad:Float=2f)=c.drawRoundRect(l,t,r,b,rad,rad,paint)
         when(kind){
             "Sparkle"->{line(12f,1f,15f,9f,23f,12f,15f,15f,12f,23f,9f,15f,1f,12f,9f,9f,12f,1f)}
+            "Warning"->{line(12f,2f,23f,22f,1f,22f,12f,2f);line(12f,8f,12f,15f);circle(12f,19f,1f)}
             "Progress"->{paint.strokeWidth=3.4f;paint.color=Color.parseColor("#443C55");circle(12f,12f,9f);listOf("#D8B4F8","#91E5C8","#FFD18C").forEachIndexed{i,hex->paint.color=Color.parseColor(hex);c.drawArc(3f,3f,21f,21f,-90f+i*96f,92f,false,paint)}}
             "Person"->{circle(12f,6f,4f);val p=Path();p.moveTo(4f,21f);p.lineTo(4f,18f);p.cubicTo(4f,11f,20f,11f,20f,18f);p.lineTo(20f,21f);p.close();c.drawPath(p,paint)}
             "Mail"->{box(2f,5f,22f,20f);line(3f,6f,12f,13f,21f,6f)}

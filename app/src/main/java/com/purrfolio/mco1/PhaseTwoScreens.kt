@@ -82,7 +82,7 @@ class PhaseTwoScreens(
     private fun text(s:String,size:Float=14f,c:Int=ink,weight:Int=400,display:Boolean=false)=TextView(a).apply{
         text=s;textSize=size;setTextColor(c);includeFontPadding=false;BrandType.apply(this,display,weight);setLineSpacing(dp(2).toFloat(),1f)
     }
-    private fun heading(s:String,size:Float=30f)=text(s,size,primary,500,true)
+    private fun heading(s:String,size:Float=30f)=text(s,size,primary,600,true)
     private fun section(s:String)=text(s,19f,primary,600,true)
     private fun icon(kind:String,size:Int=26,tint:Int=primary):View =
         (if(kind in careKinds)CareArtwork(a,kind,tint)else DetailIcon(a,kind,tint)).apply{
@@ -102,7 +102,7 @@ class PhaseTwoScreens(
     private fun center(s:String,size:Float=14f,c:Int=sub,weight:Int=400)=text(s,size,c,weight).apply{gravity=Gravity.CENTER}
     private fun action(kind:String,label:String,callback:()->Unit)=FrameLayout(a).apply{
         contentDescription=label;isFocusable=true;setOnClickListener{callback()}
-        addView(icon(kind,tint=if(kind=="Check"||kind=="Camera")color("#201528")else primary),FrameLayout.LayoutParams(dp(26),dp(26),Gravity.CENTER));minimumWidth=dp(48);minimumHeight=dp(48)
+        addView(icon(kind,tint=if(kind=="Check"||kind=="Camera")color("#201528")else if(kind=="Warning")coral else primary),FrameLayout.LayoutParams(dp(26),dp(26),Gravity.CENTER));minimumWidth=dp(48);minimumHeight=dp(48)
     }
     private fun button(label:String,secondary:Boolean=false,tint:Int=lavender,callback:()->Unit)=text(label,15f,if(secondary)primary else color("#201528"),700).apply{
         gravity=Gravity.CENTER;minHeight=dp(52);background=shape(if(secondary)elevated else tint,30,secondary);isFocusable=true;setOnClickListener{callback()}
@@ -455,7 +455,7 @@ class PhaseTwoScreens(
         val info=row().apply{background=shape();pad(this,10,7)};info.addView(art(R.drawable.pdf_id_cat,64),LinearLayout.LayoutParams(dp(88),dp(64)));info.addView(text("You can choose what information\nis shown on $name's ID card.",12f,sub),LinearLayout.LayoutParams(0,-2,1f));add(info,80)
     }
     private fun emergency(){
-        header("Emergency Mode","Quick access to important\ninformation when it matters.",back="More",extra="Emergency",onExtra={preview("Emergency details have not been configured in this prototype.")})
+        header("Emergency Mode","Quick access to important\ninformation when it matters.",back="More",extra="Warning",onExtra={preview("Emergency details have not been configured in this prototype.")})
         val card=row().apply{background=shape(if(night)color("#302026")else color("#FBE5EA"));pad(this,14,14)};card.addView(portrait(size=102,ring=coral),LinearLayout.LayoutParams(dp(102),dp(102)).apply{rightMargin=dp(14)})
         val copy=col();copy.addView(heading(name,26f));copy.addView(text("${pet.optString("species")} · 2 years old",13f,sub));copy.addView(button("EMERGENCY INFO",tint=color("#FF8298")){preview("No emergency contact or clinical record is configured. Open Pet Passport to review available details.")},LinearLayout.LayoutParams(-1,dp(42)).apply{topMargin=dp(10)});card.addView(copy,LinearLayout.LayoutParams(0,-2,1f));add(card,142,12)
         add(infoRow("Medical","Medical Information","Allergies, medications, conditions",tint=coral){go("Pet Passport")},68,6)
