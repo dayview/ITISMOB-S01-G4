@@ -3,6 +3,7 @@ package com.purrfolio.mco1
 import android.app.AlertDialog
 import android.content.Intent
 import android.content.res.Configuration
+import android.graphics.PorterDuff
 import android.net.Uri
 import android.os.Bundle
 import android.view.View
@@ -43,12 +44,18 @@ class MainActivity : AppCompatActivity() {
     private val logs = mutableListOf<JSONObject>()
     private val reminders = mutableListOf<JSONObject>()
     private var night = false
+    private var pendingNewPetPhotoUri: String? = null
+    private var petPhotoPickerTarget = "Pet Detail"
     private val petPhotoPicker = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
         if (uri != null) {
             runCatching { contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION) }
-            selectedPet().put("photoUri", uri.toString())
-            save()
-            render("Pet Detail")
+            if (petPhotoPickerTarget == "Add Your Pet") {
+                pendingNewPetPhotoUri = uri.toString()
+            } else {
+                selectedPet().put("photoUri", uri.toString())
+                save()
+            }
+            render(petPhotoPickerTarget)
         }
     }
 
@@ -58,6 +65,8 @@ class MainActivity : AppCompatActivity() {
         night = resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK == Configuration.UI_MODE_NIGHT_YES
         restore()
         savedInstanceState?.getStringArrayList("screenHistory")?.forEach { screenHistory.addLast(it) }
+        pendingNewPetPhotoUri = savedInstanceState?.getString("pendingNewPetPhotoUri")
+        petPhotoPickerTarget = savedInstanceState?.getString("petPhotoPickerTarget") ?: "Pet Detail"
         val destination = savedInstanceState?.getString("screen")
             ?: if (applicationInfo.flags and android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE != 0)
                 intent.getStringExtra("preview_screen") ?: "Welcome" else "Welcome"
@@ -67,6 +76,8 @@ class MainActivity : AppCompatActivity() {
     override fun onSaveInstanceState(outState: Bundle) {
         outState.putString("screen", screen)
         outState.putStringArrayList("screenHistory", ArrayList(screenHistory))
+        outState.putString("pendingNewPetPhotoUri", pendingNewPetPhotoUri)
+        outState.putString("petPhotoPickerTarget", petPhotoPickerTarget)
         super.onSaveInstanceState(outState)
     }
 
@@ -74,22 +85,18 @@ class MainActivity : AppCompatActivity() {
     private fun petName() = selectedPet().optString("name", "Mochi")
     private fun note(message: String) = Toast.makeText(this, message, Toast.LENGTH_LONG).show()
 
-    private fun editPetPhoto() {
-        val hasPhoto = selectedPet().optString("photoUri").isNotBlank()
-        val options = if (hasPhoto) arrayOf("Change photo", "Remove photo", "Cancel") else arrayOf("Add photo", "Cancel")
-        AlertDialog.Builder(this).setTitle("${petName()}'s photo").setItems(options) { _, index ->
+    private fun editPetPhoto(addingPet:Boolean=false) {
+        val target = if(addingPet) "Add Your Pet" else screen
+        val photoUri = if(addingPet) pendingNewPetPhotoUri else selectedPet().optString("photoUri").takeIf{it.isNotBlank()}
+        val hasPhoto = !photoUri.isNullOrBlank()
+        val options = if (hasPhoto) arrayOf("Choose from device", "Remove photo", "Cancel") else arrayOf("Choose from device", "Cancel")
+        AlertDialog.Builder(this).setTitle(if(addingPet)"Pet photo" else "${petName()}'s photo").setItems(options) { _, index ->
             when {
-                index == 0 -> petPhotoPicker.launch(arrayOf("image/*"))
+                index == 0 -> { petPhotoPickerTarget=target;petPhotoPicker.launch(arrayOf("image/*")) }
                 index == 1 && hasPhoto -> {
-                    runCatching {
-                        contentResolver.releasePersistableUriPermission(
-                            Uri.parse(selectedPet().optString("photoUri")),
-                            Intent.FLAG_GRANT_READ_URI_PERMISSION
-                        )
-                    }
-                    selectedPet().remove("photoUri")
-                    save()
-                    render("Pet Detail")
+                    runCatching { contentResolver.releasePersistableUriPermission(Uri.parse(photoUri),Intent.FLAG_GRANT_READ_URI_PERMISSION) }
+                    if(addingPet)pendingNewPetPhotoUri=null else{selectedPet().remove("photoUri");save()}
+                    render(target)
                 }
             }
         }.show()
@@ -117,6 +124,7 @@ class MainActivity : AppCompatActivity() {
             render("Quick Log", recordHistory)
             return
         }
+        if (screen == "Add Your Pet" && destination != "Add Your Pet") pendingNewPetPhotoUri = null
         if (recordHistory && destination != screen) screenHistory.addLast(screen)
         screen = destination
         when (destination) {
@@ -138,7 +146,7 @@ class MainActivity : AppCompatActivity() {
                 { index -> petIndex = index; render("Pet Detail") },
                 { values, adding ->
                     val updated = if (adding) JSONObject() else JSONObject(selectedPet().toString())
-                    listOf("name", "species", "breed", "birthday", "sex", "notes").forEach { key ->
+                    listOf("name", "species", "breed", "birthday", "sex", "notes", "photoUri").forEach { key ->
                         if (values.containsKey(key)) updated.put(key, values[key])
                     }
                     if (adding) { pets.add(updated); petIndex = pets.lastIndex } else pets[petIndex] = updated
@@ -151,7 +159,9 @@ class MainActivity : AppCompatActivity() {
                 { addReminder() },
                 { reminder -> reminder.put("done", !reminder.optBoolean("done")); save(); render("Reminders") },
                 { render("Home") },
-                { navigateBack() }
+                { navigateBack() },
+                pendingNewPetPhotoUri,
+                { adding -> editPetPhoto(adding) }
             ).build(destination)
             setContentView(view)
             ViewCompat.requestApplyInsets(view)
@@ -263,6 +273,8 @@ class MainActivity : AppCompatActivity() {
         }
         val binding = ScreenWelcomeBinding.inflate(layoutInflater)
         setContentView(binding.root)
+        if (night) binding.welcomeLogo.clearColorFilter()
+        else binding.welcomeLogo.setColorFilter(getColor(R.color.welcome_primary), PorterDuff.Mode.SRC_IN)
         androidx.core.view.ViewCompat.setOnApplyWindowInsetsListener(binding.welcomeRoot) { view, insets ->
             val safe = insets.getInsets(androidx.core.view.WindowInsetsCompat.Type.systemBars() or androidx.core.view.WindowInsetsCompat.Type.displayCutout())
             view.setPadding(safe.left, safe.top, safe.right, safe.bottom)

@@ -93,18 +93,6 @@
                 android:orientation="horizontal">
 
                 <FrameLayout
-                    android:id="@+id/googleButton"
-                    android:layout_width="54dp"
-                    android:layout_height="54dp"
-                    android:layout_marginHorizontal="10dp"
-                    android:background="@drawable/social_container"
-                    android:contentDescription="Continue with Google">
-                    <com.purrfolio.mco1.CareArtwork
-                        android:layout_width="29dp" android:layout_height="29dp"
-                        android:layout_gravity="center" app:artKind="Google" />
-                </FrameLayout>
-
-                <FrameLayout
                     android:id="@+id/appleButton"
                     android:layout_width="54dp"
                     android:layout_height="54dp"
@@ -114,7 +102,20 @@
                     <com.purrfolio.mco1.CareArtwork
                         android:layout_width="29dp" android:layout_height="29dp"
                         android:layout_gravity="center" app:artKind="Apple"
-                        app:artTint="@color/text_primary" />
+                        app:artTint="@color/welcome_primary" />
+                </FrameLayout>
+
+                <FrameLayout
+                    android:id="@+id/googleButton"
+                    android:layout_width="54dp"
+                    android:layout_height="54dp"
+                    android:layout_marginHorizontal="10dp"
+                    android:background="@drawable/social_container"
+                    android:contentDescription="Continue with Google">
+                    <com.purrfolio.mco1.CareArtwork
+                        android:layout_width="29dp" android:layout_height="29dp"
+                        android:layout_gravity="center" app:artKind="Google"
+                        app:artTint="@color/welcome_primary" />
                 </FrameLayout>
 
                 <FrameLayout
@@ -126,7 +127,8 @@
                     android:contentDescription="Continue with Facebook">
                     <com.purrfolio.mco1.CareArtwork
                         android:layout_width="29dp" android:layout_height="29dp"
-                        android:layout_gravity="center" app:artKind="Facebook" />
+                        android:layout_gravity="center" app:artKind="Facebook"
+                        app:artTint="@color/welcome_primary" />
                 </FrameLayout>
             </LinearLayout>
 

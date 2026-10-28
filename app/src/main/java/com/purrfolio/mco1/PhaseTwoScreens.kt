@@ -12,6 +12,7 @@ import android.text.Editable
 import android.text.InputType
 import android.text.TextWatcher
 import android.text.method.PasswordTransformationMethod
+import android.net.Uri
 import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
@@ -41,7 +42,9 @@ class PhaseTwoScreens(
     private val addReminder:()->Unit,
     private val toggleReminder:(JSONObject)->Unit,
     private val login:()->Unit,
-    private val goBack:()->Unit={go("More")}
+    private val goBack:()->Unit={go("More")},
+    private val pendingPetPhotoUri:String?=null,
+    private val onPetPhoto:(Boolean)->Unit={}
 ) {
     companion object {
         val destinations=setOf("Create Account","Log In","Reset Password","Profile","Personal Information",
@@ -131,6 +134,17 @@ class PhaseTwoScreens(
         frame.addView(portrait(size=size),FrameLayout.LayoutParams(dp(size),dp(size),Gravity.CENTER))
         if(editable)frame.addView(action("Camera","Change photo"){preview("Photo upload is not connected. The supplied image is shown for this frontend preview.")}.apply{background=shape(lavender,30,false);translationX=dp((size-35)/2).toFloat();translationY=dp((size-30)/2).toFloat()},FrameLayout.LayoutParams(dp(44),dp(44),Gravity.CENTER))
         if(decorated){frame.addView(icon("Heart",26,pink).apply{translationX=-dp((size+65)/2).toFloat();translationY=-dp(15).toFloat()},FrameLayout.LayoutParams(dp(26),dp(26),Gravity.CENTER));frame.addView(icon("Sparkle",24).apply{translationX=dp((size+65)/2).toFloat();translationY=dp(20).toFloat()},FrameLayout.LayoutParams(dp(24),dp(24),Gravity.CENTER))}
+        return frame
+    }
+    private fun petPhotoEditor(photoUri:String?,size:Int,onManage:()->Unit):View{
+        val frame=FrameLayout(a)
+        val image=portrait(size=size)
+        if(!photoUri.isNullOrBlank())runCatching{(image.getChildAt(0) as ImageView).setImageURI(Uri.parse(photoUri))}
+        frame.addView(image,FrameLayout.LayoutParams(dp(size),dp(size),Gravity.CENTER))
+        frame.addView(action("Camera",if(photoUri.isNullOrBlank())"Add pet photo" else "Manage pet photo",onManage).apply{
+            background=shape(lavender,30,false);translationX=dp((size-35)/2).toFloat();translationY=dp((size-30)/2).toFloat()
+        },FrameLayout.LayoutParams(dp(44),dp(44),Gravity.CENTER))
+        frame.contentDescription=if(photoUri.isNullOrBlank())"Pet portrait. Add a photo from this device." else "Saved pet photo. Tap to change or remove it."
         return frame
     }
     private fun field(label:String,value:String="",kind:String="Person",hint:String="",password:Boolean=false,multiline:Boolean=false,dropdown:List<String>?=null,parent:LinearLayout=body):EditText{
@@ -264,7 +278,8 @@ class PhaseTwoScreens(
             val top=row();top.addView(action("Back","Back",goBack),LinearLayout.LayoutParams(dp(44),dp(44)));top.addView(steps(4),LinearLayout.LayoutParams(0,dp(44),1f));top.addView(text("Skip",14f,primary,700).apply{setOnClickListener{go("Home")}},LinearLayout.LayoutParams(dp(42),dp(44)));add(top,48,8)
             add(heading("Add Your Pet").apply{gravity=Gravity.CENTER},44,4);add(center("Let's create their profile!",17f,primary,600),28,10)
         }
-        if(edit){val r=row();r.addView(portraitHero(125,false),LinearLayout.LayoutParams(0,dp(145),1f));r.addView(button("Remove",true){preview("Photo editing is a preview; the reference portrait is retained.")},LinearLayout.LayoutParams(dp(130),dp(50)));add(r,145,12)}else add(portraitHero(140),166,10)
+        val photoUri=if(edit)pet.optString("photoUri").takeIf{it.isNotBlank()}else pendingPetPhotoUri
+        add(petPhotoEditor(photoUri,if(edit)125 else 140){onPetPhoto(!edit)},if(edit)145 else 166,12)
         val fields=linkedMapOf<String,EditText>()
         fields["name"]=field("Pet Name",if(edit)name else "","Pets",hint="Mochi")
         fields["species"]=field("Species",if(edit)pet.optString("species")else "Cat","Cat",dropdown=listOf("Cat","Dog","Rabbit","Other"))
@@ -276,7 +291,7 @@ class PhaseTwoScreens(
         }else weight=field("Weight", "","Weight",hint="kg (optional)")
         gap(10);add(button(if(edit)"Save Changes"else "Continue"){
             if(fields.getValue("name").text.isBlank()){fields.getValue("name").error="Pet name is required";return@button}
-            val values=fields.mapValues{it.value.text.toString().trim()};prefs.edit().putString("pet-ui-weight:${values["name"]}",weight.text.toString()).apply();savePet(values,!edit)
+            val values=fields.mapValues{it.value.text.toString().trim()}.toMutableMap();photoUri?.let{values["photoUri"]=it};prefs.edit().putString("pet-ui-weight:${values["name"]}",weight.text.toString()).apply();savePet(values,!edit)
         },52)
     }
     private fun myPets(){
