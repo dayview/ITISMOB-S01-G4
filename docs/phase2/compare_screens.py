@@ -8,8 +8,10 @@ mode=sys.argv[1] if len(sys.argv)>1 else 'dark'
 files=sorted((ROOT/'screenshots'/mode).glob('*.png'))
 out=ROOT/'comparisons'/mode
 out.mkdir(parents=True,exist_ok=True)
+protected={'phase1-welcome':'01-welcome-existing','phase1-overview':'10-pet-overview-existing',
+           'phase1-log-care':'14-log-care-existing','phase1-passport':'20-passport-existing'}
 for file in files:
-    ref=ROOT/'references'/file.name
+    ref=ROOT/'references'/((protected.get(file.stem,file.stem))+'.png')
     if not ref.exists():continue
     a=Image.open(ref).convert('RGB');b=Image.open(file).convert('RGB')
     width=365
