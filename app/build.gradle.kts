@@ -5,4 +5,4 @@ android { namespace = "com.purrfolio.mco1"; compileSdk = 35
     kotlinOptions { jvmTarget = "17" }
 }
 
-dependencies { implementation("androidx.core:core:1.13.0") }
+dependencies { implementation("androidx.core:core:1.13.0"); implementation("androidx.appcompat:appcompat:1.7.0") }

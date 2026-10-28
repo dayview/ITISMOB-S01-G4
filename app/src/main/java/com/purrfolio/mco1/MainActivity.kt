@@ -27,7 +27,7 @@ import java.util.Date
 import java.util.Locale
 
 /** Offline, self-contained MCO1 UX prototype. No remote operations are simulated as successful. */
-class MainActivity : Activity() {
+class MainActivity : androidx.appcompat.app.AppCompatActivity() {
     private lateinit var root: LinearLayout
     private lateinit var body: LinearLayout
     private var screen = "Welcome"
@@ -47,12 +47,18 @@ class MainActivity : Activity() {
     private val guestPages = setOf("Welcome","Create Account","Log In","Reset Password")
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        AppTheme.applySaved(this)
         super.onCreate(savedInstanceState)
         window.statusBarColor = getColor(R.color.background)
         window.navigationBarColor = getColor(R.color.background)
         night = resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK == Configuration.UI_MODE_NIGHT_YES
         androidx.core.view.WindowCompat.getInsetsController(window, window.decorView).apply { isAppearanceLightStatusBars = !night; isAppearanceLightNavigationBars = !night }
-        loadColors(); restore(); render(if (applicationInfo.flags and android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE != 0) intent.getStringExtra("preview_screen") ?: "Welcome" else "Welcome")
+        loadColors(); restore(); render(savedInstanceState?.getString("screen") ?: if (applicationInfo.flags and android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE != 0) intent.getStringExtra("preview_screen") ?: "Welcome" else "Welcome")
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        outState.putString("screen", screen)
+        super.onSaveInstanceState(outState)
     }
 
     private fun loadColors() {
@@ -170,6 +176,7 @@ class MainActivity : Activity() {
                         "Quick Log", "Voice Log", "Sound Journal", "Care History" -> "Care"
                         "Pet Passport", "Pet Timeline", "Paperless Inbox", "Vaccination Card", "Browse Records" -> "Records"
                         "Personal Information", "Account Settings", "Notifications" -> "Profile"
+                        "App Theme" -> "Account Settings"
                         else -> "More"
                     }) }
                 }
@@ -316,7 +323,7 @@ class MainActivity : Activity() {
         hTitle("Profile","Account Settings","Make PURRFOLIO feel like yours.")
         iconRow("Change Password","Protect your account","♙","Reset Password")
         iconRow("Email Preferences","Control account emails","✉","Notifications")
-        iconRow("App Theme","Follows your system Light / Dark preference","☾", "")
+        iconRow("App Theme",AppTheme.label(this),"☾", "App Theme")
         iconRow("Language","English","◎", "")
         iconRow("Data & Storage","Local records and syncing","▤","Offline & Sync")
         gap(10);cardLink("Delete Account","Account deletion requires authenticated backend","♧",danger) {note("Not available in frontend demonstration")}
@@ -632,5 +639,5 @@ class MainActivity : Activity() {
         preferences.edit().putString("pets",json(pets)).putString("logs",json(logs)).putString("reminders",json(reminders)).apply()
     }
     @Deprecated("Back navigation handled by main tab scaffold")
-    override fun onBackPressed() { if (screen=="Home" || screen=="Welcome") super.onBackPressed() else render(when(screen){"Create Account","Log In","Reset Password"->"Welcome";"Pet Detail","Edit Pet Profile","Add Your Pet"->"Pets";"Quick Log","Voice Log","Sound Journal","Care History"->"Care";"Paperless Inbox","Pet Timeline","Pet Passport","Browse Records","Vaccination Card"->"Records";"Personal Information","Account Settings","Notifications"->"Profile";else->"More"}) }
+    override fun onBackPressed() { if (screen=="Home" || screen=="Welcome") super.onBackPressed() else render(when(screen){"Create Account","Log In","Reset Password"->"Welcome";"Pet Detail","Edit Pet Profile","Add Your Pet"->"Pets";"Quick Log","Voice Log","Sound Journal","Care History"->"Care";"Paperless Inbox","Pet Timeline","Pet Passport","Browse Records","Vaccination Card"->"Records";"Personal Information","Account Settings","Notifications"->"Profile";"App Theme"->"Account Settings";else->"More"}) }
 }
