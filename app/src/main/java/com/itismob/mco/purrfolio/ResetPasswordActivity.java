@@ -36,5 +36,3 @@ public class ResetPasswordActivity extends AppCompatActivity {
         resetTipsTv.setText("✓ It can take a few minutes\n✓Look in your spam folder\n✓ Open the link, set a new password, then log in");
     }
 }
-
-

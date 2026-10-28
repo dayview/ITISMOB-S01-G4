@@ -102,3 +102,4 @@ public abstract class BaseListActivity extends AppCompatActivity {
     }
 }
 
+

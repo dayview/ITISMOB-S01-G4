@@ -17,3 +17,4 @@ public class PurrfolioApp extends Application {
         getSystemService(NotificationManager.class).createNotificationChannel(channel);
     }
 }
+

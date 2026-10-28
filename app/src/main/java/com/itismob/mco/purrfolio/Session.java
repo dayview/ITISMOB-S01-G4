@@ -24,3 +24,4 @@ public class Session {
     }
     public static void setNotif(Context c, String key, boolean on) { prefs(c).edit().putBoolean("notif_" + key, on).apply(); }
 }
+
