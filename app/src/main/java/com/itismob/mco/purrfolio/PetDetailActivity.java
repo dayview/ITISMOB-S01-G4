@@ -125,4 +125,3 @@ public class PetDetailActivity extends BaseListActivity {
         }
     }
 }
-

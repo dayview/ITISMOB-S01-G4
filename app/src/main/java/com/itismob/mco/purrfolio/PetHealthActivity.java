@@ -91,4 +91,3 @@ public class PetHealthActivity extends AppCompatActivity {
         Ui.toast(this, "Vaccination added");
     }
 }
-
