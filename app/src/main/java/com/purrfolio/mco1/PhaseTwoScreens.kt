@@ -244,7 +244,6 @@ class PhaseTwoScreens(
     private fun accountSettings(){
         header("Account Settings",back="Profile");gap(12)
         add(infoRow("Lock","Change Password"){go("Reset Password")},66,8)
-        add(infoRow("Mail","Email Preferences"){go("Notifications")},66,8)
         add(infoRow("Moon","App Theme",AppTheme.label(a)){go("App Theme")},72,8)
         add(infoRow("Globe","Language","English"){preview("English is the available language in this frontend.")},72,8)
         add(infoRow("Database","Data & Storage"){go("Offline & Sync")},66,24)
@@ -256,7 +255,7 @@ class PhaseTwoScreens(
         sectionLabel("Updates");add(toggleRow("Megaphone","App Updates","New features and improvements"),70,4);add(toggleRow("Star","Tips & Insights","Pet care tips and recommendations"),70,22)
         sectionLabel("Shared Care");add(toggleRow("Pets","Care Circle Activity","When someone updates a record"),70,22)
         sectionLabel("Marketing");add(toggleRow("Mail","Product News","Occasional updates and offers",false),70,14)
-        add(art(R.drawable.pdf_notification_cat,76),76,4);add(center("We'll only notify you\nabout what matters.",14f,ink,500),44)
+        add(art(R.drawable.pdf_notification_cat_transparent,76),76,4);add(center("We'll only notify you\nabout what matters.",14f,ink,500),44)
     }
     private fun petForm(edit:Boolean){
         if(edit)header("Edit Pet Profile",back="Pet Detail") else{
@@ -325,7 +324,7 @@ class PhaseTwoScreens(
         }
     }
     private fun voiceLog(){
-        header("Voice Log","Just say what happened.",back="Care");add(art(R.drawable.pdf_voice_cat,76),76)
+        header("Voice Log","Just say what happened.",back="Care")
         val transcription=col().apply{background=shape(elevated,22);pad(this,20,16);gravity=Gravity.CENTER}
         transcription.addView(heading("“Fed $name one cup\nat 7:30 AM”",21f).apply{gravity=Gravity.CENTER})
         transcription.addView(Waveform(a,primary),LinearLayout.LayoutParams(-1,dp(42)).apply{topMargin=dp(12)})
@@ -353,7 +352,7 @@ class PhaseTwoScreens(
         val controls=row().apply{gravity=Gravity.CENTER};controls.addView(action("Stop","Stop preview"){notice("Preview stopped. No audio was recorded.")}.apply{background=shape()},LinearLayout.LayoutParams(dp(105),dp(58)).apply{rightMargin=dp(44)});controls.addView(action("Check","Save written sound observation"){go("Quick Log:Other")}.apply{background=shape(lavender,40,false)},LinearLayout.LayoutParams(dp(64),dp(64)));add(controls,70,10)
         demoLabel("Audio preview · recording and playback not connected");sectionLabel("Recent Recordings (3)")
         listOf(Triple("Coughing","00:18","Sep 25, 2026 · 8:14 PM"),Triple("Meowing (prolonged)","00:12","Sep 20, 2026 · 6:03 PM"),Triple("Sneezing","00:06","Sep 12, 2026 · 10:21 AM")).forEach{(label,duration,date)->add(infoRow("Play",label,"$duration · $date","More"){preview("This is a sample recording row. No audio file is attached.")},62,5)}
-        val card=row().apply{background=shape();pad(this,10,9)};card.addView(art(R.drawable.pdf_sound_cat,76),LinearLayout.LayoutParams(dp(88),dp(76)));card.addView(text("Keep a record of unusual sounds\nto share with your veterinarian\nwhen needed.",12f,sub),LinearLayout.LayoutParams(0,-2,1f));add(card,96)
+        val card=row().apply{background=shape();pad(this,14,12)};card.addView(icon("Notes",28),LinearLayout.LayoutParams(dp(32),dp(32)).apply{rightMargin=dp(12)});card.addView(text("Keep a record of unusual sounds to share with your veterinarian when needed.",13f,sub),LinearLayout.LayoutParams(0,-2,1f));add(card,-2)
     }
     private data class SampleDocument(val name:String,val date:String,val type:String,val tint:String)
     private val documents=listOf(SampleDocument("Vaccination Card","Sep 12, 2026","Vaccinations","#F3B6D7"),SampleDocument("Vet Receipt","Aug 28, 2026","Documents","#D8B4F8"),SampleDocument("Prescription","Aug 10, 2026","Medications","#FFD0BC"),SampleDocument("Vet Visit Notes","Jul 15, 2026","Appointments","#9BCBFF"))

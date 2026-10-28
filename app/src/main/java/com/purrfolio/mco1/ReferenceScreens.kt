@@ -166,7 +166,7 @@ class ReferenceScreens(private val a: Activity, private val pet: org.json.JSONOb
             cell.addView(icon(s,43));cell.addView(text(s,14f,ink,800),LinearLayout.LayoutParams(-2,-2).apply{topMargin=dp(9)})
             r.addView(cell,LinearLayout.LayoutParams(dp(circleSize),dp(circleSize)).apply{setMargins(dp(12),0,dp(12),0)})};add(r,circleSize,12)}
         spacer(6)
-        val voice=col().apply{gravity=Gravity.CENTER;background=shape(elevated,30,true);pad(this,14,20)};voice.addView(title("Quick Log with Voice",21f));voice.addView(text("Just say what happened.",14f,sub),LinearLayout.LayoutParams(-2,-2).apply{topMargin=dp(5)})
+        val voice=col().apply{gravity=Gravity.CENTER;background=shape(elevated,30,true);pad(this,14,20)};voice.addView(title("Quick Log with Voice",21f).apply{gravity=Gravity.CENTER;textAlignment=View.TEXT_ALIGNMENT_CENTER});voice.addView(text("Just say what happened.",14f,sub),LinearLayout.LayoutParams(-2,-2).apply{topMargin=dp(5)})
         val wave=row().apply{gravity=Gravity.CENTER};wave.addView(icon("Wave",49));val mic=FrameLayout(a).apply{background=shape(lavender,60);contentDescription="Open voice logging";setOnClickListener{go("Voice Log")};addView(icon("Mic",53,color("#443057")),FrameLayout.LayoutParams(dp(53),dp(53),Gravity.CENTER))};wave.addView(mic,LinearLayout.LayoutParams(dp(100),dp(100)).apply{setMargins(dp(20),0,dp(20),0)});wave.addView(icon("Wave",49));voice.addView(wave,LinearLayout.LayoutParams(-1,dp(100)).apply{topMargin=dp(18)});add(voice,230)
     }
     private fun timeline(){

@@ -15,8 +15,8 @@ import androidx.core.view.WindowInsetsCompat
 import com.purrfolio.mco1.databinding.CareHistoryEmptyBinding
 import com.purrfolio.mco1.databinding.CareHistoryEntryBinding
 import com.purrfolio.mco1.databinding.DialogAddReminderBinding
-import com.purrfolio.mco1.databinding.LegacyBottomNavBinding
 import com.purrfolio.mco1.databinding.LegacyScreenHeaderBinding
+import com.purrfolio.mco1.databinding.FloatingBottomNavBinding
 import com.purrfolio.mco1.databinding.ScreenAppThemeBinding
 import com.purrfolio.mco1.databinding.ScreenCareHistoryBinding
 import com.purrfolio.mco1.databinding.ScreenQuickLogBinding
@@ -133,16 +133,12 @@ class MainActivity : AppCompatActivity() {
         binding.petChooser.setOnClickListener { choosePet() }
     }
 
-    private fun bindLegacyNav(binding: LegacyBottomNavBinding) {
-        listOf(
-            binding.legacyHome to "Home", binding.legacyPets to "Pets",
-            binding.legacyCare to "Care", binding.legacyRecords to "Records",
-            binding.legacyMore to "More"
-        ).forEach { (cell, destination) ->
-            BrandType.apply(cell.getChildAt(0) as TextView, true, 600)
-            BrandType.apply(cell.getChildAt(1) as TextView, false, 400)
-            cell.setOnClickListener { render(destination) }
-        }
+    private fun bindCareDock(binding: FloatingBottomNavBinding) {
+        binding.navHome.setOnClickListener { render("Home") }
+        binding.navPets.setOnClickListener { render("Pets") }
+        binding.navCare.setOnClickListener { render("Pet Timeline") }
+        binding.navMore.setOnClickListener { render("More") }
+        binding.navLogCare.setOnClickListener { render("Care") }
     }
 
     private fun showQuickLog() {
@@ -150,7 +146,7 @@ class MainActivity : AppCompatActivity() {
         setContentView(binding.root)
         applyLegacyInsets(binding.quickLogRoot)
         bindLegacyHeader(binding.header, "Quick Log")
-        bindLegacyNav(binding.bottomNav)
+        bindCareDock(binding.bottomNav)
         BrandType.apply(binding.eyebrow, false, 700)
         BrandType.apply(binding.pageTitle, true, 600)
         BrandType.apply(binding.pageSubtitle, false, 400)
@@ -176,12 +172,12 @@ class MainActivity : AppCompatActivity() {
         setContentView(binding.root)
         applyLegacyInsets(binding.careHistoryRoot)
         bindLegacyHeader(binding.header, "Care History")
-        bindLegacyNav(binding.bottomNav)
+        bindCareDock(binding.bottomNav)
         BrandType.apply(binding.eyebrow, false, 700)
         BrandType.apply(binding.pageTitle, true, 600)
         BrandType.apply(binding.pageSubtitle, false, 400)
         BrandType.apply(binding.newEntryButton, false, 700)
-        binding.pageSubtitle.text = "Your saved care moments for ${petName()}."
+        binding.pageSubtitle.text = "your saved care moments"
         val filtered = logs.filter { it.optString("pet") == petName() }
         if (filtered.isEmpty()) {
             val empty = CareHistoryEmptyBinding.inflate(layoutInflater, binding.entryContainer, false)
