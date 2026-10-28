@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/quickLogRoot" android:layout_width="match_parent"
+    android:layout_height="match_parent" android:background="@color/background"
+    android:orientation="vertical" tools:context=".MainActivity">
+    <include android:id="@+id/header" layout="@layout/legacy_screen_header"
+        android:layout_width="match_parent" android:layout_height="wrap_content" />
+    <ScrollView android:layout_width="match_parent" android:layout_height="0dp"
+        android:layout_weight="1" android:clipToPadding="false"
+        android:fillViewport="false" android:scrollbars="none">
+        <LinearLayout android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:orientation="vertical" android:paddingStart="22dp"
+            android:paddingTop="16dp" android:paddingEnd="22dp"
+            android:paddingBottom="24dp">
+            <TextView android:id="@+id/eyebrow" style="@style/LegacyBodyText" android:letterSpacing="0.18"
+                android:text="CARE LOGGING" android:textColor="@color/primary"
+                android:textSize="11sp" />
+            <Space android:layout_width="1dp" android:layout_height="10dp" />
+            <TextView android:id="@+id/pageTitle" style="@style/LegacyBodyText"
+                android:fontFamily="@font/fredoka" android:text="Log care"
+                android:textSize="30sp" />
+            <Space android:layout_width="1dp" android:layout_height="5dp" />
+            <TextView android:id="@+id/pageSubtitle" style="@style/LegacyBodyText"
+                android:text="A quick record for Mochi." android:textColor="@color/text_secondary"
+                android:textSize="14sp" />
+            <Space android:layout_width="1dp" android:layout_height="19dp" />
+            <Space android:layout_width="1dp" android:layout_height="10dp" />
+            <TextView android:id="@+id/activityLabel" style="@style/LegacyBodyText"
+                android:text="Activity" android:textColor="@color/primary"
+                android:textSize="13sp" />
+            <Space android:layout_width="1dp" android:layout_height="6dp" />
+            <Spinner android:id="@+id/categorySpinner" android:layout_width="match_parent"
+                android:layout_height="54dp" />
+            <EditText android:id="@+id/detailInput" android:layout_width="match_parent"
+                android:layout_height="55dp" android:layout_marginBottom="10dp"
+                android:background="@drawable/legacy_input" android:hint="What happened? (amount, notes, etc.)"
+                android:inputType="textCapSentences" android:paddingStart="15dp"
+                android:paddingTop="7dp" android:paddingEnd="15dp"
+                android:paddingBottom="7dp" android:singleLine="true"
+                android:textColor="@color/text_primary" android:textColorHint="@color/text_secondary"
+                android:textSize="15sp" />
+            <TextView android:id="@+id/saveButton" android:layout_width="match_parent"
+                android:layout_height="50dp" android:layout_marginTop="8dp"
+                android:background="@drawable/legacy_button" android:gravity="center"
+                android:text="Save care log" android:textColor="@color/on_primary"
+                android:textSize="15sp" />
+        </LinearLayout>
+    </ScrollView>
+    <include android:id="@+id/bottomNav" layout="@layout/legacy_bottom_nav"
+        android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:layout_marginStart="12dp" android:layout_marginEnd="12dp"
+        android:layout_marginBottom="6dp" />
+</LinearLayout>

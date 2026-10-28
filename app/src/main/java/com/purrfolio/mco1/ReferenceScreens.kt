@@ -5,12 +5,10 @@ import android.app.AlertDialog
 import android.content.res.Configuration
 import android.graphics.*
 import android.graphics.drawable.GradientDrawable
-import android.os.Build
 import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
 import android.widget.*
-import androidx.core.content.res.ResourcesCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
@@ -19,7 +17,7 @@ import com.purrfolio.mco1.databinding.FloatingBottomNavBinding
 /** Reference-specific presentation. Persistence and existing forms remain owned by MainActivity. */
 class ReferenceScreens(private val a: Activity, private val pet: org.json.JSONObject, private val go: (String)->Unit, private val choose: ()->Unit) {
     private val name get()=pet.optString("name","Mochi")
-    companion object { val destinations=setOf("Welcome","Home","Pet Detail","Care","Pet Timeline","Sitter Mode","Pet Passport") }
+    companion object { val destinations=setOf("Home","Pet Detail","Care","Pet Timeline","Sitter Mode","Pet Passport") }
     private val night=a.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK == Configuration.UI_MODE_NIGHT_YES
     private fun color(s:String)=Color.parseColor(s)
     private val bg=color(if(night)"#101014" else "#FCF9FF")
@@ -34,8 +32,6 @@ class ReferenceScreens(private val a: Activity, private val pet: org.json.JSONOb
     private val pink=color("#F3B6D7")
     private val yellow=color("#FFD18C")
     private val blue=color("#9BCBFF")
-    private val fredoka=ResourcesCompat.getFont(a,R.font.fredoka)!!
-    private val nunito=ResourcesCompat.getFont(a,R.font.nunito)!!
     private val photo=BitmapFactory.decodeResource(a.resources,R.drawable.purrfolio_cat_hero)
     private lateinit var content: LinearLayout
     private fun dp(n:Int)=(n*a.resources.displayMetrics.density+.5f).toInt()
@@ -80,10 +76,10 @@ class ReferenceScreens(private val a: Activity, private val pet: org.json.JSONOb
         val root=col().apply{setBackgroundColor(bg)}
         ViewCompat.setOnApplyWindowInsetsListener(root){v,insets->val safe=insets.getInsets(WindowInsetsCompat.Type.systemBars() or WindowInsetsCompat.Type.displayCutout());v.setPadding(safe.left,safe.top,safe.right,safe.bottom);insets}
         val scroll=ScrollView(a).apply{isFillViewport=true;isVerticalScrollBarEnabled=false;clipToPadding=false}
-        content=col().apply{pad(this,22,if(screen=="Welcome")0 else 10,22,12)}
+        content=col().apply{pad(this,22,10,22,12)}
         scroll.addView(content,ViewGroup.LayoutParams(-1,-2));root.addView(scroll,LinearLayout.LayoutParams(-1,0,1f).apply{if(screen=="Care")topMargin=dp(38)})
         when(screen){"Home"->home();"Pet Detail"->overview();"Care"->logCare();"Pet Timeline"->timeline();"Sitter Mode"->sitter();"Pet Passport"->passport()}
-        if(screen!="Welcome"&&screen!="Care")root.addView(dock(screen),LinearLayout.LayoutParams(-1,dp(78)).apply{setMargins(dp(8),0,dp(8),dp(5))})
+        if(screen!="Care")root.addView(dock(screen),LinearLayout.LayoutParams(-1,dp(78)).apply{setMargins(dp(8),0,dp(8),dp(5))})
         ViewCompat.requestApplyInsets(root);return root
     }
     fun dock(screen:String):View{

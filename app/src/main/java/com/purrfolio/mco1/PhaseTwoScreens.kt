@@ -43,14 +43,10 @@ class PhaseTwoScreens(
 ) {
     companion object {
         val destinations=setOf("Create Account","Log In","Reset Password","Profile","Personal Information",
-            "Account Settings","App Theme","Notifications","Add Your Pet","Edit Pet Profile","Pets","Care Circle",
+            "Account Settings","Notifications","Add Your Pet","Edit Pet Profile","Pets","Care Circle",
             "Voice Log","Sound Journal","Records","Paperless Inbox","Vaccination Card","Browse Records",
             "Reminders","Calendar","Pet ID QR","Emergency","Offline & Sync","Care Circle Access",
             "Activity Log","QR Privacy","More")
-        val screens=listOf("Create Account","Log In","Reset Password","Profile","Personal Information",
-            "Account Settings","App Theme","Notifications","Add Your Pet","Edit Pet Profile","Pets","Care Circle",
-            "Voice Log","Sound Journal","Records","Vaccination Card","Browse Records","Reminders",
-            "Calendar","Pet ID QR","Emergency","Offline & Sync","Care Circle Access","Activity Log","QR Privacy")
     }
     private val name get()=pet.optString("name","Mochi")
     private val prefs=a.getSharedPreferences("purrfolio_demo",Activity.MODE_PRIVATE)

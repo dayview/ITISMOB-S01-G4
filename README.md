@@ -5,6 +5,15 @@ Standalone Kotlin / Android Views application inspired by **the actual supplied 
 ## Open
 Open this folder in Android Studio, let Android Gradle Plugin sync, then Run. It uses applicationId `com.purrfolio.mco1`, minimum SDK 24. **Requires Android SDK + Gradle.** The emulator follows system dark/light mode.
 
+To start the visible Pixel 6 emulator, build this project, install it, and launch PURRFOLIO from Terminal:
+
+```sh
+./run-pixel6.sh
+```
+
+The emulator command alone only opens Android. If a headless Pixel 6 is already running, `run-pixel6.sh` stops it before opening the visible emulator. Set `ANDROID_HOME` if your SDK is outside `~/Library/Android/sdk`.
+Keep that Terminal window open while using the emulator; press Ctrl+C when finished. If Pixel 6 is already visible, the script simply rebuilds and relaunches the app.
+
 ## Current status
 This is a **frontend prototype** with local editable pet profiles, care logs and reminders. It includes the supplied image-derived PURRFOLIO wordmark, photo accents, theme colors and more wireframe-based destinations. Features requiring cloud accounts, notification permissions, calendars, QR encoding/scanning, media capture, voice, and Firebase are **not** implemented. No network operation or emergency response is falsely claimed.
 

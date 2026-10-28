@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent" android:layout_height="wrap_content"
+    android:layout_marginStart="12dp" android:layout_marginEnd="12dp"
+    android:layout_marginBottom="6dp" android:background="@drawable/legacy_nav"
+    android:gravity="center_vertical" android:orientation="horizontal"
+    android:paddingStart="5dp" android:paddingTop="8dp"
+    android:paddingEnd="5dp" android:paddingBottom="8dp">
+    <LinearLayout android:id="@+id/legacyHome" style="@style/LegacyNavCell">
+        <TextView style="@style/LegacyBodyText" android:gravity="center" android:text="⌂"
+            android:textColor="@color/text_secondary" android:textSize="23sp" />
+        <TextView style="@style/LegacyBodyText" android:gravity="center" android:text="Home"
+            android:textColor="@color/text_secondary" android:textSize="11sp" />
+    </LinearLayout>
+    <LinearLayout android:id="@+id/legacyPets" style="@style/LegacyNavCell">
+        <TextView style="@style/LegacyBodyText" android:gravity="center" android:text="♧"
+            android:textColor="@color/text_secondary" android:textSize="23sp" />
+        <TextView style="@style/LegacyBodyText" android:gravity="center" android:text="Pets"
+            android:textColor="@color/text_secondary" android:textSize="11sp" />
+    </LinearLayout>
+    <LinearLayout android:id="@+id/legacyCare" style="@style/LegacyNavCell">
+        <TextView style="@style/LegacyBodyText" android:background="@drawable/legacy_nav_care"
+            android:gravity="center" android:text="+" android:textColor="@color/primary"
+            android:textSize="29sp" />
+        <TextView style="@style/LegacyBodyText" android:gravity="center" android:text="Care"
+            android:textColor="@color/text_secondary" android:textSize="11sp" />
+    </LinearLayout>
+    <LinearLayout android:id="@+id/legacyRecords" style="@style/LegacyNavCell">
+        <TextView style="@style/LegacyBodyText" android:gravity="center" android:text="▤"
+            android:textColor="@color/text_secondary" android:textSize="23sp" />
+        <TextView style="@style/LegacyBodyText" android:gravity="center" android:text="Records"
+            android:textColor="@color/text_secondary" android:textSize="11sp" />
+    </LinearLayout>
+    <LinearLayout android:id="@+id/legacyMore" style="@style/LegacyNavCell">
+        <TextView style="@style/LegacyBodyText" android:gravity="center" android:text="•••"
+            android:textColor="@color/text_secondary" android:textSize="23sp" />
+        <TextView style="@style/LegacyBodyText" android:gravity="center" android:text="More"
+            android:textColor="@color/text_secondary" android:textSize="11sp" />
+    </LinearLayout>
+</LinearLayout>

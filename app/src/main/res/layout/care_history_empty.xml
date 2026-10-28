@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent" android:layout_height="wrap_content"
+    android:layout_marginBottom="12dp" android:background="@drawable/legacy_card"
+    android:orientation="vertical" android:paddingStart="17dp"
+    android:paddingTop="16dp" android:paddingEnd="17dp"
+    android:paddingBottom="17dp">
+    <TextView android:id="@+id/emptyTitle" style="@style/LegacyBodyText"
+        android:text="No care entries yet" android:textSize="18sp" />
+    <TextView android:id="@+id/emptyDescription" style="@style/LegacyBodyText"
+        android:text="Use Quick Log to capture the first one."
+        android:textColor="@color/text_secondary" android:textSize="14sp" />
+</LinearLayout>
