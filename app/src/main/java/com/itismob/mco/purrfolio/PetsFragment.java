@@ -30,7 +30,7 @@ public class PetsFragment extends BaseListFragment {
     @Override
     protected void onRowClick(Row row) {
         Session.setPet(requireContext(), row.id, row.title);
-        Intent i = new Intent(requireContext(). PetDetailActivity.class);
+        Intent i = new Intent(requireContext(), PetDetailActivity.class);
         i.putExtra(Ui.PET_ID, row.id);
         startActivity(i);
     }

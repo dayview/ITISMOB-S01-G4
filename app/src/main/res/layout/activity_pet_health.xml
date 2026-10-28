@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/main"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:fillViewport="true">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="16dp">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="center_vertical"
+            android:orientation="horizontal">
+
+            <TextView
+                android:id="@+id/backBtn"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:padding="8dp"
+                android:text="←"
+                android:textColor="@color/purr_text"
+                android:textSize="26sp" />
+
+            <TextView
+                style="@style/Purr.Title"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="8dp"
+                android:id="@+id/healthTitleTv"
+                android:text="Health Info" />
+
+        </LinearLayout>
+
+        <TextView
+            style="@style/Purr.Sub"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:id="@+id/healthHintTv"
+            android:text="Entered by you as a personal reference. Purrfolio does not give medical advice." />
+
+        <EditText
+            android:id="@+id/allergiesEt"
+            style="@style/Purr.Field"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:hint="Allergies"
+            android:inputType="textMultiLine" />
+
+        <EditText
+            android:id="@+id/conditionsEt"
+            style="@style/Purr.Field"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:hint="Conditions"
+            android:inputType="textMultiLine" />
+
+        <EditText
+            android:id="@+id/medicationsEt"
+            style="@style/Purr.Field"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:hint="Current medications"
+            android:inputType="textMultiLine" />
+
+        <EditText
+            android:id="@+id/vetNameEt"
+            style="@style/Purr.Field"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:hint="Veterinarian / clinic"
+            android:inputType="textCapWords" />
+
+        <EditText
+            android:id="@+id/vetPhoneEt"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="12dp"
+            android:hint="Clinic phone number"
+            android:inputType="phone" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/saveBtn"
+            style="@style/Purr.Button"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="16dp"
+            android:text="Save Changes" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/vaccineBtn"
+            style="@style/Purr.TonalButton"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:text="+ Add Vaccination" />
+
+    </LinearLayout>
+
+</ScrollView>

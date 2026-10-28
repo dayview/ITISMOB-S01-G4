@@ -21,3 +21,4 @@ public class WelcomeActivity extends AppCompatActivity {
         findViewById(R.id.loginBtn).setOnClickListener(v -> startActivity(new Intent(this, LoginActivity.class)));
     }
 }
+

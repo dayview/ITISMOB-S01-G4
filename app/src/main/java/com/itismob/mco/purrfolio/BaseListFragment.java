@@ -61,3 +61,4 @@ public abstract class BaseListFragment extends Fragment {
         this.adapter.notifyDataSetChanged();
     }
 }
+

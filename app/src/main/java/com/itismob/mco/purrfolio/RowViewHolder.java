@@ -40,3 +40,4 @@ public class RowViewHolder extends RecyclerView.ViewHolder {
         }
     }
 }
+

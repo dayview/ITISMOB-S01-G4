@@ -53,3 +53,4 @@ public class RowAdapter extends RecyclerView.Adapter<RowViewHolder> {
         return this.data.size();
     }
 }
+

@@ -101,3 +101,4 @@ public abstract class BaseListActivity extends AppCompatActivity {
         return new Row(key, title, subtitle, on ? "ON" : "OFF");
     }
 }
+

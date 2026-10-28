@@ -122,7 +122,66 @@ public class PetFormActivity extends AppCompatActivity {
         }
 
         Map<String, Object> m = new HashMap<>();
+        m.put("name", name);
+        m.put("species", speciesSp.getSelectedItem().toString());
+        m.put("breed", Ui.text(breedEt));
+        m.put("birthday", birthday);
+        m.put("weight", Ui.text(weightEt));
+        m.put("gender", genderSp.getSelectedItem().toString());
+        m.put("about", Ui.text(aboutEt));
 
+        String id;
+        if (petId == null) {
+            DocumentReference ref = Repo.pets().document();
+            id = ref.getId();
+            m.put("ownerId", Repo.uid());
+            m.put("members", Arrays.asList(Repo.uid()));
+            m.put("createdAt", System.currentTimeMillis());
+
+            Map<String, Object> me = new HashMap<>();
+            me.put("uid", Repo.uid());
+            me.put("name", Repo.myName());
+            me.put("email", Repo.auth().getCurrentUser().getEmail());
+            me.put("role", "Owner");
+            me.put("canView", true);
+            me.put("canLog", true);
+            me.put("canReminders", true);
+            me.put("canDocs", true);
+
+            WriteBatch batch = Repo.db().batch();
+            batch.set(ref, m);
+            batch.set(ref.collection("circle").document(Repo.uid()), me);
+            batch.commit();
+            Session.setPet(this, id, name);
+        } else {
+            id = petId;
+            Repo.pets().document(id).update(m);
+            if (id.equals(Session.petId(this))) Session.setPet(this, id, name);
+            Repo.activity(id, "Edited pet profile", name);
+        }
+        if (photoUri != null) uploadPhoto(id, photoUri);
+        if (onboarding) goMain();
+        else finish();
+    }
+
+    private void uploadPhoto(String id, Uri uri) {
+        StorageReference ref = FirebaseStorage.getInstance().getReference("pets/" + id + "/profile.jpg");
+        ref.putFile(uri).addOnSuccessListener(t ->
+                ref.getDownloadUrl().addOnSuccessListener(url ->
+                        Repo.pets().document(id).update("photoUrl", url.toString())));
+    }
+
+    private void confirmRemove() {
+        Ui.confirm(this, "Remove pet?", "This removes the profile for everyone in the Care Circle.", () -> {
+            Repo.pets().document(petId).delete();
+            Session.clearPet(this);
+            goMain();
+        });
+    }
+
+    private void goMain() {
+        Intent i = new Intent(this, MainActivity.class);
+        i.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TASK);
+        startActivity(i);
     }
 }
-
