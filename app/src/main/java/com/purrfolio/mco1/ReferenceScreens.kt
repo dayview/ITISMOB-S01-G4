@@ -5,6 +5,7 @@ import android.app.AlertDialog
 import android.content.res.Configuration
 import android.graphics.*
 import android.graphics.drawable.GradientDrawable
+import android.net.Uri
 import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
@@ -15,7 +16,7 @@ import androidx.core.view.WindowInsetsCompat
 import com.purrfolio.mco1.databinding.FloatingBottomNavBinding
 
 /** Reference-specific presentation. Persistence and existing forms remain owned by MainActivity. */
-class ReferenceScreens(private val a: Activity, private val pet: org.json.JSONObject, private val go: (String)->Unit, private val choose: ()->Unit) {
+class ReferenceScreens(private val a: Activity, private val pet: org.json.JSONObject, private val go: (String)->Unit, private val choose: ()->Unit, private val onPetPhoto: ()->Unit = {}) {
     private val name get()=pet.optString("name","Mochi")
     companion object { val destinations=setOf("Home","Pet Detail","Care","Pet Timeline","Sitter Mode","Pet Passport") }
     private val night=a.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK == Configuration.UI_MODE_NIGHT_YES
@@ -32,7 +33,11 @@ class ReferenceScreens(private val a: Activity, private val pet: org.json.JSONOb
     private val pink=color("#F3B6D7")
     private val yellow=color("#FFD18C")
     private val blue=color("#9BCBFF")
-    private val photo=BitmapFactory.decodeResource(a.resources,R.drawable.purrfolio_cat_hero)
+    private val photo:Bitmap by lazy {
+        pet.optString("photoUri").takeIf{it.isNotBlank()}?.let{uri->
+            runCatching{a.contentResolver.openInputStream(Uri.parse(uri))?.use{BitmapFactory.decodeStream(it)}}.getOrNull()
+        } ?: BitmapFactory.decodeResource(a.resources,R.drawable.purrfolio_cat_hero)
+    }
     private lateinit var content: LinearLayout
     private fun dp(n:Int)=(n*a.resources.displayMetrics.density+.5f).toInt()
     private fun col()=LinearLayout(a).apply {orientation=LinearLayout.VERTICAL}
@@ -147,7 +152,7 @@ class ReferenceScreens(private val a: Activity, private val pet: org.json.JSONOb
         add(header,64,12)
     }
     private fun overview(){
-        overviewHeader();add(PetRings(a,photo,!night).apply{contentDescription="Sample wellness rings: energy good, food 3 of 4, water 2 of 3, mood great"},330,12)
+        overviewHeader();add(PetRings(a,photo,!night,onPetPhoto).apply{contentDescription="Pet wellness rings. Tap the pet photo to edit, change, or remove it."},330,12)
         val metrics=row();listOf(Triple("Energy","Good",mint),Triple("Food","3/4",primary),Triple("Water","2/3",blue),Triple("Mood","Great",mint)).forEach{(s,value,c)->
             val cell=col().apply{gravity=Gravity.CENTER}
             cell.addView(icon(s,34),LinearLayout.LayoutParams(dp(34),dp(34)))
@@ -157,7 +162,7 @@ class ReferenceScreens(private val a: Activity, private val pet: org.json.JSONOb
         };add(metrics,92,18)
         spacer(10)
         val card=row().apply{background=shape(surface,22,true);pad(this,20,18)};val copy=col();copy.addView(title("Insights",20f));copy.addView(text("$name seems more playful\ntoday! +20% playtime\ncompared to last week.",15f,sub),LinearLayout.LayoutParams(-1,-2).apply{topMargin=dp(8)})
-        card.addView(copy,LinearLayout.LayoutParams(0,-2,1f));val side=col();side.addView(icon("Wave",50).apply{background=shape(elevated,30)});side.addView(action("Arrow","View care history"){go("Care History")});card.addView(side);card.contentDescription="Illustrative insights preview. No health analysis is connected.";card.setOnClickListener{preview("These wellness rings and insights are reference examples. Open Care History to view your saved entries.")};add(card,150,0)
+        card.addView(copy,LinearLayout.LayoutParams(0,-2,1f));val side=col().apply{gravity=Gravity.CENTER_VERTICAL};side.addView(icon("Wave",50).apply{background=shape(elevated,30)});card.addView(side);card.contentDescription="Illustrative insights preview. No health analysis is connected.";card.setOnClickListener{preview("These wellness rings and insights are reference examples. Open Care History to view your saved entries.")};add(card,150,0)
     }
     private fun logCare(){
         spacer(4);content.background=shape(surface,28,true)

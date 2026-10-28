@@ -2,8 +2,11 @@ package com.purrfolio.mco1
 
 import android.content.Context
 import android.graphics.*
+import android.graphics.drawable.GradientDrawable
 import android.util.AttributeSet
+import android.view.Gravity
 import android.view.View
+import android.widget.FrameLayout
 import kotlin.math.*
 
 /** Original vector artwork shared by care controls; never font/emoji glyphs. */
@@ -30,6 +33,7 @@ class CareArtwork @JvmOverloads constructor(context: Context, attrs: AttributeSe
     private val pink = Color.rgb(243,182,215)
     private val peach = Color.rgb(255,205,172)
     private val dark = Color.rgb(30,27,40)
+    private val iconInk get() = if(context.resources.configuration.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK==android.content.res.Configuration.UI_MODE_NIGHT_YES)dark else Color.rgb(110,91,129)
     private fun fill(c: Canvas, color: Int, block: () -> Unit) { p.color=color;p.style=Paint.Style.FILL;block() }
     private fun stroke(color: Int, w: Float=3f) { p.color=color;p.style=Paint.Style.STROKE;p.strokeWidth=w;p.strokeCap=Paint.Cap.ROUND;p.strokeJoin=Paint.Join.ROUND }
     private fun path(c: Canvas, vararg xy: Float) { val q=Path();q.moveTo(xy[0],xy[1]);for(i in 2 until xy.size step 2)q.lineTo(xy[i],xy[i+1]);c.drawPath(q,p) }
@@ -39,12 +43,12 @@ class CareArtwork @JvmOverloads constructor(context: Context, attrs: AttributeSe
             "Google" -> {fill(c,Color.rgb(66,133,244)){p.textSize=39f;p.typeface=Typeface.create("sans-serif",Typeface.BOLD);p.textAlign=Paint.Align.CENTER;c.drawText("G",24f,37f,p)}}
             "Facebook" -> {fill(c,Color.rgb(24,119,242)){c.drawCircle(24f,24f,20f,p)};fill(c,Color.WHITE){val q=androidx.core.graphics.PathParser.createPathFromPathData("M27,43 V27 H33 L34,20 H27 V16 Q27,12 31,12 H35 V6 H30 Q20,6 20,16 V20 H15 V27 H20 V43 Z");c.drawPath(q!!,p)}}
             "Apple" -> {fill(c,tint){val q=androidx.core.graphics.PathParser.createPathFromPathData("M25,12 C24,6 29,2 34,2 C34,7 30,12 25,12 M25,15 C16,9 7,16 9,27 C10,35 16,44 20,43 C24,40 26,40 30,43 C34,44 39,36 41,31 C32,27 32,18 39,15 C34,10 29,13 25,15 Z");c.drawPath(q!!,p)}}
-            "Feeding" -> { fill(c,lavender){val q=Path();q.moveTo(11f,15f);q.lineTo(5f,36f);q.cubicTo(5f,44f,43f,44f,43f,36f);q.lineTo(37f,15f);q.close();c.drawPath(q,p)};stroke(dark,2f);c.drawOval(10f,10f,38f,23f,p);fill(c,peach){c.drawOval(10f,9f,38f,20f,p)} }
-            "Medication" -> {c.rotate(40f,24f,24f);fill(c,lavender){c.drawRoundRect(14f,3f,34f,45f,10f,10f,p)};c.save();c.clipRect(10f,0f,38f,24f);fill(c,pink){c.drawRoundRect(14f,3f,34f,45f,10f,10f,p)};c.restore();stroke(dark,1.5f);c.drawLine(14f,24f,34f,24f,p)}
+            "Feeding" -> { fill(c,lavender){val q=Path();q.moveTo(11f,15f);q.lineTo(5f,36f);q.cubicTo(5f,44f,43f,44f,43f,36f);q.lineTo(37f,15f);q.close();c.drawPath(q,p)};stroke(iconInk,2f);c.drawOval(10f,10f,38f,23f,p);fill(c,peach){c.drawOval(10f,9f,38f,20f,p)} }
+            "Medication" -> {c.rotate(40f,24f,24f);fill(c,lavender){c.drawRoundRect(14f,3f,34f,45f,10f,10f,p)};c.save();c.clipRect(10f,0f,38f,24f);fill(c,pink){c.drawRoundRect(14f,3f,34f,45f,10f,10f,p)};c.restore();stroke(iconInk,1.5f);c.drawLine(14f,24f,34f,24f,p)}
             "Water" -> {stroke(Color.rgb(155,203,255),3.5f);val q=Path();q.moveTo(24f,5f);q.cubicTo(18f,15f,11f,24f,12f,32f);q.cubicTo(13f,47f,36f,47f,36f,32f);q.cubicTo(36f,24f,29f,13f,24f,5f);c.drawPath(q,p)}
-            "Playtime" -> {fill(c,pink){c.drawCircle(24f,24f,20f,p)};stroke(dark,2.8f);c.drawArc(9f,10f,40f,42f,178f,147f,false,p);val q=Path();q.moveTo(17f,7f);q.cubicTo(12f,22f,28f,24f,25f,43f);q.moveTo(31f,7f);q.cubicTo(15f,18f,23f,31f,39f,30f);c.drawPath(q,p)}
+            "Playtime" -> {fill(c,pink){c.drawCircle(24f,24f,20f,p)};stroke(iconInk,2.8f);c.drawArc(9f,10f,40f,42f,178f,147f,false,p);val q=Path();q.moveTo(17f,7f);q.cubicTo(12f,22f,28f,24f,25f,43f);q.moveTo(31f,7f);q.cubicTo(15f,18f,23f,31f,39f,30f);c.drawPath(q,p)}
             "Vet Visit" -> {stroke(lavender,3.5f);path(c,10f,6f,10f,19f);c.drawArc(10f,9f,28f,30f,0f,180f,false,p);path(c,28f,19f,28f,6f);path(c,7f,6f,13f,6f);path(c,25f,6f,31f,6f);val q=Path();q.moveTo(19f,30f);q.lineTo(19f,34f);q.cubicTo(19f,46f,38f,47f,38f,32f);c.drawPath(q,p);c.drawCircle(38f,28f,4f,p)}
-            "Grooming" -> {c.rotate(40f,24f,24f);fill(c,lavender){c.drawRoundRect(14f,4f,31f,28f,3f,3f,p);c.drawRoundRect(19f,25f,27f,46f,4f,4f,p)};stroke(dark,1.5f);for(i in 0..5)c.drawLine(24f,8f+i*3f,32f,8f+i*3f,p)}
+            "Grooming" -> {c.rotate(40f,24f,24f);fill(c,lavender){c.drawRoundRect(14f,4f,31f,28f,3f,3f,p);c.drawRoundRect(19f,25f,27f,46f,4f,4f,p)};stroke(iconInk,1.5f);for(i in 0..5)c.drawLine(24f,8f+i*3f,32f,8f+i*3f,p)}
             "Home" -> {stroke(tint,2.5f);path(c,5f,23f,24f,7f,43f,23f);path(c,11f,21f,11f,42f,20f,42f,20f,29f,29f,29f,29f,42f,37f,42f,37f,21f)}
             "Pets", "Vaccinations" -> {stroke(tint,2.6f);val q=Path();q.moveTo(14f,25f);q.cubicTo(1f,35f,8f,46f,20f,39f);q.cubicTo(26f,36f,32f,46f,40f,38f);q.cubicTo(47f,30f,30f,16f,25f,20f);q.cubicTo(21f,20f,18f,23f,14f,25f);c.drawPath(q,p);c.drawOval(5f,13f,14f,24f,p);c.drawOval(15f,4f,23f,16f,p);c.drawOval(27f,4f,35f,16f,p);c.drawOval(37f,13f,45f,24f,p)}
             "Care", "Notes" -> {stroke(tint,2.5f);c.drawRoundRect(9f,9f,39f,42f,5f,5f,p);c.drawLine(16f,5f,16f,14f,p);c.drawLine(32f,5f,32f,14f,p);path(c,16f,24f,22f,24f);path(c,28f,24f,32f,24f);path(c,16f,33f,28f,33f)}
@@ -73,22 +77,60 @@ class CareArtwork @JvmOverloads constructor(context: Context, attrs: AttributeSe
 }
 
 /** Rounded-cap concentric arcs with a clipped photographic center and mood badges. */
-class PetRings(context: Context, private val photo: Bitmap, private val light: Boolean) : View(context) {
-    private val p=Paint(Paint.ANTI_ALIAS_FLAG)
-    override fun onDraw(c: Canvas) {
-        val s=min(width,height)/320f;c.save();c.translate((width-320*s)/2,(height-320*s)/2);c.scale(s,s)
-        val colors=intArrayOf(Color.rgb(255,209,140),Color.rgb(216,180,248),Color.rgb(243,182,215))
-        for(i in 0..2){val r=listOf(136f,105f,85f)[i];p.style=Paint.Style.STROKE;p.strokeWidth=23f;p.strokeCap=Paint.Cap.ROUND;p.color=if(light)Color.rgb(232,223,237) else Color.rgb(35,32,44);c.drawCircle(160f,160f,r,p)
-            p.color=colors[i];if(i==1)p.shader=LinearGradient(160f,55f,220f,265f,colors[1],Color.rgb(155,203,255),Shader.TileMode.CLAMP);c.drawArc(160-r,160-r,160+r,160+r,if(i==2)120f else -90f,if(i==2)92f else 90f+i*55f,false,p);p.shader=null
-            if(i==0){p.color=Color.rgb(145,229,200);c.drawArc(24f,24f,296f,296f,120f,40f,false,p)}
+class PetRings(context: Context, private val photo: Bitmap, private val light: Boolean, onPhotoClick: ()->Unit = {}) : FrameLayout(context) {
+    private data class Badge(val kind:String,val tint:Int,val x:Float,val y:Float)
+    private val paint=Paint(Paint.ANTI_ALIAS_FLAG)
+    private val badgeViews=mutableListOf<Pair<View,Badge>>()
+    private val ringLayer=object:View(context){override fun onDraw(canvas:Canvas){drawRings(canvas,width,height)}}
+    private val photoTapTarget=View(context).apply{
+        isClickable=true;contentDescription="Pet photo. Tap to add, change, or remove it."
+        setOnClickListener{onPhotoClick()}
+    }
+    init{
+        clipChildren=false
+        addView(ringLayer,LayoutParams(LayoutParams.MATCH_PARENT,LayoutParams.MATCH_PARENT))
+        addView(photoTapTarget,LayoutParams(1,1))
+        val badges=listOf(
+            Badge("Energy",Color.rgb(145,229,200),296f,160f),
+            Badge("Food",Color.rgb(243,182,215),160f,296f),
+            Badge("Water",Color.rgb(155,203,255),24f,160f),
+            Badge("Mood",Color.rgb(216,180,248),160f,24f)
+        )
+        badges.forEach{badge->
+            val marker=FrameLayout(context).apply{
+                background=GradientDrawable().apply{shape=GradientDrawable.OVAL;setColor(if(light)Color.WHITE else Color.rgb(36,34,47));setStroke(dp(2),badge.tint)}
+                contentDescription=badge.kind
+                addView(CareArtwork(context,badge.kind,badge.tint),LayoutParams(dp(22),dp(22),Gravity.CENTER))
+            }
+            addView(marker,LayoutParams(1,1))
+            badgeViews.add(marker to badge)
         }
-        c.save();val clip=Path();clip.addCircle(160f,160f,65f,Path.Direction.CW);c.clipPath(clip);p.style=Paint.Style.FILL;c.drawBitmap(photo,Rect((photo.width*.18f).toInt(),(photo.height*.22f).toInt(),(photo.width*.83f).toInt(),(photo.height*.87f).toInt()),RectF(90f,90f,230f,230f),p);c.restore()
-        p.style=Paint.Style.STROKE;p.strokeWidth=3f;p.color=colors[1];c.drawCircle(160f,160f,68f,p)
-        val moodOutline=if(light)Color.rgb(252,249,255) else Color.rgb(16,16,20)
-        val moodInk=if(light)Color.rgb(98,81,112) else Color.rgb(16,16,20)
-        for((x,y,col) in listOf(Triple(296f,160f,Color.rgb(145,229,200)),Triple(92f,278f,Color.rgb(145,229,200)),Triple(220f,244f,Color.rgb(155,203,255)))){
-            p.style=Paint.Style.FILL;p.color=moodOutline;c.drawCircle(x,y,17f,p);p.color=col;c.drawCircle(x,y,13f,p);p.color=moodInk;c.drawCircle(x-4,y-3,1.8f,p);c.drawCircle(x+4,y-3,1.8f,p);c.drawArc(x-7,y-1,x+7,y+9,0f,180f,true,p)
-        };c.restore()
+    }
+    private fun dp(value:Int)=(value*resources.displayMetrics.density+.5f).toInt()
+    override fun onLayout(changed:Boolean,left:Int,top:Int,right:Int,bottom:Int){
+        super.onLayout(changed,left,top,right,bottom)
+        val w=right-left;val h=bottom-top
+        val scale=min(w,h)/320f;val offsetX=(w-320f*scale)/2f;val offsetY=(h-320f*scale)/2f
+        val photoSize=(130f*scale).toInt()
+        val photoLeft=(offsetX+95f*scale).toInt();val photoTop=(offsetY+95f*scale).toInt()
+        photoTapTarget.layout(photoLeft,photoTop,photoLeft+photoSize,photoTop+photoSize)
+        badgeViews.forEach{(view,badge)->
+            val size=(34f*scale).toInt()
+            val badgeLeft=(offsetX+(badge.x-17f)*scale).toInt();val badgeTop=(offsetY+(badge.y-17f)*scale).toInt()
+            view.layout(badgeLeft,badgeTop,badgeLeft+size,badgeTop+size)
+        }
+    }
+    private fun drawRings(canvas:Canvas,w:Int,h:Int){
+        val scale=min(w,h)/320f;canvas.save();canvas.translate((w-320*scale)/2f,(h-320*scale)/2f);canvas.scale(scale,scale)
+        val colors=intArrayOf(Color.rgb(255,209,140),Color.rgb(216,180,248),Color.rgb(243,182,215))
+        for(i in 0..2){val radius=listOf(136f,105f,85f)[i];paint.style=Paint.Style.STROKE;paint.strokeWidth=23f;paint.strokeCap=Paint.Cap.ROUND;paint.color=if(light)Color.rgb(232,223,237) else Color.rgb(35,32,44);canvas.drawCircle(160f,160f,radius,paint)
+            paint.color=colors[i];if(i==1)paint.shader=LinearGradient(160f,55f,220f,265f,colors[1],Color.rgb(155,203,255),Shader.TileMode.CLAMP);canvas.drawArc(160-radius,160-radius,160+radius,160+radius,if(i==2)120f else -90f,if(i==2)92f else 90f+i*55f,false,paint);paint.shader=null
+            if(i==0){paint.color=Color.rgb(145,229,200);canvas.drawArc(24f,24f,296f,296f,120f,40f,false,paint)}
+        }
+        canvas.save();val clip=Path().apply{addCircle(160f,160f,65f,Path.Direction.CW)};canvas.clipPath(clip);paint.style=Paint.Style.FILL
+        canvas.drawBitmap(photo,Rect((photo.width*.18f).toInt(),(photo.height*.22f).toInt(),(photo.width*.83f).toInt(),(photo.height*.87f).toInt()),RectF(90f,90f,230f,230f),paint);canvas.restore()
+        paint.style=Paint.Style.STROKE;paint.strokeWidth=3f;paint.color=colors[1];canvas.drawCircle(160f,160f,68f,paint)
+        canvas.restore()
     }
 }
 

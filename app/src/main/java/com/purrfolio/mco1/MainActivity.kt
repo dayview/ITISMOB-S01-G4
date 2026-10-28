@@ -1,7 +1,9 @@
 package com.purrfolio.mco1
 
 import android.app.AlertDialog
+import android.content.Intent
 import android.content.res.Configuration
+import android.net.Uri
 import android.os.Bundle
 import android.view.View
 import android.widget.ArrayAdapter
@@ -9,6 +11,7 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
@@ -38,6 +41,14 @@ class MainActivity : AppCompatActivity() {
     private val logs = mutableListOf<JSONObject>()
     private val reminders = mutableListOf<JSONObject>()
     private var night = false
+    private val petPhotoPicker = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+        if (uri != null) {
+            runCatching { contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION) }
+            selectedPet().put("photoUri", uri.toString())
+            save()
+            render("Pet Detail")
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         AppTheme.applySaved(this)
@@ -59,6 +70,27 @@ class MainActivity : AppCompatActivity() {
     private fun petName() = selectedPet().optString("name", "Mochi")
     private fun note(message: String) = Toast.makeText(this, message, Toast.LENGTH_LONG).show()
 
+    private fun editPetPhoto() {
+        val hasPhoto = selectedPet().optString("photoUri").isNotBlank()
+        val options = if (hasPhoto) arrayOf("Change photo", "Remove photo", "Cancel") else arrayOf("Add photo", "Cancel")
+        AlertDialog.Builder(this).setTitle("${petName()}'s photo").setItems(options) { _, index ->
+            when {
+                index == 0 -> petPhotoPicker.launch(arrayOf("image/*"))
+                index == 1 && hasPhoto -> {
+                    runCatching {
+                        contentResolver.releasePersistableUriPermission(
+                            Uri.parse(selectedPet().optString("photoUri")),
+                            Intent.FLAG_GRANT_READ_URI_PERMISSION
+                        )
+                    }
+                    selectedPet().remove("photoUri")
+                    save()
+                    render("Pet Detail")
+                }
+            }
+        }.show()
+    }
+
     private fun render(destination: String) {
         if (destination.startsWith("Quick Log:")) {
             pendingCareCategory = destination.substringAfter(":")
@@ -73,7 +105,7 @@ class MainActivity : AppCompatActivity() {
             "Care History" -> { showCareHistory(); return }
         }
         if (destination in ReferenceScreens.destinations) {
-            val view = ReferenceScreens(this, selectedPet(), { render(it) }, { choosePet() }).build(destination)
+            val view = ReferenceScreens(this, selectedPet(), { render(it) }, { choosePet() }, { editPetPhoto() }).build(destination)
             setContentView(view)
             ViewCompat.requestApplyInsets(view)
             return
@@ -125,7 +157,7 @@ class MainActivity : AppCompatActivity() {
 
     private fun bindLegacyHeader(binding: LegacyScreenHeaderBinding, title: String) {
         binding.screenTitle.text = title
-        binding.petChooser.text = "♡ ${petName()} ⌄"
+        binding.petChooser.text = "${petName()} ⌄"
         BrandType.apply(binding.backButton, true, 600)
         BrandType.apply(binding.screenTitle, true, 600)
         BrandType.apply(binding.petChooser, false, 700)

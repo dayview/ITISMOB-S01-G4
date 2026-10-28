@@ -6,6 +6,7 @@ import android.app.DatePickerDialog
 import android.content.res.ColorStateList
 import android.content.res.Configuration
 import android.graphics.Color
+import android.graphics.PorterDuff
 import android.graphics.drawable.GradientDrawable
 import android.text.Editable
 import android.text.InputType
@@ -488,7 +489,10 @@ class PhaseTwoScreens(
         demoLabel("Privacy preferences are local · nothing is published")
     }
     private fun more(){
-        header("More to care for.","Everything you need, right where you expect it.",back="Home")
+        val brandHeader=FrameLayout(a)
+        brandHeader.addView(action("Back","Back"){go("Home")},FrameLayout.LayoutParams(dp(48),dp(48),Gravity.START or Gravity.CENTER_VERTICAL))
+        brandHeader.addView(ImageView(a).apply{setImageResource(R.drawable.purrfolio_wordmark_alpha);setColorFilter(primary,PorterDuff.Mode.SRC_IN);scaleType=ImageView.ScaleType.FIT_CENTER;contentDescription="PURRFOLIO logo"},FrameLayout.LayoutParams(dp(190),dp(48),Gravity.CENTER))
+        add(brandHeader,64,12)
         val groups=listOf(
             "Account" to listOf(Triple("Person","My Profile","Profile")),
             "Care & Routines" to listOf(Triple("Bell","Reminders","Reminders"),Triple("Care","Care Calendar","Calendar"),Triple("Wave","Sound Event Journal","Sound Journal"),Triple("Notes","Care History","Care History")),
