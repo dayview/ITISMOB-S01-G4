@@ -2,11 +2,29 @@ package com.purrfolio.mco1
 
 import android.content.Context
 import android.graphics.*
+import android.util.AttributeSet
 import android.view.View
 import kotlin.math.*
 
 /** Original vector artwork shared by care controls; never font/emoji glyphs. */
-class CareArtwork(context: Context, private val kind: String, private val tint: Int = Color.rgb(216,180,248)) : View(context) {
+class CareArtwork @JvmOverloads constructor(context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0) : View(context, attrs, defStyleAttr) {
+    private var kind: String = ""
+    private var tint: Int = Color.rgb(216,180,248)
+    constructor(context: Context, kind: String, tint: Int = Color.rgb(216,180,248)) : this(context) {
+        this.kind = kind
+        this.tint = tint
+    }
+    fun setArtwork(kind: String, tint: Int) {
+        this.kind = kind
+        this.tint = tint
+        invalidate()
+    }
+    init {
+        if (attrs != null) context.obtainStyledAttributes(attrs, R.styleable.CareArtwork).use { values ->
+            kind = values.getString(R.styleable.CareArtwork_artKind).orEmpty()
+            tint = values.getColor(R.styleable.CareArtwork_artTint, tint)
+        }
+    }
     private val p = Paint(Paint.ANTI_ALIAS_FLAG)
     private val lavender = Color.rgb(216,180,248)
     private val pink = Color.rgb(243,182,215)

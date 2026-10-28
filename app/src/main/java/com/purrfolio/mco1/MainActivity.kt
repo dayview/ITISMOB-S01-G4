@@ -25,6 +25,9 @@ import org.json.JSONObject
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import com.purrfolio.mco1.databinding.ScreenWelcomeBinding
+import com.purrfolio.mco1.databinding.ScreenAppThemeBinding
+import com.purrfolio.mco1.databinding.ThemeOptionBinding
 
 /** Offline, self-contained MCO1 UX prototype. No remote operations are simulated as successful. */
 class MainActivity : androidx.appcompat.app.AppCompatActivity() {
@@ -122,12 +125,22 @@ class MainActivity : androidx.appcompat.app.AppCompatActivity() {
             return
         }
         screen = to
+        if (to == "Welcome") {
+            showWelcome()
+            return
+        }
+        if (to == "App Theme") {
+            showAppTheme()
+            return
+        }
         if (to in ReferenceScreens.destinations) {
-            setContentView(ReferenceScreens(this, selectedPet(), { render(it) }, { choosePet() }).build(to))
+            val view = ReferenceScreens(this, selectedPet(), { render(it) }, { choosePet() }).build(to)
+            setContentView(view)
+            androidx.core.view.ViewCompat.requestApplyInsets(view)
             return
         }
         if (to in PhaseTwoScreens.destinations) {
-            setContentView(PhaseTwoScreens(
+            val view = PhaseTwoScreens(
                 this, selectedPet(), pets, logs, reminders,
                 { render(it) }, { choosePet() },
                 { index -> petIndex=index; render("Pet Detail") },
@@ -146,7 +159,9 @@ class MainActivity : androidx.appcompat.app.AppCompatActivity() {
                 { addReminder() },
                 { reminder -> reminder.put("done",!reminder.optBoolean("done"));save();render("Reminders") },
                 { loggedIn=true;render("Home") }
-            ).build(to))
+            ).build(to)
+            setContentView(view)
+            androidx.core.view.ViewCompat.requestApplyInsets(view)
             return
         }
         androidx.core.view.WindowCompat.setDecorFitsSystemWindows(window, false)
@@ -192,7 +207,6 @@ class MainActivity : androidx.appcompat.app.AppCompatActivity() {
         body = column().apply { pad(this,22,if (to in guestPages) 24 else 16,22,24) }
         scroll.addView(body);root.addView(scroll,LinearLayout.LayoutParams(-1,0,1f))
         when (to) {
-            "Welcome" -> welcome()
             "Create Account" -> createAccount()
             "Log In" -> logIn()
             "Reset Password" -> resetPassword()
@@ -240,6 +254,93 @@ class MainActivity : androidx.appcompat.app.AppCompatActivity() {
         root.addView(nav, LinearLayout.LayoutParams(-1,-2).apply { setMargins(dp(12),0,dp(12),dp(6)) })
     }
 
+    private fun showWelcome() {
+        androidx.core.view.WindowCompat.setDecorFitsSystemWindows(window, false)
+        window.statusBarColor = getColor(R.color.welcome_background)
+        window.navigationBarColor = getColor(R.color.welcome_background)
+        androidx.core.view.WindowCompat.getInsetsController(window, window.decorView).apply {
+            isAppearanceLightStatusBars = !night
+            isAppearanceLightNavigationBars = !night
+        }
+        val binding = ScreenWelcomeBinding.inflate(layoutInflater)
+        setContentView(binding.root)
+        androidx.core.view.ViewCompat.setOnApplyWindowInsetsListener(binding.welcomeRoot) { view, insets ->
+            val safe = insets.getInsets(androidx.core.view.WindowInsetsCompat.Type.systemBars() or androidx.core.view.WindowInsetsCompat.Type.displayCutout())
+            view.setPadding(safe.left, safe.top, safe.right, safe.bottom)
+            insets
+        }
+        androidx.core.view.ViewCompat.requestApplyInsets(binding.welcomeRoot)
+        BrandType.apply(binding.welcomeTagline, true, 600)
+        BrandType.apply(binding.getStartedButton, false, 700)
+        BrandType.apply(binding.logInButton, false, 700)
+        BrandType.apply(binding.continueWithLabel, false, 400)
+        binding.getStartedButton.setOnClickListener { render("Create Account") }
+        binding.logInButton.setOnClickListener { render("Log In") }
+        listOf(
+            binding.googleButton to "Google",
+            binding.appleButton to "Apple",
+            binding.facebookButton to "Facebook"
+        ).forEach { (view, provider) ->
+            view.setOnClickListener {
+                AlertDialog.Builder(this).setTitle("Frontend preview")
+                    .setMessage("$provider sign-in requires authentication integration.")
+                    .setPositiveButton("OK", null).show()
+            }
+        }
+    }
+
+    private fun showAppTheme() {
+        androidx.core.view.WindowCompat.setDecorFitsSystemWindows(window, false)
+        window.statusBarColor = getColor(R.color.welcome_background)
+        window.navigationBarColor = getColor(R.color.welcome_background)
+        androidx.core.view.WindowCompat.getInsetsController(window, window.decorView).apply {
+            isAppearanceLightStatusBars = !night
+            isAppearanceLightNavigationBars = !night
+        }
+        val binding = ScreenAppThemeBinding.inflate(layoutInflater)
+        setContentView(binding.root)
+        androidx.core.view.ViewCompat.setOnApplyWindowInsetsListener(binding.themeRoot) { view, insets ->
+            val safe = insets.getInsets(androidx.core.view.WindowInsetsCompat.Type.systemBars() or
+                androidx.core.view.WindowInsetsCompat.Type.displayCutout() or
+                androidx.core.view.WindowInsetsCompat.Type.ime())
+            view.setPadding(safe.left, safe.top, safe.right, safe.bottom)
+            insets
+        }
+        androidx.core.view.ViewCompat.requestApplyInsets(binding.themeRoot)
+        BrandType.apply(binding.themeHeading, true, 600)
+        BrandType.apply(binding.themeSubtitle, false, 400)
+        binding.themeBack.setOnClickListener { render("Account Settings") }
+        val selected = AppTheme.selected(this)
+        fun option(view: ThemeOptionBinding, choice: String, title: String, description: String) {
+            val checked = selected == choice
+            view.optionTitle.text = title
+            view.optionDescription.text = description
+            BrandType.apply(view.optionTitle, false, 700)
+            BrandType.apply(view.optionDescription, false, 400)
+            view.root.setBackgroundResource(if (checked) R.drawable.theme_option_selected else R.drawable.theme_option_normal)
+            view.optionTitle.setTextColor(getColor(if (checked) R.color.screen_primary else R.color.screen_text))
+            view.optionRadio.isChecked = checked
+            view.root.contentDescription = "$title, ${if (checked) "selected" else "not selected"}. $description"
+            view.root.setOnClickListener {
+                if (!checked) {
+                    AppTheme.select(this, choice)
+                    render("App Theme")
+                }
+            }
+        }
+        option(binding.lightOption, AppTheme.LIGHT, "Light Mode", "Always use PURRFOLIO's light theme.")
+        option(binding.darkOption, AppTheme.DARK, "Dark Mode", "Always use PURRFOLIO's dark theme.")
+        option(binding.systemOption, AppTheme.SYSTEM, "System Default", "Follow your device appearance.")
+        val nav = binding.bottomNav
+        listOf(nav.navHome to "Home", nav.navPets to "Pets", nav.navLogCare to "Care",
+            nav.navCare to "Pet Timeline", nav.navMore to "More").forEach { (view, target) ->
+            view.setOnClickListener { render(target) }
+        }
+        listOf(nav.navHome, nav.navPets, nav.navCare, nav.navMore).forEach { cell ->
+            (cell.getChildAt(1) as? TextView)?.let { BrandType.apply(it, false, 600) }
+        }
+    }
+
     private fun artwork(size: Int = 145): ImageView = ImageView(this).apply {
         setImageResource(R.drawable.purrfolio_cat);scaleType=ImageView.ScaleType.CENTER_CROP
         background=shape(primarySoft,size/2,primary);clipToOutline=true
@@ -265,14 +366,6 @@ class MainActivity : androidx.appcompat.app.AppCompatActivity() {
         row.addView(text,LinearLayout.LayoutParams(0,-2,1f))
         val toggle=Switch(this).apply {isChecked=preferences.getBoolean("setting:"+title,default);thumbTintList=ColorStateList.valueOf(primary);setOnCheckedChangeListener { _, checked -> preferences.edit().putBoolean("setting:"+title,checked).apply() }}
         row.addView(toggle);card.addView(row);body.addView(card,LinearLayout.LayoutParams(-1,-2).apply {bottomMargin=dp(10)})
-    }
-    private fun welcome() {
-        gap(22);wordmark();centered("Your Pet's Life in Pawgress",18f,primary,true)
-        gap(46);body.addView(artwork(245));centered("♡    ✧    ♡",28f,pink);gap(35)
-        body.addView(pill("Get Started",{render("Create Account")}))
-        body.addView(pill("Log In",{render("Log In")},true))
-        gap(22);centered("or continue with",13f,sub)
-        gap(15);centered(" G     ●     f ",25f,primary,true)
     }
     private fun createAccount() {
         centered("●━━○━━○",18f,primary);gap(19);centered("Create Account",32f,primary,true)

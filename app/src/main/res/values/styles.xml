@@ -1,3 +1,26 @@
 <resources>
 <style name="Theme.Purrfolio" parent="Theme.AppCompat.DayNight.NoActionBar"><item name="android:fontFamily">sans</item><item name="android:windowLightStatusBar">false</item><item name="android:statusBarColor">@color/background</item><item name="android:navigationBarColor">@color/background</item><item name="android:windowActionModeOverlay">true</item><item name="android:windowBackground">@color/background</item><item name="android:colorAccent">@color/primary</item></style>
+<style name="PurrfolioWelcomeButton">
+    <item name="android:layout_width">match_parent</item>
+    <item name="android:layout_height">@dimen/button_height</item>
+    <item name="android:gravity">center</item>
+    <item name="android:fontFamily">@font/nunito</item>
+    <item name="android:textSize">17sp</item>
+    <item name="android:textColor">@color/welcome_button_text</item>
+    <item name="android:clickable">true</item>
+    <item name="android:focusable">true</item>
+</style>
+<style name="PurrfolioDockCell">
+    <item name="android:layout_width">0dp</item><item name="android:layout_height">66dp</item>
+    <item name="android:layout_weight">1</item><item name="android:layout_marginStart">4dp</item>
+    <item name="android:layout_marginEnd">4dp</item><item name="android:orientation">vertical</item>
+    <item name="android:gravity">center</item><item name="android:clickable">true</item>
+    <item name="android:focusable">true</item>
+</style>
+<style name="PurrfolioDockLabel">
+    <item name="android:layout_width">match_parent</item><item name="android:layout_height">21dp</item>
+    <item name="android:fontFamily">@font/nunito</item><item name="android:textSize">11sp</item>
+    <item name="android:textColor">@color/screen_subtext</item><item name="android:gravity">center</item>
+    <item name="android:includeFontPadding">false</item><item name="android:lineSpacingExtra">2dp</item>
+</style>
 </resources>

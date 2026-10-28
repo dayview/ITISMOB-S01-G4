@@ -14,6 +14,7 @@ import androidx.core.content.res.ResourcesCompat
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
+import com.purrfolio.mco1.databinding.FloatingBottomNavBinding
 
 /** Reference-specific presentation. Persistence and existing forms remain owned by MainActivity. */
 class ReferenceScreens(private val a: Activity, private val pet: org.json.JSONObject, private val go: (String)->Unit, private val choose: ()->Unit) {
@@ -81,33 +82,27 @@ class ReferenceScreens(private val a: Activity, private val pet: org.json.JSONOb
         val scroll=ScrollView(a).apply{isFillViewport=true;isVerticalScrollBarEnabled=false;clipToPadding=false}
         content=col().apply{pad(this,22,if(screen=="Welcome")0 else 10,22,12)}
         scroll.addView(content,ViewGroup.LayoutParams(-1,-2));root.addView(scroll,LinearLayout.LayoutParams(-1,0,1f).apply{if(screen=="Care")topMargin=dp(38)})
-        when(screen){"Welcome"->welcome();"Home"->home();"Pet Detail"->overview();"Care"->logCare();"Pet Timeline"->timeline();"Sitter Mode"->sitter();"Pet Passport"->passport()}
+        when(screen){"Home"->home();"Pet Detail"->overview();"Care"->logCare();"Pet Timeline"->timeline();"Sitter Mode"->sitter();"Pet Passport"->passport()}
         if(screen!="Welcome"&&screen!="Care")root.addView(dock(screen),LinearLayout.LayoutParams(-1,dp(78)).apply{setMargins(dp(8),0,dp(8),dp(5))})
         ViewCompat.requestApplyInsets(root);return root
     }
     fun dock(screen:String):View{
-        val r=row().apply{background=shape(if(night)color("#14131B") else surface,28,true);pad(this,4,3)}
+        val binding=FloatingBottomNavBinding.inflate(a.layoutInflater)
         val active=when(screen){"Home"->"Home";"Pet Detail","Pets"->"Pets";"Profile","Account Settings","Notifications","More"->"More";else->"Care"}
-        listOf("Home","Pets","Plus","Care","More").forEach{label->
-            val cell=col().apply{gravity=Gravity.CENTER;isFocusable=true;contentDescription=if(label=="Plus")"Log care" else label
-                setOnClickListener{go(when(label){"Plus"->"Care";"Care"->"Pet Timeline";else->label})}}
-            if(label=="Plus") {val circle=FrameLayout(a).apply{background=shape(lavender,40);addView(icon("Plus",34,color("#201528")),FrameLayout.LayoutParams(dp(34),dp(34),Gravity.CENTER))};cell.addView(circle,LinearLayout.LayoutParams(dp(62),dp(62)))}
-            else{if(label==active)cell.background=GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM,intArrayOf(elevated,if(night)color("#17131E") else surface)).apply{cornerRadius=dp(22).toFloat()};cell.addView(icon(label,27,if(label==active)primary else sub));cell.addView(text(label,11f,if(label==active)ink else sub,600).apply{gravity=Gravity.CENTER},LinearLayout.LayoutParams(-1,dp(21)))}
-            r.addView(cell,LinearLayout.LayoutParams(0,dp(66),1f).apply{setMargins(dp(4),0,dp(4),0)})
-        };return r
-    }
-    private fun welcome(){
-        spacer(90)
-        add(ImageView(a).apply{setImageResource(R.drawable.purrfolio_wordmark_alpha);scaleType=ImageView.ScaleType.FIT_CENTER;contentDescription="PURRFOLIO"},100)
-        add(text("their care, their story.",21f,primary,600,true).apply{gravity=Gravity.CENTER})
-        spacer(30)
-        add(ImageView(a).apply{setImageResource(R.drawable.purrfolio_cat_hero);scaleType=ImageView.ScaleType.FIT_CENTER;contentDescription="Fluffy cream cat with pink heart"},265)
-        spacer(5)
-        add(button("Get Started"){go("Create Account")},54,9);add(button("Log In",true){go("Log In")},52,10)
-        add(text("Continue with",13f,sub).apply{gravity=Gravity.CENTER},24)
-        val socials=row().apply{gravity=Gravity.CENTER}
-        listOf("Google","Apple","Facebook").forEachIndexed{i,s->val b=FrameLayout(a).apply{addView(icon(s,29,ink),FrameLayout.LayoutParams(dp(29),dp(29),Gravity.CENTER));background=shape(surface,32,true);contentDescription="Continue with $s";setOnClickListener{preview("$s sign-in requires authentication integration.")}};socials.addView(b,LinearLayout.LayoutParams(dp(54),dp(54)).apply{setMargins(dp(10),0,dp(10),0)})};add(socials,60)
-        val dots=row().apply{gravity=Gravity.CENTER};repeat(3){i->dots.addView(View(a).apply{background=shape(if(i==0)lavender else outline,8)},LinearLayout.LayoutParams(dp(9),dp(9)).apply{setMargins(dp(7),dp(8),dp(7),dp(8))})};add(dots,26)
+        listOf(
+            Triple("Home",binding.navHome,"Home"),
+            Triple("Pets",binding.navPets,"Pets"),
+            Triple("Care",binding.navCare,"Pet Timeline"),
+            Triple("More",binding.navMore,"More")
+        ).forEach{(label,cell,target)->
+            val selected=label==active
+            cell.background=if(selected)GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM,intArrayOf(elevated,if(night)color("#17131E") else surface)).apply{cornerRadius=dp(22).toFloat()}else null
+            (cell.getChildAt(0) as CareArtwork).setArtwork(label,if(selected)primary else sub)
+            (cell.getChildAt(1) as TextView).apply{setTextColor(if(selected)ink else sub);BrandType.apply(this,false,600)}
+            cell.setOnClickListener{go(target)}
+        }
+        binding.navLogCare.setOnClickListener{go("Care")}
+        return binding.root
     }
     private fun week(capsules:Boolean){
         val r=row();val colors=listOf(yellow,sub,blue,lavender,pink,lavender,mint)

@@ -188,7 +188,7 @@ class PhaseTwoScreens(
         body=col().apply{pad(this,20,8,20,12)};scroll.addView(body,ViewGroup.LayoutParams(-1,-2));root.addView(scroll,LinearLayout.LayoutParams(-1,0,1f))
         when(screen){
             "Create Account"->createAccount();"Log In"->logIn();"Reset Password"->resetPassword()
-            "Profile"->profile();"Personal Information"->personalInformation();"Account Settings"->accountSettings();"App Theme"->appTheme();"Notifications"->notifications()
+            "Profile"->profile();"Personal Information"->personalInformation();"Account Settings"->accountSettings();"Notifications"->notifications()
             "Add Your Pet"->petForm(false);"Edit Pet Profile"->petForm(true);"Pets"->myPets();"Care Circle"->careCircle(false)
             "Voice Log"->voiceLog();"Sound Journal"->soundJournal();"Records","Paperless Inbox"->records();"Vaccination Card"->vaccination();"Browse Records"->recordsSearch()
             "Reminders"->reminders();"Calendar"->calendar();"Pet ID QR"->petId();"Emergency"->emergency();"Offline & Sync"->offline()
@@ -253,37 +253,6 @@ class PhaseTwoScreens(
         add(infoRow("Globe","Language","English"){preview("English is the available language in this frontend.")},72,8)
         add(infoRow("Database","Data & Storage"){go("Offline & Sync")},66,24)
         sectionLabel("Account");add(infoRow("Trash","Delete Account",tint=coral){preview("Account deletion requires authenticated account services. No account or local records have been deleted.")},66)
-    }
-    private fun appTheme(){
-        header("App Theme",back="Account Settings")
-        add(text("Choose how PURRFOLIO looks on this device.",14f,sub),-2,20)
-        val options=listOf(
-            Triple(AppTheme.LIGHT,"Light Mode","Always use PURRFOLIO's light theme."),
-            Triple(AppTheme.DARK,"Dark Mode","Always use PURRFOLIO's dark theme."),
-            Triple(AppTheme.SYSTEM,"System Default","Follow your device appearance.")
-        )
-        options.forEach { (choice,title,description) ->
-            val checked=AppTheme.selected(a)==choice
-            val item=row().apply {
-                background=shape(if(checked)elevated else surface,20,true)
-                pad(this,16,12)
-                isClickable=true;isFocusable=true
-                contentDescription="$title, ${if(checked)"selected" else "not selected"}. $description"
-                setOnClickListener { if(!checked) AppTheme.select(a,choice) }
-            }
-            val labels=col().apply {
-                addView(text(title,16f,if(checked)primary else ink,700))
-                addView(text(description,12f,sub),LinearLayout.LayoutParams(-1,-2).apply{topMargin=dp(5)})
-            }
-            item.addView(labels,LinearLayout.LayoutParams(0,-2,1f))
-            val radio=RadioButton(a).apply {
-                isChecked=checked;isClickable=false;isFocusable=false
-                buttonTintList=ColorStateList.valueOf(primary)
-                importantForAccessibility=View.IMPORTANT_FOR_ACCESSIBILITY_NO
-            }
-            item.addView(radio,LinearLayout.LayoutParams(dp(48),dp(48)))
-            add(item,80,10)
-        }
     }
     private fun notifications(){
         header("Notifications",back="Profile");sectionLabel("Care Reminders")

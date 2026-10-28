@@ -1,0 +1,6 @@
+<resources>
+    <declare-styleable name="CareArtwork">
+        <attr name="artKind" format="string" />
+        <attr name="artTint" format="color" />
+    </declare-styleable>
+</resources>

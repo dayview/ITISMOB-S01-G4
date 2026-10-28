@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent" android:layout_height="78dp"
+    android:layout_marginStart="8dp" android:layout_marginEnd="8dp"
+    android:layout_marginBottom="5dp" android:background="@drawable/dock_background"
+    android:gravity="center_vertical" android:orientation="horizontal"
+    android:paddingStart="4dp" android:paddingTop="3dp"
+    android:paddingEnd="4dp" android:paddingBottom="3dp">
+
+    <LinearLayout android:id="@+id/navHome" style="@style/PurrfolioDockCell"
+        android:contentDescription="Home">
+        <com.purrfolio.mco1.CareArtwork android:layout_width="27dp" android:layout_height="27dp"
+            app:artKind="Home" app:artTint="@color/screen_subtext" />
+        <TextView style="@style/PurrfolioDockLabel" android:text="Home" />
+    </LinearLayout>
+    <LinearLayout android:id="@+id/navPets" style="@style/PurrfolioDockCell"
+        android:contentDescription="Pets">
+        <com.purrfolio.mco1.CareArtwork android:layout_width="27dp" android:layout_height="27dp"
+            app:artKind="Pets" app:artTint="@color/screen_subtext" />
+        <TextView style="@style/PurrfolioDockLabel" android:text="Pets" />
+    </LinearLayout>
+    <LinearLayout android:id="@+id/navLogCare" style="@style/PurrfolioDockCell"
+        android:contentDescription="Log care">
+        <FrameLayout android:layout_width="62dp" android:layout_height="62dp"
+            android:background="@drawable/dock_plus">
+            <com.purrfolio.mco1.CareArtwork android:layout_width="34dp" android:layout_height="34dp"
+                android:layout_gravity="center" app:artKind="Plus" app:artTint="@color/welcome_button_text" />
+        </FrameLayout>
+    </LinearLayout>
+    <LinearLayout android:id="@+id/navCare" style="@style/PurrfolioDockCell"
+        android:background="@drawable/dock_active" android:contentDescription="Care">
+        <com.purrfolio.mco1.CareArtwork android:layout_width="27dp" android:layout_height="27dp"
+            app:artKind="Care" app:artTint="@color/screen_primary" />
+        <TextView style="@style/PurrfolioDockLabel" android:text="Care"
+            android:textColor="@color/screen_text" />
+    </LinearLayout>
+    <LinearLayout android:id="@+id/navMore" style="@style/PurrfolioDockCell"
+        android:contentDescription="More">
+        <com.purrfolio.mco1.CareArtwork android:layout_width="27dp" android:layout_height="27dp"
+            app:artKind="More" app:artTint="@color/screen_subtext" />
+        <TextView style="@style/PurrfolioDockLabel" android:text="More" />
+    </LinearLayout>
+</LinearLayout>
