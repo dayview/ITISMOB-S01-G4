@@ -39,6 +39,11 @@ class PhaseTwoScreens(
     private val selectPet:(Int)->Unit,
     private val savePet:(Map<String,String>,Boolean)->Unit,
     private val saveLog:(String,String)->Unit,
+    private val recognizeVoice:()->Unit,
+    private val captureVoice:(String)->Unit,
+    private val toggleSoundRecording:()->Unit,
+    private val soundRows:()->List<JSONObject>,
+    private val playRecording:(JSONObject)->Unit,
     private val addReminder:()->Unit,
     private val toggleReminder:(JSONObject)->Unit,
     private val login:()->Unit,
@@ -341,35 +346,27 @@ class PhaseTwoScreens(
         }
     }
     private fun voiceLog(){
-        header("Voice Log","Just say what happened.",back="Care")
-        val transcription=col().apply{background=shape(elevated,22);pad(this,20,16);gravity=Gravity.CENTER}
-        transcription.addView(heading("“Fed $name one cup\nat 7:30 AM”",21f).apply{gravity=Gravity.CENTER})
-        transcription.addView(Waveform(a,primary),LinearLayout.LayoutParams(-1,dp(42)).apply{topMargin=dp(12)})
-        add(transcription,142,12);demoLabel("Text-entry preview · speech recognition not connected")
-        val details=col().apply{background=shape();pad(this,16,16)};details.addView(section("Confirm details"),LinearLayout.LayoutParams(-1,dp(36)))
-        fun detail(label:String,kind:String,initial:String,options:List<String>?=null):EditText{
-            val r=row();r.addView(icon(kind,24),LinearLayout.LayoutParams(dp(30),dp(34)).apply{rightMargin=dp(10)});r.addView(text(label,13f,ink,700),LinearLayout.LayoutParams(0,dp(36),1f))
-            val input=EditText(a).apply{setText(initial);textSize=13f;BrandType.apply(this,false,400);setTextColor(ink);background=shape(elevated,15);setSingleLine();pad(this,12,6);contentDescription=label}
-            if(options!=null){input.isFocusable=false;input.setOnClickListener{AlertDialog.Builder(a).setTitle(label).setItems(options.toTypedArray()){_,i->input.setText(options[i])}.show()}}
-            r.addView(input,LinearLayout.LayoutParams(dp(164),dp(44)));details.addView(r,LinearLayout.LayoutParams(-1,dp(48)));return input
-        }
-        val chosenPet=detail("Pet","Person",name,pets.map{it.optString("name")});val kind=detail("Activity","Pets","Feeding",listOf("Feeding","Medication","Water","Playtime","Vet Visit","Grooming"))
-        val amount=detail("Amount","Care","1 cup");val time=detail("Time","Clock","7:30 AM")
-        details.addView(text("Add a note (optional)",13f,sub),LinearLayout.LayoutParams(-1,dp(28)).apply{topMargin=dp(8)})
-        val note=EditText(a).apply{setText("Finished everything!");textSize=14f;setTextColor(ink);BrandType.apply(this,false,400);background=shape(elevated,14);pad(this,12,8);contentDescription="Optional note"};details.addView(note,LinearLayout.LayoutParams(-1,dp(48)))
-        add(details,-2,12);add(button("Save Log"){
-            if(chosenPet.text.toString()!=name){preview("Select ${chosenPet.text} from My Pets before saving their care entry.");return@button}
-            if(amount.text.isBlank()||time.text.isBlank()){notice("Enter an amount and time.");return@button}
-            saveLog(kind.text.toString(),"${amount.text} at ${time.text}. ${note.text}")
+        header("Voice Log", "Describe the care activity in your own words.", back="Care")
+        add(Waveform(a,primary),90,20)
+        add(button("Record voice") { recognizeVoice() },52,12)
+        val transcript=field("Or type what happened", "", "Mic", "Fed $name one cup at 7:30 AM", multiline=true)
+        add(button("Continue with text", secondary=true) {
+            val value=transcript.text.toString().trim()
+            if(value.isBlank())notice("Describe the care activity first.") else captureVoice(value)
         },52)
     }
     private fun soundJournal(){
-        header("Sound Event Journal","Record unusual sounds or observations\nto keep track over time.",back="Care")
-        val visual=FrameLayout(a);visual.addView(Waveform(a,primary,true),FrameLayout.LayoutParams(dp(200),dp(200),Gravity.CENTER));visual.addView(center("00:12",16f,primary,700).apply{translationY=dp(70).toFloat()},FrameLayout.LayoutParams(dp(70),dp(28),Gravity.CENTER));add(visual,210,8)
-        val controls=row().apply{gravity=Gravity.CENTER};controls.addView(action("Stop","Stop preview"){notice("Preview stopped. No audio was recorded.")}.apply{background=shape()},LinearLayout.LayoutParams(dp(105),dp(58)).apply{rightMargin=dp(44)});controls.addView(action("Check","Save written sound observation"){go("Quick Log:Other")}.apply{background=shape(lavender,40,false)},LinearLayout.LayoutParams(dp(64),dp(64)));add(controls,70,10)
-        demoLabel("Audio preview · recording and playback not connected");sectionLabel("Recent Recordings (3)")
-        listOf(Triple("Coughing","00:18","Sep 25, 2026 · 8:14 PM"),Triple("Meowing (prolonged)","00:12","Sep 20, 2026 · 6:03 PM"),Triple("Sneezing","00:06","Sep 12, 2026 · 10:21 AM")).forEach{(label,duration,date)->add(infoRow("Play",label,"$duration · $date","More"){preview("This is a sample recording row. No audio file is attached.")},62,5)}
-        val card=row().apply{background=shape();pad(this,14,12)};card.addView(icon("Notes",28),LinearLayout.LayoutParams(dp(32),dp(32)).apply{rightMargin=dp(12)});card.addView(text("Keep a record of unusual sounds to share with your veterinarian when needed.",13f,sub),LinearLayout.LayoutParams(0,-2,1f));add(card,-2)
+        header("Sound Event Journal", "Record a sound and describe what you heard.", back="Care")
+        add(Waveform(a,primary,true),180,12)
+        add(button("Start / stop recording") { toggleSoundRecording() },52,18)
+        sectionLabel("Recent Recordings")
+        val recordings=soundRows()
+        if(recordings.isEmpty())add(center("No sound observations saved for $name yet."),60)
+        recordings.forEach { entry ->
+            val duration=entry.optLong("durationMs") / 1000
+            add(infoRow("Play",entry.optString("text"),"${duration}s · ${entry.optString("date")}","More") { playRecording(entry) },70,5)
+        }
+        add(center("Tap a recording to play it. Edit or delete it from Care History."),52)
     }
     private data class SampleDocument(val name:String,val date:String,val type:String,val tint:String)
     private val documents=listOf(SampleDocument("Vaccination Card","Sep 12, 2026","Vaccinations","#F3B6D7"),SampleDocument("Vet Receipt","Aug 28, 2026","Documents","#D8B4F8"),SampleDocument("Prescription","Aug 10, 2026","Medications","#FFD0BC"),SampleDocument("Vet Visit Notes","Jul 15, 2026","Appointments","#9BCBFF"))

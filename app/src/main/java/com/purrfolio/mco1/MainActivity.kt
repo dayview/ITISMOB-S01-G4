@@ -5,6 +5,14 @@ import android.content.Intent
 import android.content.res.Configuration
 import android.graphics.PorterDuff
 import android.net.Uri
+import android.Manifest
+import android.content.pm.PackageManager
+import android.media.MediaPlayer
+import android.media.MediaRecorder
+import android.speech.RecognizerIntent
+import androidx.core.content.ContextCompat
+import java.io.File
+import java.util.UUID
 import android.os.Bundle
 import android.view.View
 import android.widget.ArrayAdapter
@@ -44,6 +52,17 @@ class MainActivity : AppCompatActivity() {
     private val logs = mutableListOf<JSONObject>()
     private val reminders = mutableListOf<JSONObject>()
     private var night = false
+    private var recorder: MediaRecorder? = null
+    private var recordingFile: File? = null
+    private var recordingStartedAt = 0L
+    private var player: MediaPlayer? = null
+    private val speechResult = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
+        val words = result.data?.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS)
+        words?.firstOrNull()?.let { captureVoice(it) } ?: note("No speech was recognized.")
+    }
+    private val audioPermission = registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        if (granted) startSoundRecording() else note("Microphone permission is needed to record audio.")
+    }
     private var pendingNewPetPhotoUri: String? = null
     private var petPhotoPickerTarget = "Pet Detail"
     private val petPhotoPicker = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
@@ -82,6 +101,18 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun selectedPet() = pets.getOrNull(petIndex) ?: pets.first()
+    private fun petId(pet: JSONObject): String {
+        if (!pet.has("id")) { pet.put("id", UUID.randomUUID().toString()); save() }
+        return pet.getString("id")
+    }
+    private fun entryPetId(entry: JSONObject) = entry.optString("petId").ifBlank {
+        pets.firstOrNull { it.optString("name") == entry.optString("pet") }?.let { petId(it) } ?: ""
+    }
+    private fun newLog(pet: JSONObject, kind: String, detail: String, source: String = "text", occurredAt: Long = System.currentTimeMillis()): JSONObject =
+        JSONObject().put("id", UUID.randomUUID().toString()).put("petId", petId(pet))
+            .put("pet", pet.optString("name")).put("kind", kind).put("text", detail)
+            .put("source", source).put("occurredAt", occurredAt)
+            .put("date", SimpleDateFormat("MMM d, yyyy · h:mm a", Locale.getDefault()).format(Date(occurredAt)))
     private fun petName() = selectedPet().optString("name", "Mochi")
     private fun note(message: String) = Toast.makeText(this, message, Toast.LENGTH_LONG).show()
 
@@ -149,13 +180,18 @@ class MainActivity : AppCompatActivity() {
                     listOf("name", "species", "breed", "birthday", "sex", "notes", "photoUri").forEach { key ->
                         if (values.containsKey(key)) updated.put(key, values[key])
                     }
-                    if (adding) { pets.add(updated); petIndex = pets.lastIndex } else pets[petIndex] = updated
+                    if (adding) { pets.add(updated); petIndex = pets.lastIndex } else {
+                        updated.put("id", petId(selectedPet()))
+                        pets[petIndex] = updated
+                    }
                     save(); note("Pet profile saved on this device."); render("Pet Detail")
                 },
                 { kind, detail ->
-                    logs.add(0, JSONObject().put("pet", petName()).put("kind", kind).put("text", detail).put("date", stamp()))
+                    logs.add(0, newLog(selectedPet(), kind, detail))
                     save(); note("Care log saved on this device."); render("Care History")
                 },
+                { recognizeVoice() }, { transcript -> captureVoice(transcript) },
+                { toggleSoundRecording() }, { soundRows() }, { entry -> playRecording(entry) },
                 { addReminder() },
                 { reminder -> reminder.put("done", !reminder.optBoolean("done")); save(); render("Reminders") },
                 { render("Home") },
@@ -220,8 +256,7 @@ class MainActivity : AppCompatActivity() {
             val detail = binding.detailInput.text.toString().trim()
             if (detail.isBlank()) note("Add a short care note first.")
             else {
-                logs.add(0, JSONObject().put("pet", petName()).put("kind", categories[binding.categorySpinner.selectedItemPosition])
-                    .put("text", detail).put("date", stamp()))
+                logs.add(0, newLog(selectedPet(), categories[binding.categorySpinner.selectedItemPosition], detail))
                 save(); note("Care log saved on this device."); render("Care History")
             }
         }
@@ -238,7 +273,7 @@ class MainActivity : AppCompatActivity() {
         BrandType.apply(binding.pageSubtitle, false, 400)
         BrandType.apply(binding.newEntryButton, false, 700)
         binding.pageSubtitle.text = "your saved care moments"
-        val filtered = logs.filter { it.optString("pet") == petName() }
+        val filtered = logs.filter { entryPetId(it) == petId(selectedPet()) }.sortedByDescending { it.optLong("occurredAt", 0L) }
         if (filtered.isEmpty()) {
             val empty = CareHistoryEmptyBinding.inflate(layoutInflater, binding.entryContainer, false)
             BrandType.apply(empty.emptyTitle, false, 700)
@@ -253,14 +288,144 @@ class MainActivity : AppCompatActivity() {
             BrandType.apply(item.entryTitle, false, 700)
             BrandType.apply(item.entryDescription, false, 400)
             item.root.setOnClickListener {
-                AlertDialog.Builder(this).setTitle("Care entry").setMessage(entry.optString("text"))
-                    .setPositiveButton("Close", null)
-                    .setNegativeButton("Delete") { _, _ -> logs.remove(entry); save(); render("Care History") }
-                    .show()
+                val actions = if (entry.optString("audioFile").isNotBlank()) arrayOf("Play recording", "Edit", "Delete") else arrayOf("Edit", "Delete")
+                AlertDialog.Builder(this).setTitle(entry.optString("kind")).setMessage(entry.optString("text"))
+                    .setItems(actions) { _, index ->
+                        when (actions[index]) {
+                            "Play recording" -> playRecording(entry)
+                            "Edit" -> editLog(entry)
+                            "Delete" -> confirmDelete(entry)
+                        }
+                    }.setNegativeButton("Close", null).show()
             }
             binding.entryContainer.addView(item.root)
         }
         binding.newEntryButton.setOnClickListener { render("Quick Log") }
+    }
+
+    private fun editLog(entry: JSONObject) {
+        val layout = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(40, 16, 40, 0) }
+        val kinds = arrayOf("Feeding", "Medication", "Vitamins", "Water", "Playtime", "Grooming", "Vet Visit", "Other", "Observation")
+        val category = android.widget.Spinner(this).apply {
+            adapter = ArrayAdapter(this@MainActivity, android.R.layout.simple_spinner_dropdown_item, kinds)
+            setSelection(kinds.indexOf(entry.optString("kind")).coerceAtLeast(0))
+        }
+        val detail = android.widget.EditText(this).apply { setText(entry.optString("text")); hint = "Details" }
+        layout.addView(category); layout.addView(detail)
+        AlertDialog.Builder(this).setTitle("Edit care entry").setView(layout)
+            .setPositiveButton("Save") { _, _ ->
+                val value = detail.text.toString().trim()
+                if (value.isBlank()) { note("Add a short care note first."); return@setPositiveButton }
+                entry.put("kind", category.selectedItem.toString()).put("text", value)
+                save(); render("Care History")
+            }.setNegativeButton("Cancel", null).show()
+    }
+
+    private fun confirmDelete(entry: JSONObject) {
+        AlertDialog.Builder(this).setTitle("Delete care entry?").setMessage("This removes the entry and its audio from this device.")
+            .setPositiveButton("Delete") { _, _ ->
+                entry.optString("audioFile").takeIf { it.isNotBlank() }?.let { File(filesDir, it).delete() }
+                logs.remove(entry); save(); render("Care History")
+            }.setNegativeButton("Cancel", null).show()
+    }
+
+    private fun recognizeVoice() {
+        val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
+            putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+            putExtra(RecognizerIntent.EXTRA_PROMPT, "Describe your pet's care")
+        }
+        runCatching { speechResult.launch(intent) }.onFailure { note("Speech recognition is unavailable on this device.") }
+    }
+
+    private fun captureVoice(transcript: String) {
+        val draft = CareCapture.parse(transcript, pets.map { it.optString("name") })
+        val fields = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(40, 8, 40, 0) }
+        val transcriptView = TextView(this).apply { text = "Heard: $transcript" }
+        fields.addView(transcriptView)
+        val names = listOf("Select pet") + pets.map { it.optString("name") }
+        val chosenPet = android.widget.Spinner(this).apply {
+            adapter = ArrayAdapter(this@MainActivity, android.R.layout.simple_spinner_dropdown_item, names)
+            setSelection(names.indexOf(draft.pet).coerceAtLeast(0))
+        }
+        val kinds = arrayOf("Select activity", "Feeding", "Medication", "Vitamins", "Water", "Playtime", "Grooming", "Vet Visit", "Other")
+        val kind = android.widget.Spinner(this).apply {
+            adapter = ArrayAdapter(this@MainActivity, android.R.layout.simple_spinner_dropdown_item, kinds)
+            setSelection(kinds.indexOf(draft.activity).coerceAtLeast(0))
+        }
+        val amount = android.widget.EditText(this).apply { hint = "Amount (if applicable)"; setText(draft.amount.orEmpty()) }
+        val time = android.widget.EditText(this).apply { hint = "Time (e.g. 7:30 AM)"; setText(draft.time.orEmpty()) }
+        fields.addView(TextView(this).apply { text = "Pet" }); fields.addView(chosenPet)
+        fields.addView(TextView(this).apply { text = "Activity" }); fields.addView(kind)
+        fields.addView(amount); fields.addView(time)
+        AlertDialog.Builder(this).setTitle("Confirm care details").setView(fields)
+            .setPositiveButton("Save", null).setNegativeButton("Cancel", null).create().apply {
+                setOnShowListener {
+                    getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+                        if (chosenPet.selectedItemPosition == 0) { note("Choose the pet."); return@setOnClickListener }
+                        if (kind.selectedItemPosition == 0) { note("Choose the activity."); return@setOnClickListener }
+                        if (time.text.toString().isBlank()) { time.error = "Enter the time"; return@setOnClickListener }
+                        val pet = pets[chosenPet.selectedItemPosition - 1]
+                        val detail = listOf(amount.text.toString().trim(), "at ${time.text.toString().trim()}", transcript).filter { it.isNotBlank() }.joinToString(" · ")
+                        logs.add(0, newLog(pet, kind.selectedItem.toString(), detail, "voice").put("transcript", transcript))
+                        save(); dismiss(); note("Care log saved on this device."); render("Care History")
+                    }
+                }; show()
+            }
+    }
+
+    private fun soundRows() = logs.filter { entryPetId(it) == petId(selectedPet()) && it.optString("audioFile").isNotBlank() }
+    private fun toggleSoundRecording() {
+        if (recorder != null) { stopSoundRecording(); return }
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED)
+            audioPermission.launch(Manifest.permission.RECORD_AUDIO)
+        else startSoundRecording()
+    }
+    private fun startSoundRecording() {
+        val file = File(filesDir, "sound_${UUID.randomUUID()}.m4a")
+        try {
+            @Suppress("DEPRECATION")
+            val active = MediaRecorder().apply {
+                setAudioSource(MediaRecorder.AudioSource.MIC)
+                setOutputFormat(MediaRecorder.OutputFormat.MPEG_4)
+                setAudioEncoder(MediaRecorder.AudioEncoder.AAC)
+                setOutputFile(file.absolutePath)
+                prepare(); start()
+            }
+            recorder = active; recordingFile = file; recordingStartedAt = System.currentTimeMillis()
+            note("Recording started. Tap the button again to stop.")
+        } catch (error: Exception) { recorder?.release(); recorder = null; file.delete(); note("Could not start audio recording.") }
+    }
+    private fun stopSoundRecording() {
+        val file = recordingFile ?: return
+        val duration = System.currentTimeMillis() - recordingStartedAt
+        val success = runCatching { recorder?.stop(); true }.getOrDefault(false)
+        recorder?.release(); recorder = null; recordingFile = null
+        if (!success || duration < 1000L) { file.delete(); note("Record at least one second of audio."); return }
+        val input = android.widget.EditText(this).apply { hint = "What did you hear? (e.g. coughing)" }
+        AlertDialog.Builder(this).setTitle("Save sound observation").setView(input)
+            .setPositiveButton("Save", null).setNegativeButton("Discard") { _, _ -> file.delete() }
+            .setOnCancelListener { file.delete() }.create().apply {
+                setOnShowListener { getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
+                    val detail = input.text.toString().trim()
+                    if (detail.isBlank()) { input.error = "Describe the sound"; return@setOnClickListener }
+                    logs.add(0, newLog(selectedPet(), "Observation", detail, "audio", recordingStartedAt)
+                        .put("audioFile", file.name).put("durationMs", duration))
+                    save(); dismiss(); render("Sound Journal")
+                } }; show()
+            }
+    }
+    private fun playRecording(entry: JSONObject) {
+        val file = File(filesDir, entry.optString("audioFile").substringAfterLast('/'))
+        if (!file.isFile) { note("Recording file is missing."); return }
+        player?.release()
+        runCatching {
+            player = MediaPlayer().apply { setDataSource(file.absolutePath); prepare(); setOnCompletionListener { it.release(); player = null }; start() }
+        }.onFailure { note("Could not play this recording.") }
+    }
+
+    override fun onDestroy() {
+        recorder?.release(); recordingFile?.delete(); player?.release()
+        super.onDestroy()
     }
 
     private fun showWelcome() {
@@ -387,6 +552,13 @@ class MainActivity : AppCompatActivity() {
         }
         try { pull("pets", pets); pull("logs", logs); pull("reminders", reminders) }
         catch (_: Exception) { pets.clear(); logs.clear(); reminders.clear() }
+        pets.forEach { if (!it.has("id")) it.put("id", UUID.randomUUID().toString()) }
+        logs.forEach { entry ->
+            if (!entry.has("id")) entry.put("id", UUID.randomUUID().toString())
+            if (!entry.has("petId")) pets.firstOrNull { it.optString("name") == entry.optString("pet") }
+                ?.let { entry.put("petId", it.optString("id")) }
+        }
+        if (pets.isNotEmpty() || logs.isNotEmpty()) save()
         if (pets.isEmpty()) {
             pets.add(JSONObject().put("name", "Mochi").put("species", "Cat").put("breed", "Mixed Breed")
                 .put("birthday", "2024-09-26").put("sex", "Female")
