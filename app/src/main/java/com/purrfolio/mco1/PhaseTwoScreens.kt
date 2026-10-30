@@ -46,7 +46,7 @@ class PhaseTwoScreens(
     private val playRecording:(JSONObject)->Unit,
     private val addReminder:()->Unit,
     private val toggleReminder:(JSONObject)->Unit,
-    private val login:()->Unit,
+    private val account:AccountActions,
     private val goBack:()->Unit={go("More")},
     private val pendingPetPhotoUri:String?=null,
     private val onPetPhoto:(Boolean)->Unit={}
@@ -221,27 +221,35 @@ class PhaseTwoScreens(
     private fun createAccount(){
         val top=row();top.addView(action("Back","Back",goBack),LinearLayout.LayoutParams(dp(44),dp(44)));top.addView(steps(3),LinearLayout.LayoutParams(0,dp(44),1f));top.addView(View(a),LinearLayout.LayoutParams(dp(44),1));add(top,48,12)
         add(heading("Create Account",32f).apply{gravity=Gravity.CENTER},48,4);add(center("Let's get to know you!",17f,ink,600),28,24)
-        field("Full Name","Gracezel Castrence");field("Email Address","youremail@dlsu.edu.ph","Mail")
+        val fullName=field("Full Name",hint="Gracezel Castrence");val email=field("Email Address",kind="Mail",hint="youremail@dlsu.edu.ph")
         val password=field("Password","","Lock",password=true)
         val requirements=col().apply{background=shape();pad(this,18,12)}
         val checks=listOf("At least 8 characters","1 letter and 1 number","1 special character").map{label->val r=row();val status=icon("Check",22);r.addView(status,LinearLayout.LayoutParams(dp(26),dp(26)).apply{rightMargin=dp(12)});r.addView(text(label,14f,sub));requirements.addView(r,LinearLayout.LayoutParams(-1,dp(32)));r}
         password.addTextChangedListener(object:TextWatcher{override fun beforeTextChanged(s:CharSequence?,start:Int,count:Int,after:Int){};override fun onTextChanged(s:CharSequence?,start:Int,before:Int,count:Int){val ok=Validators.passwordRules(s.toString());checks.forEachIndexed{i,r->r.alpha=if(ok[i])1f else .45f}};override fun afterTextChanged(s:Editable?) {}})
-        add(requirements,124,20);add(button("Continue"){go("Add Your Pet")},52);social();push(16)
+        add(requirements,124,20)
+        add(button("Continue"){
+            val checks=listOf(fullName to Validators.fullName(fullName.text.toString()),email to Validators.email(email.text.toString()),password to Validators.password(password.text.toString()))
+            checks.forEach{(input,error)->input.error=error}
+            if(checks.all{it.second==null})account.signUp(fullName.text.toString(),email.text.toString(),password.text.toString())
+        },52);social();push(16)
         add(center("Already have an account?  Log In",14f,sub).apply{setOnClickListener{go("Log In")};minHeight=dp(48)},48)
     }
     private fun logIn(){
         header("Welcome back!","Good to see you again",back="Welcome",size=32f);add(portraitHero(145,true,false),170,14)
-        field("Email Address","youremail@dlsu.edu.ph","Person");field("Password","","Lock",password=true)
+        val email=field("Email Address",kind="Person",hint="youremail@dlsu.edu.ph");val password=field("Password","","Lock",password=true)
         add(text("Forgot password?",14f,primary,700).apply{gravity=Gravity.END;setOnClickListener{go("Reset Password")};minHeight=dp(40)},40,8)
-        add(button("Log In"){login()},52);social()
+        add(button("Log In"){
+            email.error=Validators.email(email.text.toString());password.error=if(password.text.isEmpty())"Enter your password." else null
+            if(email.error==null&&password.error==null)account.logIn(email.text.toString(),password.text.toString())
+        },52);social()
         val card=row().apply{background=shape();pad(this,12,12);setOnClickListener{go("Create Account")}}
         card.addView(FrameLayout(a).apply{contentDescription="Create a new account";addView(icon("Person",48,primary),FrameLayout.LayoutParams(dp(48),dp(48),Gravity.CENTER))},LinearLayout.LayoutParams(dp(96),dp(72)))
         val copy=col();copy.addView(section("New here?"));copy.addView(text("Create an account to start\nyour pet care journey.",13f,sub),LinearLayout.LayoutParams(-1,-2).apply{topMargin=dp(7)});copy.addView(text("Create Account  →",15f,primary,700),LinearLayout.LayoutParams(-1,-2).apply{topMargin=dp(12)});card.addView(copy,LinearLayout.LayoutParams(0,-2,1f));add(card,136)
     }
     private fun resetPassword(){
         header("Reset Password",back="Log In",size=31f);add(center("We'll send you a link to reset\nyour password.",14f),44,12)
-        field("Email Address","youremail@dlsu.edu.ph","Person")
-        add(button("Send Reset Link"){preview("Password recovery requires the existing authentication integration. No reset email has been sent.")},52,26)
+        val email=field("Email Address",kind="Person",hint="youremail@dlsu.edu.ph")
+        add(button("Send Reset Link"){email.error=Validators.email(email.text.toString());if(email.error==null)account.sendPasswordReset(email.text.toString())},52,26)
         val card=col().apply{background=shape();pad(this,18,18)};card.addView(section("Didn't receive the email?"))
         listOf("Check your spam folder","Make sure you entered the\ncorrect email","Try again in a few minutes").forEach{s->val r=row();r.addView(icon("Check",25),LinearLayout.LayoutParams(dp(32),dp(32)).apply{rightMargin=dp(12)});r.addView(text(s,14f,sub));card.addView(r,LinearLayout.LayoutParams(-1,dp(54)))};add(card)
     }
@@ -250,7 +258,7 @@ class PhaseTwoScreens(
         add(center(prefs.getString("profile:name","Gracezel Castrence")!!,20f,ink,700),28,3);add(center(prefs.getString("profile:email","youremail@dlsu.edu.ph")!!,13f),24,16)
         val complete=infoRow("Progress","Account Complete","4 of 5 completed"){go("Personal Information")};complete.background=shape(elevated);add(complete,72,12)
         listOf(Triple("Person","Personal Information","Personal Information"),Triple("Settings","Account Settings","Account Settings"),Triple("Bell","Notifications","Notifications"),Triple("Lock","Privacy & Security","QR Privacy"),Triple("Link","Linked Accounts","Account Settings")).forEach{(i,l,d)->add(infoRow(i,l){go(d)},56,5)}
-        gap(8);add(button("Log Out"){go("Welcome")},52);push()
+        gap(8);add(button("Log Out"){account.logOut()},52);push()
     }
     private fun personalInformation(){
         header("Personal Information",back="Profile");add(portraitHero(125,false),155,18)

@@ -24,6 +24,8 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.launch
 import com.purrfolio.mco1.databinding.CareHistoryEmptyBinding
 import com.purrfolio.mco1.databinding.CareHistoryEntryBinding
 import com.purrfolio.mco1.databinding.DialogAddReminderBinding
@@ -78,6 +80,58 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    private val auth by lazy { AuthRepository() }
+    private val users by lazy { UserRepository() }
+    private var accountBusy = false
+    private val account = object : AccountActions {
+        override fun signUp(fullName: String, email: String, password: String) = runAccountTask {
+            auth.signUp(fullName, email, password)
+                .onSuccess { user ->
+                    runCatching { users.create(user.uid, fullName, email) }
+                    cacheProfile(mapOf("fullName" to fullName.trim(), "email" to email.trim()))
+                    note("Account created! Check your inbox to verify your email.")
+                    screenHistory.clear(); render("Add Your Pet", recordHistory = false)
+                }
+                .onFailure { note(it.message!!) }
+        }
+        override fun logIn(email: String, password: String) = runAccountTask {
+            auth.logIn(email, password)
+                .onSuccess { user ->
+                    val stored = runCatching { users.load(user.uid) }.getOrDefault(emptyMap())
+                    cacheProfile(mapOf("fullName" to user.displayName, "email" to user.email) + stored)
+                    screenHistory.clear(); render("Home", recordHistory = false)
+                }
+                .onFailure { note(it.message!!) }
+        }
+        override fun sendPasswordReset(email: String) = runAccountTask {
+            auth.sendPasswordReset(email)
+                .onSuccess { note("If an account exists for ${email.trim()}, a reset link is on its way."); render("Log In") }
+                .onFailure { note(it.message!!) }
+        }
+        override fun logOut() {
+            auth.logOut()
+            preferences.edit().apply { profileKeys.values.forEach { remove("profile:$it") } }.apply()
+            screenHistory.clear(); render("Welcome", recordHistory = false)
+        }
+    }
+
+    /** Runs one Firebase request at a time so repeated taps don't send duplicates. */
+    private fun runAccountTask(task: suspend () -> Unit) {
+        if (accountBusy) return
+        accountBusy = true
+        lifecycleScope.launch { try { task() } finally { accountBusy = false } }
+    }
+
+    /** Firestore field → profile:* key read by the Profile and Personal Information screens. */
+    private val profileKeys = mapOf("fullName" to "name", "email" to "email", "phone" to "phone",
+        "birthday" to "birthday", "country" to "country", "photo" to "photo")
+
+    private fun cacheProfile(data: Map<String, Any?>) {
+        preferences.edit().apply {
+            profileKeys.forEach { (field, key) -> (data[field] as? String)?.takeIf { it.isNotBlank() }?.let { putString("profile:$key", it) } }
+        }.apply()
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         AppTheme.applySaved(this)
         super.onCreate(savedInstanceState)
@@ -86,9 +140,10 @@ class MainActivity : AppCompatActivity() {
         savedInstanceState?.getStringArrayList("screenHistory")?.forEach { screenHistory.addLast(it) }
         pendingNewPetPhotoUri = savedInstanceState?.getString("pendingNewPetPhotoUri")
         petPhotoPickerTarget = savedInstanceState?.getString("petPhotoPickerTarget") ?: "Pet Detail"
+        val start = if (auth.currentUser != null) "Home" else "Welcome"
         val destination = savedInstanceState?.getString("screen")
             ?: if (applicationInfo.flags and android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE != 0)
-                intent.getStringExtra("preview_screen") ?: "Welcome" else "Welcome"
+                intent.getStringExtra("preview_screen") ?: start else start
         render(destination, recordHistory = false)
     }
 
@@ -194,7 +249,7 @@ class MainActivity : AppCompatActivity() {
                 { toggleSoundRecording() }, { soundRows() }, { entry -> playRecording(entry) },
                 { addReminder() },
                 { reminder -> reminder.put("done", !reminder.optBoolean("done")); save(); render("Reminders") },
-                { render("Home") },
+                account,
                 { navigateBack() },
                 pendingNewPetPhotoUri,
                 { adding -> editPetPhoto(adding) }
