@@ -3,6 +3,7 @@ package com.purrfolio.mco1
 import android.app.Activity
 import android.app.AlertDialog
 import android.app.DatePickerDialog
+import android.content.Intent
 import android.content.res.ColorStateList
 import android.content.res.Configuration
 import android.graphics.Color
@@ -59,6 +60,12 @@ class PhaseTwoScreens(
             "Activity Log","QR Privacy","More")
     }
     private val name get()=pet.optString("name","Mochi")
+    private fun ageLabel():String{
+        val species=pet.optString("species","Pet")
+        val age=try{val born=Calendar.getInstance().apply{time=SimpleDateFormat("yyyy-MM-dd",Locale.US).parse(pet.optString("birthday"))!!};val now=Calendar.getInstance();now.get(Calendar.YEAR)-born.get(Calendar.YEAR)-if(now.get(Calendar.DAY_OF_YEAR)<born.get(Calendar.DAY_OF_YEAR))1 else 0}catch(_:Exception){-1}
+        return if(age>=0)"$species · $age years old" else species
+    }
+    private fun dial(phone:String){runCatching{a.startActivity(Intent(Intent.ACTION_DIAL,Uri.parse("tel:$phone")))}.onFailure{preview("No dialer app is available on this device.")}}
     private val prefs=a.getSharedPreferences("purrfolio_demo",Activity.MODE_PRIVATE)
     private val night=a.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK==Configuration.UI_MODE_NIGHT_YES
     private fun color(hex:String)=Color.parseColor(hex)
@@ -108,7 +115,7 @@ class PhaseTwoScreens(
     private fun center(s:String,size:Float=14f,c:Int=sub,weight:Int=400)=text(s,size,c,weight).apply{gravity=Gravity.CENTER}
     private fun action(kind:String,label:String,callback:()->Unit)=FrameLayout(a).apply{
         contentDescription=label;isFocusable=true;setOnClickListener{callback()}
-        addView(icon(kind,tint=if(kind=="Check"||kind=="Camera")color("#201528")else if(kind=="Warning")coral else primary),FrameLayout.LayoutParams(dp(26),dp(26),Gravity.CENTER));minimumWidth=dp(48);minimumHeight=dp(48)
+        addView(icon(kind,tint=if(kind=="Check"||kind=="Camera")color("#201528")else if(kind=="Warning"||kind=="Lock")coral else primary),FrameLayout.LayoutParams(dp(26),dp(26),Gravity.CENTER));minimumWidth=dp(48);minimumHeight=dp(48)
     }
     private fun button(label:String,secondary:Boolean=false,tint:Int=lavender,callback:()->Unit)=text(label,15f,if(secondary)primary else color("#201528"),700).apply{
         gravity=Gravity.CENTER;minHeight=dp(52);background=shape(if(secondary)elevated else tint,30,secondary);isFocusable=true;setOnClickListener{callback()}
@@ -293,6 +300,13 @@ class PhaseTwoScreens(
         var weight:EditText
         if(edit){val r=row();val l=col();val right=col();weight=field("Weight",prefs.getString("pet-ui-weight:$name","")!!,"Weight",hint="kg",parent=l);fields["sex"]=field("Sex",pet.optString("sex"),"Sex",dropdown=listOf("Female","Male","Unknown"),parent=right);r.addView(l,LinearLayout.LayoutParams(0,-2,1f).apply{rightMargin=dp(4)});r.addView(right,LinearLayout.LayoutParams(0,-2,1f).apply{leftMargin=dp(4)});add(r)
             fields["notes"]=field("About $name",pet.optString("notes"),"Notes",multiline=true)
+            sectionLabel("Emergency Information",14)
+            fields["medicalInfo"]=field("Medical Information",pet.optString("medicalInfo"),"Medical",hint="Allergies, medications, conditions",multiline=true)
+            fields["vetClinic"]=field("Veterinarian / Clinic",pet.optString("vetClinic"),"Vet Visit",hint="Paws Animal Clinic")
+            fields["vetPhone"]=field("Veterinarian Phone",pet.optString("vetPhone"),"Phone",hint="+63 912 345 6789")
+            fields["emergencyContactName"]=field("Emergency Contact Name",pet.optString("emergencyContactName"),"Person",hint="Full name")
+            fields["emergencyContactRelation"]=field("Relationship",pet.optString("emergencyContactRelation"),"Person",dropdown=listOf("Owner","Family","Sitter","Other"))
+            fields["emergencyContactPhone"]=field("Emergency Contact Phone",pet.optString("emergencyContactPhone"),"Phone",hint="+63 912 345 6789")
         }else weight=field("Weight", "","Weight",hint="kg (optional)")
         gap(10);add(button(if(edit)"Save Changes"else "Continue"){
             if(fields.getValue("name").text.isBlank()){fields.getValue("name").error="Pet name is required";return@button}
@@ -464,13 +478,21 @@ class PhaseTwoScreens(
         val info=row().apply{background=shape();pad(this,10,7)};info.addView(art(R.drawable.pdf_id_cat,64),LinearLayout.LayoutParams(dp(88),dp(64)));info.addView(text("You can choose what information\nis shown on $name's ID card.",12f,sub),LinearLayout.LayoutParams(0,-2,1f));add(info,80)
     }
     private fun emergency(){
-        header("Emergency Mode","Quick access to important\ninformation when it matters.",back="More",extra="Warning",onExtra={preview("Emergency details have not been configured in this prototype.")})
-        val card=row().apply{background=shape(if(night)color("#302026")else color("#FBE5EA"));pad(this,14,14)};card.addView(portrait(size=102,ring=coral),LinearLayout.LayoutParams(dp(102),dp(102)).apply{rightMargin=dp(14)})
-        val copy=col();copy.addView(heading(name,26f));copy.addView(text("${pet.optString("species")} · 2 years old",13f,sub));copy.addView(button("EMERGENCY INFO",tint=color("#FF8298")){preview("No emergency contact or clinical record is configured. Open Pet Passport to review available details.")},LinearLayout.LayoutParams(-1,dp(42)).apply{topMargin=dp(10)});card.addView(copy,LinearLayout.LayoutParams(0,-2,1f));add(card,142,12)
-        add(infoRow("Medical","Medical Information","Allergies, medications, conditions",tint=coral){go("Pet Passport")},68,6)
-        add(infoRow("Vet Visit","Veterinarian","Contact not configured","Phone",coral){preview("Add a verified veterinary contact before using this action.")},68,6)
-        add(infoRow("Phone","Emergency Contact","Contact not configured","Phone",coral){go("Personal Information")},68,6)
-        add(infoRow("Pets","Care Circle","View your caregivers",tint=coral){go("Care Circle")},68,6)
+        header("Emergency Mode","Quick access when it matters.",back="More",extra="Lock",onExtra={preview("All emergency information stays stored on this device. Nothing is transmitted, shared, or synced automatically.")})
+        val hasEmergencyInfo=listOf("medicalInfo","vetClinic","vetPhone","emergencyContactName","emergencyContactPhone").any{pet.optString(it).isNotBlank()}
+        val card=row().apply{background=shape(if(night)color("#302026")else color("#FBE5EA"));pad(this,14,14);setOnClickListener{go(if(hasEmergencyInfo)"Pet Passport" else "Edit Pet Profile")}};card.addView(portrait(size=102,ring=coral),LinearLayout.LayoutParams(dp(102),dp(102)).apply{rightMargin=dp(14)})
+        val copy=col();copy.addView(heading(name,26f));copy.addView(text(ageLabel(),13f,sub));copy.addView(text("EMERGENCY INFO",12f,coral,700),LinearLayout.LayoutParams(-1,-2).apply{topMargin=dp(8)});card.addView(copy,LinearLayout.LayoutParams(0,-2,1f));add(card,142,12)
+        val medical=pet.optString("medicalInfo").trim()
+        add(infoRow("Medical","Medical Information",medical.ifBlank{"No medical information added yet"},tint=coral){go("Edit Pet Profile")},68,6)
+        val vetClinic=pet.optString("vetClinic").trim();val vetPhone=pet.optString("vetPhone").trim()
+        add(infoRow("Vet Visit","Veterinarian",if(vetClinic.isNotBlank())"$vetClinic${if(vetPhone.isNotBlank())" · call" else ""}" else "No veterinarian added yet","Phone",coral){
+            if(vetPhone.isNotBlank())dial(vetPhone) else preview("No veterinary phone number saved yet. Add one from Edit Pet Profile.")
+        },68,6)
+        val contactName=pet.optString("emergencyContactName").trim();val contactRelation=pet.optString("emergencyContactRelation").trim();val contactPhone=pet.optString("emergencyContactPhone").trim()
+        add(infoRow("Phone","Emergency Contact",if(contactName.isNotBlank())"$contactName${if(contactRelation.isNotBlank())" ($contactRelation)" else ""}${if(contactPhone.isNotBlank())" · call" else ""}" else "No emergency contact added yet","Phone",coral){
+            if(contactPhone.isNotBlank())dial(contactPhone) else preview("No emergency contact phone number saved yet. Add one from Edit Pet Profile.")
+        },68,6)
+        add(infoRow("Pets","Care Circle",caregivers.filter{it.second!="Owner"}.take(3).joinToString(", "){it.first},tint=coral){go("Care Circle")},68,6)
         add(infoRow("Document","Pet Passport","View and share full summary",tint=coral){go("Pet Passport")},68,20)
         add(button("Share Emergency Info",tint=color("#FF8298")){preview("Emergency sharing is not connected. No information has been shared.")},52)
     }

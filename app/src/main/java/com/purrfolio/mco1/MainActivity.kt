@@ -177,7 +177,9 @@ class MainActivity : AppCompatActivity() {
                 { index -> petIndex = index; render("Pet Detail") },
                 { values, adding ->
                     val updated = if (adding) JSONObject() else JSONObject(selectedPet().toString())
-                    listOf("name", "species", "breed", "birthday", "sex", "notes", "photoUri").forEach { key ->
+                    listOf("name", "species", "breed", "birthday", "sex", "notes", "photoUri",
+                        "medicalInfo", "vetClinic", "vetPhone",
+                        "emergencyContactName", "emergencyContactRelation", "emergencyContactPhone").forEach { key ->
                         if (values.containsKey(key)) updated.put(key, values[key])
                     }
                     if (adding) { pets.add(updated); petIndex = pets.lastIndex } else {
@@ -561,7 +563,11 @@ class MainActivity : AppCompatActivity() {
         if (pets.isEmpty()) {
             pets.add(JSONObject().put("name", "Mochi").put("species", "Cat").put("breed", "Mixed Breed")
                 .put("birthday", "2024-09-26").put("sex", "Female")
-                .put("notes", "Playful, loves treats and sunny spots."))
+                .put("notes", "Playful, loves treats and sunny spots.")
+                .put("medicalInfo", "No known allergies. Due for annual vaccination booster in November.")
+                .put("vetClinic", "Paws Animal Clinic").put("vetPhone", "+63 917 123 4567")
+                .put("emergencyContactName", "Gracezel Castrence").put("emergencyContactRelation", "Owner")
+                .put("emergencyContactPhone", "+63 917 234 5678"))
             pets.add(JSONObject().put("name", "Bailey").put("species", "Dog")
                 .put("breed", "Golden Retriever").put("birthday", "2022-05-13")
                 .put("sex", "Male").put("notes", "Enjoys long walks."))
