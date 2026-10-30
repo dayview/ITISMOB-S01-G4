@@ -225,7 +225,7 @@ class PhaseTwoScreens(
         val password=field("Password","","Lock",password=true)
         val requirements=col().apply{background=shape();pad(this,18,12)}
         val checks=listOf("At least 8 characters","1 letter and 1 number","1 special character").map{label->val r=row();val status=icon("Check",22);r.addView(status,LinearLayout.LayoutParams(dp(26),dp(26)).apply{rightMargin=dp(12)});r.addView(text(label,14f,sub));requirements.addView(r,LinearLayout.LayoutParams(-1,dp(32)));r}
-        password.addTextChangedListener(object:TextWatcher{override fun beforeTextChanged(s:CharSequence?,start:Int,count:Int,after:Int){};override fun onTextChanged(s:CharSequence?,start:Int,before:Int,count:Int){val v=s.toString();val ok=listOf(v.length>=8,v.any{it.isLetter()}&&v.any{it.isDigit()},v.any{!it.isLetterOrDigit()});checks.forEachIndexed{i,r->r.alpha=if(ok[i])1f else .45f}};override fun afterTextChanged(s:Editable?) {}})
+        password.addTextChangedListener(object:TextWatcher{override fun beforeTextChanged(s:CharSequence?,start:Int,count:Int,after:Int){};override fun onTextChanged(s:CharSequence?,start:Int,before:Int,count:Int){val ok=Validators.passwordRules(s.toString());checks.forEachIndexed{i,r->r.alpha=if(ok[i])1f else .45f}};override fun afterTextChanged(s:Editable?) {}})
         add(requirements,124,20);add(button("Continue"){go("Add Your Pet")},52);social();push(16)
         add(center("Already have an account?  Log In",14f,sub).apply{setOnClickListener{go("Log In")};minHeight=dp(48)},48)
     }
