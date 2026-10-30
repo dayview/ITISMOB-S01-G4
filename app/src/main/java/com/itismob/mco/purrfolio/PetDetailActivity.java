@@ -67,7 +67,7 @@ public class PetDetailActivity extends BaseListActivity {
 
         List<Row> out = new ArrayList<>(Reminder.rowsFor(reminders, today, false, "All"));
         out.add(Row.header("Upcoming"));
-        out.addAll(Reminder.rowsFor(reminders, Ui.addDays(today, 1), false "All"));
+        out.addAll(Reminder.rowsFor(reminders, Ui.addDays(today, 1), false, "All"));
         showRows(out);
     }
 

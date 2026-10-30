@@ -4,16 +4,16 @@
         <item name="colorOnPrimary">@color/purr_on_primary</item>
         <item name="android:windowBackground">@color/purr_bg</item>
     </style>
-    <style name="Purr.Title">
+    <style name="Purr.Title" parent="">
         <item name="android:textSize">26sp</item>
         <item name="android:textStyle">bold</item>
         <item name="android:textColor">@color/purr_text</item>
     </style>
-    <style name="Purr.Sub">
+    <style name="Purr.Sub" parent="">
         <item name="android:textSize">14sp</item>
         <item name="android:textColor">@color/purr_subtle</item>
     </style>
-    <style name="Purr.Field">
+    <style name="Purr.Field" parent="">
         <item name="android:background">@drawable/bg_field</item>
         <item name="android:padding">16dp</item>
         <item name="android:textSize">16sp</item>
@@ -33,5 +33,6 @@
         <item name="android:minHeight">56dp</item>
         <item name="android:textSize">16sp</item>
     </style>
+
 </resources>
 
