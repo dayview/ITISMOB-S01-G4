@@ -136,8 +136,11 @@ class PhaseTwoScreens(
     }
     private fun portraitHero(size:Int=130,decorated:Boolean=true,editable:Boolean=true):View{
         val frame=FrameLayout(a)
-        frame.addView(portrait(size=size),FrameLayout.LayoutParams(dp(size),dp(size),Gravity.CENTER))
-        if(editable)frame.addView(action("Camera","Change photo"){preview("Photo upload is not connected. The supplied image is shown for this frontend preview.")}.apply{background=shape(lavender,30,false);translationX=dp((size-35)/2).toFloat();translationY=dp((size-30)/2).toFloat()},FrameLayout.LayoutParams(dp(44),dp(44),Gravity.CENTER))
+        val image=portrait(size=size)
+        // Editable heroes are the user's own profile photo; the others keep the brand artwork.
+        if(editable)prefs.getString("profile:photo",null)?.let{UserRepository.decodePhoto(it)}?.let{(image.getChildAt(0) as ImageView).apply{setImageBitmap(it);contentDescription="Your profile photo"}}
+        frame.addView(image,FrameLayout.LayoutParams(dp(size),dp(size),Gravity.CENTER))
+        if(editable)frame.addView(action("Camera","Change photo"){account.changeProfilePhoto()}.apply{background=shape(lavender,30,false);translationX=dp((size-35)/2).toFloat();translationY=dp((size-30)/2).toFloat()},FrameLayout.LayoutParams(dp(44),dp(44),Gravity.CENTER))
         if(decorated){frame.addView(icon("Heart",26,pink).apply{translationX=-dp((size+65)/2).toFloat();translationY=-dp(15).toFloat()},FrameLayout.LayoutParams(dp(26),dp(26),Gravity.CENTER));frame.addView(icon("Sparkle",24).apply{translationX=dp((size+65)/2).toFloat();translationY=dp(20).toFloat()},FrameLayout.LayoutParams(dp(24),dp(24),Gravity.CENTER))}
         return frame
     }
@@ -164,7 +167,7 @@ class PhaseTwoScreens(
         if(password){entry.transformationMethod=PasswordTransformationMethod.getInstance();box.addView(action("Eye","Show or hide password"){val start=entry.selectionStart;entry.transformationMethod=if(entry.transformationMethod==null)PasswordTransformationMethod.getInstance()else null;entry.setSelection(start.coerceAtLeast(0))},LinearLayout.LayoutParams(dp(40),dp(40)))}
         if(dropdown!=null){entry.isFocusable=false;val pick={AlertDialog.Builder(a).setTitle(label).setItems(dropdown.toTypedArray()){_,i->entry.setText(dropdown[i])}.show();Unit};box.setOnClickListener{pick()};entry.setOnClickListener{pick()};box.addView(action("Down","Choose $label",pick),LinearLayout.LayoutParams(dp(34),dp(40)))}
         if(label.contains("Birthday")||label=="Date of Birth"){
-            entry.isFocusable=false;val pick={val now=Calendar.getInstance();DatePickerDialog(a,{_,y,m,d->entry.setText(String.format(Locale.US,"%04d-%02d-%02d",y,m+1,d))},now.get(Calendar.YEAR),now.get(Calendar.MONTH),now.get(Calendar.DAY_OF_MONTH)).show();Unit};entry.setOnClickListener{pick()};box.setOnClickListener{pick()}
+            entry.isFocusable=false;val pick={val now=Calendar.getInstance().apply{runCatching{time=SimpleDateFormat("yyyy-MM-dd",Locale.US).parse(entry.text.toString())!!}};DatePickerDialog(a,{_,y,m,d->entry.setText(String.format(Locale.US,"%04d-%02d-%02d",y,m+1,d))},now.get(Calendar.YEAR),now.get(Calendar.MONTH),now.get(Calendar.DAY_OF_MONTH)).show();Unit};entry.setOnClickListener{pick()};box.setOnClickListener{pick()}
             box.addView(icon("Down",22))
         }
         parent.addView(box,LinearLayout.LayoutParams(-1,if(multiline)dp(102)else dp(70)).apply{bottomMargin=dp(8)})
@@ -255,20 +258,27 @@ class PhaseTwoScreens(
     }
     private fun profile(){
         header("Profile",extra="Settings",onExtra={go("Account Settings")},left=true);add(portraitHero(130),150,8)
-        add(center(prefs.getString("profile:name","Gracezel Castrence")!!,20f,ink,700),28,3);add(center(prefs.getString("profile:email","youremail@dlsu.edu.ph")!!,13f),24,16)
-        val complete=infoRow("Progress","Account Complete","4 of 5 completed"){go("Personal Information")};complete.background=shape(elevated);add(complete,72,12)
+        add(center(prefs.getString("profile:name","")!!,20f,ink,700),28,3);add(center(prefs.getString("profile:email","")!!,13f),24,16)
+        // Name, phone, birthday, photo and a verified email make up the five steps.
+        val done=listOf("name","phone","birthday","photo").count{!prefs.getString("profile:$it",null).isNullOrBlank()}+(if(account.emailVerified)1 else 0)
+        val complete=infoRow("Progress","Account Complete",if(done==5)"All 5 completed" else if(!account.emailVerified)"$done of 5 completed · Verify your email" else "$done of 5 completed"){go("Personal Information")};complete.background=shape(elevated);add(complete,72,12)
         listOf(Triple("Person","Personal Information","Personal Information"),Triple("Settings","Account Settings","Account Settings"),Triple("Bell","Notifications","Notifications"),Triple("Lock","Privacy & Security","QR Privacy"),Triple("Link","Linked Accounts","Account Settings")).forEach{(i,l,d)->add(infoRow(i,l){go(d)},56,5)}
         gap(8);add(button("Log Out"){account.logOut()},52);push()
     }
     private fun personalInformation(){
         header("Personal Information",back="Profile");add(portraitHero(125,false),155,18)
+        // Keys are the Firestore field names; MainActivity mirrors them into the profile:* preferences.
         val fields=linkedMapOf<String,EditText>()
-        fields["name"]=field("Full Name",prefs.getString("profile:name","Gracezel Castrence")!!)
-        fields["email"]=field("Email Address",prefs.getString("profile:email","youremail@dlsu.edu.ph")!!,"Mail")
-        fields["phone"]=field("Phone Number",prefs.getString("profile:phone","+63 912 345 6789")!!,"Phone")
-        fields["birthday"]=field("Date of Birth",prefs.getString("profile:birthday","2004-09-25")!!,"Care")
-        fields["country"]=field("Country / Region",prefs.getString("profile:country","Philippines")!!,"Location",dropdown=listOf("Philippines","Singapore","Malaysia","Other"))
-        gap(20);add(button("Save Changes"){prefs.edit().apply{fields.forEach{(k,v)->putString("profile:$k",v.text.toString())}}.apply();notice("Profile saved on this device.");go("Profile")},52)
+        fields["fullName"]=field("Full Name",prefs.getString("profile:name","")!!,hint="Gracezel Castrence")
+        // Changing the sign-in email belongs to Account Settings, so it is read-only here.
+        field("Email Address",prefs.getString("profile:email","")!!,"Mail").apply{isFocusable=false;alpha=.6f}
+        fields["phone"]=field("Phone Number",prefs.getString("profile:phone","")!!,"Phone",hint="+63 912 345 6789")
+        fields["birthday"]=field("Date of Birth",prefs.getString("profile:birthday","")!!,"Care",hint="2004-09-25")
+        fields["country"]=field("Country / Region",prefs.getString("profile:country","")!!,"Location",hint="Philippines",dropdown=listOf("Philippines","Singapore","Malaysia","Other"))
+        gap(20);add(button("Save Changes"){
+            val nameInput=fields.getValue("fullName");nameInput.error=Validators.fullName(nameInput.text.toString())
+            if(nameInput.error==null)account.saveProfile(fields.mapValues{it.value.text.toString().trim()})
+        },52)
     }
     private fun accountSettings(){
         header("Account Settings",back="Profile");gap(12)

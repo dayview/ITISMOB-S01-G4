@@ -44,12 +44,9 @@ class UserRepository(private val db: FirebaseFirestore = FirebaseFirestore.getIn
         doc(uid).set(fields, SetOptions.merge()).await()
     }
 
-    /** Shrinks the picked image, saves it to the profile and returns the Base64 string. */
-    suspend fun savePhoto(uid: String, resolver: ContentResolver, uri: Uri): String {
-        val photo = withContext(Dispatchers.IO) { encodePhoto(resolver, uri) }
-        update(uid, mapOf("photo" to photo))
-        return photo
-    }
+    /** Shrinks the picked image off the main thread; save the result with update(uid, mapOf("photo" to it)). */
+    suspend fun preparePhoto(resolver: ContentResolver, uri: Uri): String =
+        withContext(Dispatchers.IO) { encodePhoto(resolver, uri) }
 
     suspend fun deleteAll(uid: String) {
         doc(uid).delete().await()

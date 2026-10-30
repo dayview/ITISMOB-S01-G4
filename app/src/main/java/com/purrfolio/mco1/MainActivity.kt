@@ -20,6 +20,7 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
@@ -113,6 +114,43 @@ class MainActivity : AppCompatActivity() {
             preferences.edit().apply { profileKeys.values.forEach { remove("profile:$it") } }.apply()
             screenHistory.clear(); render("Welcome", recordHistory = false)
         }
+        override val emailVerified get() = auth.currentUser?.isEmailVerified == true
+        override fun saveProfile(fields: Map<String, String>) {
+            preferences.edit().apply {
+                fields.forEach { (field, value) ->
+                    val key = "profile:${profileKeys[field] ?: field}"
+                    if (value.isBlank()) remove(key) else putString(key, value)
+                }
+            }.apply()
+            note("Profile saved."); render("Profile")
+            syncProfile(fields)
+        }
+        override fun changeProfilePhoto() {
+            profilePhotoPicker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+        }
+    }
+
+    private val profilePhotoPicker = registerForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
+        if (uri != null) lifecycleScope.launch {
+            runCatching { users.preparePhoto(contentResolver, uri) }
+                .onSuccess { photo ->
+                    preferences.edit().putString("profile:photo", photo).apply()
+                    render(screen, recordHistory = false)
+                    syncProfile(mapOf("photo" to photo))
+                }
+                .onFailure { note("That photo couldn't be used. Try another image.") }
+        }
+    }
+
+    /**
+     * Sends profile changes to Firestore after they are already saved on the device. Offline writes
+     * are queued by Firestore and only finish once the device reconnects, so nothing waits on this.
+     */
+    private fun syncProfile(fields: Map<String, Any?>) {
+        val uid = auth.currentUser?.uid ?: return
+        lifecycleScope.launch {
+            runCatching { users.update(uid, fields) }.onFailure { note("Couldn't sync your profile. It's still saved on this device.") }
+        }
     }
 
     /** Runs one Firebase request at a time so repeated taps don't send duplicates. */
@@ -145,6 +183,12 @@ class MainActivity : AppCompatActivity() {
             ?: if (applicationInfo.flags and android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE != 0)
                 intent.getStringExtra("preview_screen") ?: start else start
         render(destination, recordHistory = false)
+    }
+
+    override fun onResume() {
+        super.onResume()
+        // Picks up email verification done in the browser; the result shows the next time Profile is drawn.
+        auth.currentUser?.reload()
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
