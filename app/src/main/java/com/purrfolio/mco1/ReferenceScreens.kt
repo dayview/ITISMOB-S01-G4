@@ -136,7 +136,7 @@ class ReferenceScreens(private val a: Activity, private val pet: org.json.JSONOb
         val labels=col();labels.addView(title("Today's Care",20f));labels.addView(text("3 of 5 done",16f,primary,700),LinearLayout.LayoutParams(-1,-2).apply{topMargin=dp(4)});summary.addView(labels,LinearLayout.LayoutParams(0,-2,1f));summary.addView(action("Arrow","Open care timeline"){go("Pet Timeline")}.apply{background=shape(elevated,30)})
         add(summary,76,7);tasks.indices.forEach{add(careRow(it),72,5)};flexible(12)
     }
-    private fun petOptions(){AlertDialog.Builder(a).setTitle(name).setItems(arrayOf("Switch pet","Edit pet profile","Pet Passport","Sitter Mode","Care History","Care Circle","Pet Records")){_,i->when(i){0->choose();1->go("Edit Pet Profile");2->go("Pet Passport");3->go("Sitter Mode");4->go("Care History");5->go("Care Circle");6->go("Records")}}.show()}
+    private fun petOptions(){AlertDialog.Builder(a).setTitle(name).setItems(arrayOf("Pet profile","Switch pet","Edit pet profile","Pet Passport","Sitter Mode","Care History","Care Circle","Pet Records")){_,i->when(i){0->go("Pet Profile");1->choose();2->go("Edit Pet Profile");3->go("Pet Passport");4->go("Sitter Mode");5->go("Care History");6->go("Care Circle");7->go("Records")}}.show()}
     private fun overviewHeader(){
         val header=FrameLayout(a)
         header.addView(action("Back","Back",onBack),FrameLayout.LayoutParams(dp(48),dp(48),Gravity.START or Gravity.CENTER_VERTICAL))

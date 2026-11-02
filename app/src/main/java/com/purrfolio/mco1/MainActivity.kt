@@ -20,6 +20,7 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
@@ -63,20 +64,13 @@ class MainActivity : AppCompatActivity() {
     private val audioPermission = registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
         if (granted) startSoundRecording() else note("Microphone permission is needed to record audio.")
     }
-    private var pendingNewPetPhotoUri: String? = null
-    private var petPhotoPickerTarget = "Pet Detail"
-    private val petPhotoPicker = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
-        if (uri != null) {
-            runCatching { contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION) }
-            if (petPhotoPickerTarget == "Add Your Pet") {
-                pendingNewPetPhotoUri = uri.toString()
-            } else {
-                selectedPet().put("photoUri", uri.toString())
-                save()
-            }
-            render(petPhotoPickerTarget)
-        }
-    }
+    private var petDraft: PetDraft? = null
+    private var formBackHandler: (() -> Unit)? = null
+    private val petFormScreens = setOf("Add Your Pet", "Edit Pet Profile")
+
+    private val petPhotoPicker = registerForActivityResult(
+        ActivityResultContracts.PickVisualMedia()
+    ) { uri -> if (uri != null) onPetPhotoPicked(uri) }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         AppTheme.applySaved(this)
@@ -84,8 +78,7 @@ class MainActivity : AppCompatActivity() {
         night = resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK == Configuration.UI_MODE_NIGHT_YES
         restore()
         savedInstanceState?.getStringArrayList("screenHistory")?.forEach { screenHistory.addLast(it) }
-        pendingNewPetPhotoUri = savedInstanceState?.getString("pendingNewPetPhotoUri")
-        petPhotoPickerTarget = savedInstanceState?.getString("petPhotoPickerTarget") ?: "Pet Detail"
+        petDraft = PetDraft.fromBundle(savedInstanceState?.getBundle("petDraft"))
         val destination = savedInstanceState?.getString("screen")
             ?: if (applicationInfo.flags and android.content.pm.ApplicationInfo.FLAG_DEBUGGABLE != 0)
                 intent.getStringExtra("preview_screen") ?: "Welcome" else "Welcome"
@@ -95,8 +88,7 @@ class MainActivity : AppCompatActivity() {
     override fun onSaveInstanceState(outState: Bundle) {
         outState.putString("screen", screen)
         outState.putStringArrayList("screenHistory", ArrayList(screenHistory))
-        outState.putString("pendingNewPetPhotoUri", pendingNewPetPhotoUri)
-        outState.putString("petPhotoPickerTarget", petPhotoPickerTarget)
+        petDraft?.let { outState.putBundle("petDraft", it.toBundle()) }
         super.onSaveInstanceState(outState)
     }
 
@@ -116,30 +108,32 @@ class MainActivity : AppCompatActivity() {
     private fun petName() = selectedPet().optString("name", "Mochi")
     private fun note(message: String) = Toast.makeText(this, message, Toast.LENGTH_LONG).show()
 
-    private fun editPetPhoto(addingPet:Boolean=false) {
-        val target = if(addingPet) "Add Your Pet" else screen
-        val photoUri = if(addingPet) pendingNewPetPhotoUri else selectedPet().optString("photoUri").takeIf{it.isNotBlank()}
-        val hasPhoto = !photoUri.isNullOrBlank()
-        val options = if (hasPhoto) arrayOf("Choose from device", "Remove photo", "Cancel") else arrayOf("Choose from device", "Cancel")
-        AlertDialog.Builder(this).setTitle(if(addingPet)"Pet photo" else "${petName()}'s photo").setItems(options) { _, index ->
+    private fun editPetPhoto() {
+        val pet = selectedPet()
+        val photo = pet.optString("photoUri")
+        val hasPhoto = photo.isNotBlank()
+        val options = if (hasPhoto) arrayOf("Choose from device", "Remove photo", "Cancel")
+                      else arrayOf("Choose from device", "Cancel")
+        AlertDialog.Builder(this).setTitle("${petName()}'s photo").setItems(options) { _, index ->
             when {
-                index == 0 -> { petPhotoPickerTarget=target;petPhotoPicker.launch(arrayOf("image/*")) }
+                index == 0 -> launchPhotoPicker()
                 index == 1 && hasPhoto -> {
-                    runCatching { contentResolver.releasePersistableUriPermission(Uri.parse(photoUri),Intent.FLAG_GRANT_READ_URI_PERMISSION) }
-                    if(addingPet)pendingNewPetPhotoUri=null else{selectedPet().remove("photoUri");save()}
-                    render(target)
+                    PetPhotoStore.deleteIfOurs(this, photo)   // only deletes files inside filesDir/pets
+                    pet.remove("photoUri"); save()
+                    render(screen, recordHistory = false)
                 }
             }
         }.show()
     }
 
     private fun navigateBack() {
+        formBackHandler?.let { it(); return }
         if (screenHistory.isNotEmpty()) {
             render(screenHistory.removeLast(), false)
         } else {
             render(when(screen){
                 "Create Account","Log In","Reset Password"->"Welcome"
-                "Pet Detail","Edit Pet Profile","Add Your Pet"->"Pets"
+                "Pet Detail","Edit Pet Profile","Add Your Pet","Pet Profile"->"Pets"
                 "Quick Log","Voice Log","Sound Journal","Care History"->"Care"
                 "Paperless Inbox","Pet Timeline","Pet Passport","Browse Records","Vaccination Card"->"Records"
                 "Personal Information","Account Settings","Notifications"->"Profile"
@@ -155,7 +149,8 @@ class MainActivity : AppCompatActivity() {
             render("Quick Log", recordHistory)
             return
         }
-        if (screen == "Add Your Pet" && destination != "Add Your Pet") pendingNewPetPhotoUri = null
+        formBackHandler = null
+        if (screen in petFormScreens && destination !in petFormScreens) discardPetDraft()
         if (recordHistory && destination != screen) screenHistory.addLast(screen)
         screen = destination
         when (destination) {
@@ -163,6 +158,10 @@ class MainActivity : AppCompatActivity() {
             "App Theme" -> { showAppTheme(); return }
             "Quick Log" -> { showQuickLog(); return }
             "Care History" -> { showCareHistory(); return }
+            "Add Your Pet" -> { showAddPet(); return }
+            "Edit Pet Profile" -> { showEditPet(); return }
+            "Pets" -> { showMyPets(); return }
+            "Pet Profile" -> { showPetProfile(); return }
         }
         if (destination in ReferenceScreens.destinations) {
             val view = ReferenceScreens(this, selectedPet(), { render(it) }, { choosePet() }, { editPetPhoto() }, { navigateBack() }).build(destination)
@@ -196,8 +195,8 @@ class MainActivity : AppCompatActivity() {
                 { reminder -> reminder.put("done", !reminder.optBoolean("done")); save(); render("Reminders") },
                 { render("Home") },
                 { navigateBack() },
-                pendingNewPetPhotoUri,
-                { adding -> editPetPhoto(adding) }
+                null,
+                { _ -> }
             ).build(destination)
             setContentView(view)
             ViewCompat.requestApplyInsets(view)
@@ -544,6 +543,94 @@ class MainActivity : AppCompatActivity() {
 
     private fun stamp() = SimpleDateFormat("MMM d, yyyy · h:mm a", Locale.getDefault()).format(Date())
 
+    private val petHost = object : PetScreenHost {
+        override fun go(destination: String) = render(destination)
+        override fun back() = navigateBack()
+        override fun choosePhoto() = launchPhotoPicker()
+        override fun savePet(pet: Pet, adding: Boolean) = commitPet(pet, adding)
+        override fun selectPet(index: Int) { petIndex = index; render("Pet Detail") }
+        override fun addDemoPet(pet: Pet) {
+            pets.add(pet.copy(id = UUID.randomUUID().toString()).toJson())
+            petIndex = pets.lastIndex
+            save(); note("Added to your pets on this device.")
+            render("Pets", recordHistory = false)
+        }
+        override fun exitForm() {
+            formBackHandler = null          // otherwise navigateBack() calls the handler again and re-asks
+            discardPetDraft()
+            navigateBack()
+        }
+        override fun setBackHandler(handler: (() -> Unit)?) { formBackHandler = handler }
+        override fun dock(screen: String): View =
+            ReferenceScreens(this@MainActivity, selectedPet(), { render(it) }, { choosePet() }).dock(screen)
+    }
+
+    private fun savedPets() = pets.map { Pet.fromJson(it) }
+
+    private fun showContent(view: View) { setContentView(view); ViewCompat.requestApplyInsets(view) }
+
+    private fun showAddPet() {
+        val draft = petDraft?.takeIf { it.mode == PetDraft.ADD }
+            ?: PetDraft.forNewPet().also { petDraft = it }
+        showContent(AddPetFlow(this, draft, savedPets(), petHost).build())
+    }
+
+    private fun showEditPet() {
+        val current = Pet.fromJson(selectedPet())
+        val draft = petDraft?.takeIf { it.mode == PetDraft.EDIT && it.id == current.id }
+            ?: PetDraft.forEdit(current).also { petDraft = it }
+        showContent(EditPetScreen(this, draft, savedPets(), petHost).build())
+    }
+
+    private fun showMyPets() =
+        showContent(MyPetsScreen(this, savedPets(), petId(selectedPet()), petHost).build())
+
+    private fun showPetProfile() =
+        showContent(PetProfileScreen(this, Pet.fromJson(selectedPet()), petHost).build())
+
+    private fun commitPet(pet: Pet, adding: Boolean) {
+        val draft = petDraft
+        if (adding) {
+            pets.add(pet.toJson()); petIndex = pets.lastIndex
+        } else {
+            val i = pets.indexOfFirst { it.optString("id") == pet.id }
+            if (i < 0) return
+            pet.writeInto(pets[i]); petIndex = i      // keeps keys other people added
+            if (draft != null && draft.originalPhotoUri.isNotBlank() && draft.originalPhotoUri != pet.photoUri)
+                PetPhotoStore.deleteIfOurs(this, draft.originalPhotoUri)
+        }
+        petDraft = null            // null BEFORE render, or discardPetDraft() deletes the photo we just saved
+        formBackHandler = null
+        save(); note("Pet profile saved on this device.")
+        if (adding) render("Pet Detail", recordHistory = false) else navigateBack()
+    }
+
+    private fun discardPetDraft() {
+        petDraft?.let {
+            if (it.photoUri != it.originalPhotoUri) PetPhotoStore.deleteIfOurs(this, it.photoUri)
+        }
+        petDraft = null
+    }
+
+    private fun launchPhotoPicker() = petPhotoPicker.launch(
+        PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+    )
+
+    private fun onPetPhotoPicked(uri: Uri) {
+        val draft = petDraft
+        if (draft != null && screen in petFormScreens) {
+            val saved = PetPhotoStore.import(this, uri, draft.id) ?: return note("Couldn't use that photo.")
+            if (draft.photoUri != draft.originalPhotoUri) PetPhotoStore.deleteIfOurs(this, draft.photoUri)
+            draft.photoUri = saved
+        } else {
+            val pet = selectedPet()
+            val saved = PetPhotoStore.import(this, uri, petId(pet)) ?: return note("Couldn't use that photo.")
+            PetPhotoStore.deleteIfOurs(this, pet.optString("photoUri"))
+            pet.put("photoUri", saved); save()
+        }
+        render(screen, recordHistory = false)
+    }
+
     private fun restore() {
         fun pull(key: String, out: MutableList<JSONObject>) {
             val array = JSONArray(preferences.getString(key, "[]"))
@@ -552,6 +639,7 @@ class MainActivity : AppCompatActivity() {
         try { pull("pets", pets); pull("logs", logs); pull("reminders", reminders) }
         catch (_: Exception) { pets.clear(); logs.clear(); reminders.clear() }
         pets.forEach { if (!it.has("id")) it.put("id", UUID.randomUUID().toString()) }
+        PetMigrations.moveLegacyWeight(preferences, pets)
         logs.forEach { entry ->
             if (!entry.has("id")) entry.put("id", UUID.randomUUID().toString())
             if (!entry.has("petId")) pets.firstOrNull { it.optString("name") == entry.optString("pet") }
