@@ -103,8 +103,24 @@ class AddPetFlow(
     }
 
     private fun save() {
-        if (PetRules.nameError(draft.name) != null) { goToStep(0); form.validatePhotoAndName();
-            return }
+        // "Skip this step" jumps to Review without validating, so recheck every step before saving.
+        val badStep = when {
+            PetRules.nameError(draft.name) != null -> 0
+            (draft.species == PetDraft.OTHER && PetRules.shortTextError(draft.otherSpecies, "Pet type") != null) ||
+                PetRules.shortTextError(draft.breed, "Breed") != null -> 1
+            PetRules.birthdayError(draft.birthday) != null || PetRules.weightError(draft.weight) != null ||
+                PetRules.notesError(draft.notes) != null -> 2
+            else -> -1
+        }
+        if (badStep >= 0) {
+            goToStep(badStep)
+            when (badStep) {
+                0 -> form.validatePhotoAndName()
+                1 -> form.validateSpecies()
+                else -> form.validateDetails()
+            }
+            return
+        }
         host.savePet(draft.toPet(), true)
     }
 
