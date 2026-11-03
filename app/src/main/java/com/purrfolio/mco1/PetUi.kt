@@ -42,10 +42,10 @@ class PetUi(val a: Activity) {
     val surface = c(if (night) "#1C1B26" else "#F3EDF8")
     val elevated = c(if (night) "#24222F" else "#EDE2F5")
     val primary = c(if (night) "#D8B4F8" else "#8051A8")
-    val lavender = c("D8B4F8")
+    val lavender = c("#D8B4F8")
     val onLavender = c("#201528")
     val ink = c(if (night) "#F8F2FF" else "#292130")
-    val sub = c(if (night) "BDB3CD" else "#72647D")
+    val sub = c(if (night) "#BDB3CD" else "#72647D")
     val coral = c(if (night) "#FF8298" else "#B32646")
     val mint = c("#91E5C8")
 
