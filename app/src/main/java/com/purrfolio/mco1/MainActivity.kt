@@ -653,6 +653,7 @@ class MainActivity : AppCompatActivity() {
             pets.add(JSONObject().put("name", "Bailey").put("species", "Dog")
                 .put("breed", "Golden Retriever").put("birthday", "2022-05-13")
                 .put("sex", "Male").put("notes", "Enjoys long walks."))
+            pets.forEach { it.put("id", UUID.randomUUID().toString()) }
             save()
         }
     }
