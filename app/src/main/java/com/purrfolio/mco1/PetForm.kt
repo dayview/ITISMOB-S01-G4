@@ -60,7 +60,7 @@ class PetForm(
 
     private fun updateDuplicateHint() {
         val duplicate = PetRules.isDuplicateName(draft.name, draft.id, existingPets.map { it.id to it.name })
-        nameField?.setHelper(if (duplicate) "You already have a pet named ${draft.name.trim()}. You can still sae." else null)
+        nameField?.setHelper(if (duplicate) "You already have a pet named ${draft.name.trim()}. You can still save." else null)
     }
 
     // species, breed, sex group
@@ -94,6 +94,11 @@ class PetForm(
             "Weight in kg", true, draft.weight, helper = "For example: 4.2",
             inputType = InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_FLAG_DECIMAL, maxLength = 6
         ) { draft.weight = it }.also { add(into, it.root) }
+
+        notesField = ui.textField(
+            "Notes", true, draft.notes, helper = "Anything helpful, like favorite treats or health notes.",
+            multiline = true, maxLength = PetRules.NOTES_MAX
+        ) { draft.notes = it }.also { add(into, it.root) }
     }
 
     // error validation: show every error, then move focus to the first one
