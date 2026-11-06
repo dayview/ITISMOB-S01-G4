@@ -23,9 +23,14 @@ class CareArtwork @JvmOverloads constructor(context: Context, attrs: AttributeSe
         invalidate()
     }
     init {
-        if (attrs != null) context.obtainStyledAttributes(attrs, R.styleable.CareArtwork).use { values ->
-            kind = values.getString(R.styleable.CareArtwork_artKind).orEmpty()
-            tint = values.getColor(R.styleable.CareArtwork_artTint, tint)
+        if (attrs != null) {
+            val values = context.obtainStyledAttributes(attrs, R.styleable.CareArtwork)
+            try {
+                kind = values.getString(R.styleable.CareArtwork_artKind).orEmpty()
+                tint = values.getColor(R.styleable.CareArtwork_artTint, tint)
+            } finally {
+                values.recycle()
+            }
         }
     }
     private val p = Paint(Paint.ANTI_ALIAS_FLAG)
