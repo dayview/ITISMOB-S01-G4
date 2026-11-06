@@ -27,6 +27,8 @@ import androidx.core.view.WindowInsetsCompat
 import com.purrfolio.mco1.databinding.CareHistoryEmptyBinding
 import com.purrfolio.mco1.databinding.CareHistoryEntryBinding
 import com.purrfolio.mco1.databinding.DialogAddReminderBinding
+import com.purrfolio.mco1.databinding.DialogEditCareEntryBinding
+import com.purrfolio.mco1.databinding.DialogConfirmVoiceCareBinding
 import com.purrfolio.mco1.databinding.LegacyScreenHeaderBinding
 import com.purrfolio.mco1.databinding.FloatingBottomNavBinding
 import com.purrfolio.mco1.databinding.ScreenAppThemeBinding
@@ -304,15 +306,14 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun editLog(entry: JSONObject) {
-        val layout = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(40, 16, 40, 0) }
+        val binding = DialogEditCareEntryBinding.inflate(layoutInflater)
         val kinds = arrayOf("Feeding", "Medication", "Vitamins", "Water", "Playtime", "Grooming", "Vet Visit", "Other", "Observation")
-        val category = android.widget.Spinner(this).apply {
+        val category = binding.category.apply {
             adapter = ArrayAdapter(this@MainActivity, android.R.layout.simple_spinner_dropdown_item, kinds)
             setSelection(kinds.indexOf(entry.optString("kind")).coerceAtLeast(0))
         }
-        val detail = android.widget.EditText(this).apply { setText(entry.optString("text")); hint = "Details" }
-        layout.addView(category); layout.addView(detail)
-        AlertDialog.Builder(this).setTitle("Edit care entry").setView(layout)
+        val detail = binding.detail.apply { setText(entry.optString("text")) }
+        AlertDialog.Builder(this).setTitle("Edit care entry").setView(binding.root)
             .setPositiveButton("Save") { _, _ ->
                 val value = detail.text.toString().trim()
                 if (value.isBlank()) { note("Add a short care note first."); return@setPositiveButton }
@@ -339,25 +340,21 @@ class MainActivity : AppCompatActivity() {
 
     private fun captureVoice(transcript: String) {
         val draft = CareCapture.parse(transcript, pets.map { it.optString("name") })
-        val fields = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; setPadding(40, 8, 40, 0) }
-        val transcriptView = TextView(this).apply { text = "Heard: $transcript" }
-        fields.addView(transcriptView)
+        val binding = DialogConfirmVoiceCareBinding.inflate(layoutInflater)
+        binding.transcript.text = "Heard: $transcript"
         val names = listOf("Select pet") + pets.map { it.optString("name") }
-        val chosenPet = android.widget.Spinner(this).apply {
+        val chosenPet = binding.pet.apply {
             adapter = ArrayAdapter(this@MainActivity, android.R.layout.simple_spinner_dropdown_item, names)
             setSelection(names.indexOf(draft.pet).coerceAtLeast(0))
         }
         val kinds = arrayOf("Select activity", "Feeding", "Medication", "Vitamins", "Water", "Playtime", "Grooming", "Vet Visit", "Other")
-        val kind = android.widget.Spinner(this).apply {
+        val kind = binding.activity.apply {
             adapter = ArrayAdapter(this@MainActivity, android.R.layout.simple_spinner_dropdown_item, kinds)
             setSelection(kinds.indexOf(draft.activity).coerceAtLeast(0))
         }
-        val amount = android.widget.EditText(this).apply { hint = "Amount (if applicable)"; setText(draft.amount.orEmpty()) }
-        val time = android.widget.EditText(this).apply { hint = "Time (e.g. 7:30 AM)"; setText(draft.time.orEmpty()) }
-        fields.addView(TextView(this).apply { text = "Pet" }); fields.addView(chosenPet)
-        fields.addView(TextView(this).apply { text = "Activity" }); fields.addView(kind)
-        fields.addView(amount); fields.addView(time)
-        AlertDialog.Builder(this).setTitle("Confirm care details").setView(fields)
+        val amount = binding.amount.apply { setText(draft.amount.orEmpty()) }
+        val time = binding.time.apply { setText(draft.time.orEmpty()) }
+        AlertDialog.Builder(this).setTitle("Confirm care details").setView(binding.root)
             .setPositiveButton("Save", null).setNegativeButton("Cancel", null).create().apply {
                 setOnShowListener {
                     getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener {
