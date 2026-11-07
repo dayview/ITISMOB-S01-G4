@@ -24,11 +24,17 @@ public final class CareCapture {
         public String getAmount() { return amount; }
         public String getTime() { return time; }
         public String getTranscript() { return transcript; }
+        public int getDayOffset() {
+            String lower=transcript.toLowerCase(Locale.ROOT);
+            if(lower.matches(".*\\byesterday\\b.*"))return -1;
+            if(lower.matches(".*\\btomorrow\\b.*"))return 1;
+            return 0;
+        }
     }
 
     private static final LinkedHashMap<String, String> ACTIVITIES = new LinkedHashMap<>();
-    private static final Pattern AMOUNT = Pattern.compile("\\b\\d+(?:[.,]\\d+)?\\s*(?:cups?|tablespoons?|teaspoons?|tbsp|tsp|ml|milliliters?|grams?|g|kg|pills?|tablets?|doses?|scoops?)\\b", Pattern.CASE_INSENSITIVE);
-    private static final Pattern TIME = Pattern.compile("\\b(?:at\\s+)?(?:1[0-2]|0?[1-9]):[0-5]\\d\\s*(?:am|pm)?\\b|\\b(?:at\\s+)?(?:1[0-2]|0?[1-9])\\s*(?:am|pm)\\b", Pattern.CASE_INSENSITIVE);
+    private static final Pattern AMOUNT = Pattern.compile("\\b(?:\\d+(?:[.,]\\d+|/\\d+)?|one|two|three|four|five|six|seven|eight|nine|ten|half|a|an)\\s*(?:cups?|tablespoons?|teaspoons?|tbsp|tsp|ml|milliliters?|grams?|g|kg|pills?|tablets?|doses?|scoops?|minutes?|mins?)\\b", Pattern.CASE_INSENSITIVE);
+    private static final Pattern TIME = Pattern.compile("\\b(?:at\\s+)?(?:2[0-3]|[01]?\\d):[0-5]\\d\\s*(?:am|pm)?\\b|\\b(?:at\\s+)?(?:1[0-2]|0?[1-9])\\s*(?:am|pm)\\b", Pattern.CASE_INSENSITIVE);
     static {
         ACTIVITIES.put("fed", "Feeding"); ACTIVITIES.put("feed", "Feeding"); ACTIVITIES.put("feeding", "Feeding");
         ACTIVITIES.put("medication", "Medication"); ACTIVITIES.put("medicine", "Medication"); ACTIVITIES.put("gave medicine", "Medication");
@@ -41,9 +47,12 @@ public final class CareCapture {
         List<String> sorted = new ArrayList<>(petNames);
         sorted.sort(Comparator.comparingInt(String::length).reversed());
         String pet = null, activity = null;
+        int matchedLength = -1;
         for (String name : sorted) {
             if (Pattern.compile("(?<![\\p{L}\\p{N}])" + Pattern.quote(name.toLowerCase(Locale.ROOT)) + "(?![\\p{L}\\p{N}])").matcher(lower).find()) {
-                pet = name; break;
+                // Prefer the longest name ("Miso Jr" over "Miso"), but prompt when separate pets are mentioned.
+                if(pet==null){pet=name;matchedLength=name.length();}
+                else if(!pet.toLowerCase(Locale.ROOT).contains(name.toLowerCase(Locale.ROOT)) || name.length()==matchedLength){pet=null;break;}
             }
         }
         for (Map.Entry<String, String> entry : ACTIVITIES.entrySet()) {

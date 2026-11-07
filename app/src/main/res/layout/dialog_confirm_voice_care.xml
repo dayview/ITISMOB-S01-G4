@@ -12,6 +12,8 @@
         <TextView android:id="@+id/transcript"
             android:layout_width="match_parent" android:layout_height="wrap_content"
             android:textSize="14sp" />
+        <TextView android:id="@+id/missingPrompt" android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:layout_marginTop="8dp" android:textColor="@color/primary" android:accessibilityLiveRegion="polite" />
         <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
             android:layout_marginTop="12dp" android:text="Pet" />
         <Spinner android:id="@+id/pet"
@@ -30,5 +32,7 @@
             android:layout_width="match_parent" android:layout_height="wrap_content"
             android:hint="Time (e.g. 7:30 AM)" android:inputType="text"
             android:minHeight="48dp" />
+        <EditText android:id="@+id/date" android:layout_width="match_parent" android:layout_height="wrap_content"
+            android:hint="Date (YYYY-MM-DD)" android:inputType="date" android:minHeight="48dp" />
     </LinearLayout>
 </ScrollView>

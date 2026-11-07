@@ -1,0 +1,1 @@
+{"indexes":[{"collectionGroup":"careLogs","queryScope":"COLLECTION","fields":[{"fieldPath":"petId","order":"ASCENDING"},{"fieldPath":"occurredAt","order":"DESCENDING"}]}],"fieldOverrides":[]}

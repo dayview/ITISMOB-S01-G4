@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent" android:layout_height="wrap_content"
+    android:orientation="vertical" android:padding="20dp">
+    <TextView android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:text="Use your existing PURRFOLIO account to access private care records." />
+    <EditText android:id="@+id/email" android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:hint="Email" android:inputType="textEmailAddress" android:autofillHints="emailAddress" android:minHeight="48dp" />
+    <EditText android:id="@+id/password" android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:hint="Password" android:inputType="textPassword" android:autofillHints="password" android:minHeight="48dp" />
+    <TextView android:id="@+id/error" android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:accessibilityLiveRegion="polite" android:textColor="@color/primary" />
+</LinearLayout>

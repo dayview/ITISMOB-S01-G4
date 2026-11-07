@@ -15,7 +15,9 @@ The emulator command alone only opens Android. If a headless Pixel 6 is already 
 Keep that Terminal window open while using the emulator; press Ctrl+C when finished. If Pixel 6 is already visible, the script simply rebuilds and relaunches the app.
 
 ## Current status
-This is a **frontend prototype** with local editable pet profiles, care logs and reminders. It includes the supplied image-derived PURRFOLIO wordmark, photo accents, theme colors and more wireframe-based destinations. Features requiring cloud accounts, notification permissions, calendars, QR encoding/scanning, media capture, voice, and Firebase are **not** implemented. No network operation or emergency response is falsely claimed.
+The Care Logging module uses Firebase Authentication and Firestore for Quick Log, confirmed voice capture, per-pet history, and edit/delete operations. Sound observations save metadata to Firestore while the audio stays in private storage on the recording device, following the selected no-Blaze setup. Other modules remain frontend prototypes with local pet profiles and reminders. Calendar export, public sharing, QR services, notifications, and emergency services still require their separate integrations.
+
+Place this project's Firebase Android configuration at `app/google-services.json` before building. See [Care API setup and testing](docs/care-api/README.md) for account requirements, schema, security rules, emulator commands, and the local-audio limitation.
 
 ## Rubric alignment
 - UX: pet-first sections and related records together.
@@ -26,7 +28,7 @@ This is a **frontend prototype** with local editable pet profiles, care logs and
 - Graphics: supplied PURRFOLIO wordmark, pet photography, lavender on charcoal, rounded surfaces.
 
 ## Remaining polish / limitations
-Some dynamic screens are deliberately simplified from the source reference rather than pixel-exact screenshots. Original screenshots were embedded as small composite images in the Word file; they were not used as full-screen fake image UI. Screens contain actual Android widgets. Run it in Android Studio and refine densities on your device before grading. Authentication, sharing, recording, emergency services and network access need backend implementation.
+Some dynamic screens are deliberately simplified from the source reference rather than pixel-exact screenshots. Original screenshots were embedded as small composite images in the Word file; they were not used as full-screen fake image UI. Screens contain actual Android widgets. The care module signs into existing Firebase accounts; the other account-management flows, sharing, and emergency services still need their separate backend work.
 
 
 ## Visual-fidelity revision

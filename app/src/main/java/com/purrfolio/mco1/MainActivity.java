@@ -1,6 +1,7 @@
 package com.purrfolio.mco1;
 
 import android.Manifest;
+import com.purrfolio.mco1.care.CareController;
 import android.app.AlertDialog;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -59,12 +60,9 @@ public class MainActivity extends AppCompatActivity {
     private final ArrayDeque<String> screenHistory=new ArrayDeque<>();
     private int petIndex;
     private SharedPreferences preferences;
-    private final List<JSONObject> pets=new ArrayList<>(),logs=new ArrayList<>(),reminders=new ArrayList<>();
+    private final List<JSONObject> pets=new ArrayList<>(),logs=new ArrayList<>(),reminders=new ArrayList<>(),legacyLogs=new ArrayList<>();
+    private CareController care;
     private boolean night;
-    private MediaRecorder recorder;
-    private File recordingFile;
-    private long recordingStartedAt;
-    private MediaPlayer player;
     private String pendingNewPetPhotoUri;
     private final ActivityResultLauncher<Intent> speechResult=registerForActivityResult(
             new ActivityResultContracts.StartActivityForResult(),result->{
@@ -89,6 +87,18 @@ public class MainActivity extends AppCompatActivity {
         preferences=getSharedPreferences("purrfolio_demo",MODE_PRIVATE);
         night=(getResources().getConfiguration().uiMode&Configuration.UI_MODE_NIGHT_MASK)==Configuration.UI_MODE_NIGHT_YES;
         restore();
+        care=new CareController(this,new CareController.Host(){
+            public JSONObject selectedPet(){MainActivity.this.petId(MainActivity.this.selectedPet());return MainActivity.this.selectedPet();}
+            public List<JSONObject> pets(){return pets;}
+            public void go(String destination){render(destination);}
+            public void refreshCareScreens(){if(care!=null&&!isFinishing()&&!isDestroyed()&&
+                    (screen.equals("Care History")||screen.equals("Sound Journal")))render(screen,false);}
+            public void header(LegacyScreenHeaderBinding b,String title){bindLegacyHeader(b,title);}
+            public void dock(FloatingBottomNavBinding b,String destination){bindCareDock(b,destination);}
+            public void insets(View root){applyLegacyInsets(root);}
+            public void persistDeviceState(){save();}
+            public void requestMicrophone(){audioPermission.launch(Manifest.permission.RECORD_AUDIO);}
+        },logs,legacyLogs);
         if(state!=null){ArrayList<String> history=state.getStringArrayList("screenHistory");if(history!=null)screenHistory.addAll(history);
             pendingNewPetPhotoUri=state.getString("pendingNewPetPhotoUri");
             petPhotoPickerTarget=state.getString("petPhotoPickerTarget","Pet Detail");}
@@ -106,12 +116,6 @@ public class MainActivity extends AppCompatActivity {
     private String petId(JSONObject pet){if(!pet.has("id")){put(pet,"id",UUID.randomUUID().toString());save();}return pet.optString("id");}
     private String entryPetId(JSONObject entry){String id=entry.optString("petId");if(!id.isEmpty())return id;
         for(JSONObject pet:pets)if(pet.optString("name").equals(entry.optString("pet")))return petId(pet);return "";}
-    private SafeJson newLog(JSONObject pet,String kind,String detail){return newLog(pet,kind,detail,"text",System.currentTimeMillis());}
-    private SafeJson newLog(JSONObject pet,String kind,String detail,String source){return newLog(pet,kind,detail,source,System.currentTimeMillis());}
-    private SafeJson newLog(JSONObject pet,String kind,String detail,String source,long occurredAt){return new SafeJson()
-            .put("id",UUID.randomUUID().toString()).put("petId",petId(pet)).put("pet",pet.optString("name"))
-            .put("kind",kind).put("text",detail).put("source",source).put("occurredAt",Long.valueOf(occurredAt))
-            .put("date",new SimpleDateFormat("MMM d, yyyy · h:mm a",Locale.getDefault()).format(new Date(occurredAt)));}
     private String petName(){return selectedPet().optString("name","Mochi");}
     private void note(String message){Toast.makeText(this,message,Toast.LENGTH_LONG).show();}
     private void editPetPhoto(boolean addingPet){
@@ -143,6 +147,7 @@ public class MainActivity extends AppCompatActivity {
         if(destination.startsWith("Quick Log:")){pendingCareCategory=destination.substring("Quick Log:".length());render("Quick Log",recordHistory);return;}
         if("Add Your Pet".equals(screen)&&!"Add Your Pet".equals(destination))pendingNewPetPhotoUri=null;
         if(recordHistory&&!destination.equals(screen))screenHistory.addLast(screen);screen=destination;
+        if(care!=null)care.watch();
         switch(destination){case "Welcome":showWelcome();return;case "App Theme":showAppTheme();return;
             case "Quick Log":showQuickLog();return;case "Care History":showCareHistory();return;}
         if(ReferenceScreens.destinations.contains(destination)){
@@ -160,7 +165,7 @@ public class MainActivity extends AppCompatActivity {
                             if(values.containsKey(key))put(updated,key,values.get(key));
                         if(adding){pets.add(updated);petIndex=pets.size()-1;}else{put(updated,"id",petId(selectedPet()));pets.set(petIndex,updated);}
                         save();note("Pet profile saved on this device.");render("Pet Detail");},
-                    (kind,detail)->{logs.add(0,newLog(selectedPet(),kind,detail));save();note("Care log saved on this device.");render("Care History");},
+                    (kind,detail)->care.saveText(kind,detail),
                     ()->{recognizeVoice();},transcript->{captureVoice(transcript);},
                     ()->{toggleSoundRecording();},this::soundRows,
                     entry->{playRecording(entry);},()->{addReminder();},
@@ -193,137 +198,22 @@ public class MainActivity extends AppCompatActivity {
                 ()->{choosePet();},()->{editPetPhoto(false);},
                 ()->{navigateBack();}).bindDock(binding,screen);
     }
-    private void showQuickLog(){
-        ScreenQuickLogBinding binding=ScreenQuickLogBinding.inflate(getLayoutInflater());setContentView(binding.getRoot());
-        applyLegacyInsets(binding.quickLogRoot);bindLegacyHeader(binding.header,"Quick Log");bindCareDock(binding.bottomNav,"Quick Log");
-        BrandType.apply(binding.eyebrow,false,700);BrandType.apply(binding.pageTitle,true,600);
-        BrandType.apply(binding.pageSubtitle,false,400);BrandType.apply(binding.activityLabel,false,700);
-        BrandType.apply(binding.saveButton,false,700);binding.pageSubtitle.setText("A quick record for "+petName()+".");
-        List<String> categories=Arrays.asList("Feeding","Medication","Vitamins","Water","Playtime","Grooming","Vet Visit","Other");
-        binding.categorySpinner.setAdapter(new ArrayAdapter<>(this,android.R.layout.simple_spinner_dropdown_item,categories));
-        binding.categorySpinner.setSelection(Math.max(0,categories.indexOf(pendingCareCategory)));
-        binding.saveButton.setOnClickListener(v->{String detail=binding.detailInput.getText().toString().trim();
-            if(detail.isEmpty())note("Add a short care note first.");
-            else{logs.add(0,newLog(selectedPet(),categories.get(binding.categorySpinner.getSelectedItemPosition()),detail));
-                save();note("Care log saved on this device.");render("Care History");}});
-    }
-    private void showCareHistory(){
-        ScreenCareHistoryBinding binding=ScreenCareHistoryBinding.inflate(getLayoutInflater());setContentView(binding.getRoot());
-        applyLegacyInsets(binding.careHistoryRoot);bindLegacyHeader(binding.header,"Care History");bindCareDock(binding.bottomNav,"Care History");
-        BrandType.apply(binding.eyebrow,false,700);BrandType.apply(binding.pageTitle,true,600);
-        BrandType.apply(binding.pageSubtitle,false,400);BrandType.apply(binding.newEntryButton,false,700);
-        binding.pageSubtitle.setText("your saved care moments");
-        String id=petId(selectedPet());List<JSONObject> filtered=new ArrayList<>();
-        for(JSONObject entry:logs)if(entryPetId(entry).equals(id))filtered.add(entry);
-        filtered.sort(Comparator.comparingLong((JSONObject e)->e.optLong("occurredAt",0)).reversed());
-        if(filtered.isEmpty()){
-            CareHistoryEmptyBinding empty=CareHistoryEmptyBinding.inflate(getLayoutInflater(),binding.entryContainer,false);
-            BrandType.apply(empty.emptyTitle,false,700);BrandType.apply(empty.emptyDescription,false,400);
-            binding.entryContainer.addView(empty.getRoot());
-        }
-        for(JSONObject entry:filtered){
-            CareHistoryEntryBinding item=CareHistoryEntryBinding.inflate(getLayoutInflater(),binding.entryContainer,false);
-            item.entryTitle.setText(entry.optString("kind"));
-            item.entryDescription.setText(entry.optString("date")+" • "+entry.optString("text"));
-            BrandType.apply(item.entryIcon,true,600);BrandType.apply(item.entryTitle,false,700);
-            BrandType.apply(item.entryDescription,false,400);
-            item.getRoot().setOnClickListener(v->{String[] actions=entry.optString("audioFile").isEmpty()?
-                    new String[]{"Edit","Delete"}:new String[]{"Play recording","Edit","Delete"};
-                new AlertDialog.Builder(this).setTitle(entry.optString("kind")).setMessage(entry.optString("text"))
-                        .setItems(actions,(d,index)->{switch(actions[index]){case "Play recording":playRecording(entry);break;
-                            case "Edit":editLog(entry);break;case "Delete":confirmDelete(entry);break;}})
-                        .setNegativeButton("Close",null).show();});
-            binding.entryContainer.addView(item.getRoot());
-        }
-        binding.newEntryButton.setOnClickListener(v->render("Quick Log"));
-    }
-    private void editLog(JSONObject entry){
-        DialogEditCareEntryBinding binding=DialogEditCareEntryBinding.inflate(getLayoutInflater());
-        String[] kinds={"Feeding","Medication","Vitamins","Water","Playtime","Grooming","Vet Visit","Other","Observation"};
-        binding.category.setAdapter(new ArrayAdapter<>(this,android.R.layout.simple_spinner_dropdown_item,kinds));
-        binding.category.setSelection(Math.max(0,Arrays.asList(kinds).indexOf(entry.optString("kind"))));
-        binding.detail.setText(entry.optString("text"));
-        new AlertDialog.Builder(this).setTitle("Edit care entry").setView(binding.getRoot())
-                .setPositiveButton("Save",(d,w)->{String value=binding.detail.getText().toString().trim();
-                    if(value.isEmpty()){note("Add a short care note first.");return;}
-                    put(put(entry,"kind",binding.category.getSelectedItem().toString()),"text",value);
-                    save();render("Care History");}).setNegativeButton("Cancel",null).show();
-    }
-    private void confirmDelete(JSONObject entry){
-        new AlertDialog.Builder(this).setTitle("Delete care entry?")
-                .setMessage("This removes the entry and its audio from this device.")
-                .setPositiveButton("Delete",(d,w)->{String audio=entry.optString("audioFile");
-                    if(!audio.isEmpty())new File(getFilesDir(),audio).delete();
-                    logs.remove(entry);save();render("Care History");}).setNegativeButton("Cancel",null).show();
-    }
+    private void showQuickLog(){care.category(pendingCareCategory);care.quickLog();}
+    private void showCareHistory(){care.history();}
     private void recognizeVoice(){
         Intent intent=new Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH);
         intent.putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL,RecognizerIntent.LANGUAGE_MODEL_FREE_FORM);
         intent.putExtra(RecognizerIntent.EXTRA_PROMPT,"Describe your pet's care");
         try{speechResult.launch(intent);}catch(Exception error){note("Speech recognition is unavailable on this device.");}
     }
-    private void captureVoice(String transcript){
-        List<String> petNames=new ArrayList<>();for(JSONObject pet:pets)petNames.add(pet.optString("name"));
-        CareCapture.Draft draft=CareCapture.parse(transcript,petNames);
-        DialogConfirmVoiceCareBinding binding=DialogConfirmVoiceCareBinding.inflate(getLayoutInflater());
-        binding.transcript.setText("Heard: "+transcript);
-        List<String> names=new ArrayList<>();names.add("Select pet");names.addAll(petNames);
-        binding.pet.setAdapter(new ArrayAdapter<>(this,android.R.layout.simple_spinner_dropdown_item,names));
-        binding.pet.setSelection(Math.max(0,names.indexOf(draft.getPet())));
-        String[] kinds={"Select activity","Feeding","Medication","Vitamins","Water","Playtime","Grooming","Vet Visit","Other"};
-        binding.activity.setAdapter(new ArrayAdapter<>(this,android.R.layout.simple_spinner_dropdown_item,kinds));
-        binding.activity.setSelection(Math.max(0,Arrays.asList(kinds).indexOf(draft.getActivity())));
-        binding.amount.setText(draft.getAmount()==null?"":draft.getAmount());
-        binding.time.setText(draft.getTime()==null?"":draft.getTime());
-        AlertDialog dialog=new AlertDialog.Builder(this).setTitle("Confirm care details").setView(binding.getRoot())
-                .setPositiveButton("Save",null).setNegativeButton("Cancel",null).create();
-        dialog.setOnShowListener(d->dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v->{
-            if(binding.pet.getSelectedItemPosition()==0){note("Choose the pet.");return;}
-            if(binding.activity.getSelectedItemPosition()==0){note("Choose the activity.");return;}
-            if(binding.time.getText().toString().trim().isEmpty()){binding.time.setError("Enter the time");return;}
-            JSONObject pet=pets.get(binding.pet.getSelectedItemPosition()-1);
-            List<String> parts=new ArrayList<>();String amount=binding.amount.getText().toString().trim();
-            if(!amount.isEmpty())parts.add(amount);parts.add("at "+binding.time.getText().toString().trim());parts.add(transcript);
-            logs.add(0,newLog(pet,binding.activity.getSelectedItem().toString(),String.join(" · ",parts),"voice")
-                    .put("transcript",transcript));save();dialog.dismiss();note("Care log saved on this device.");render("Care History");
-        }));dialog.show();
-    }
-    private List<JSONObject> soundRows(){List<JSONObject> result=new ArrayList<>();String id=petId(selectedPet());
-        for(JSONObject entry:logs)if(entryPetId(entry).equals(id)&&!entry.optString("audioFile").isEmpty())result.add(entry);return result;}
-    private void toggleSoundRecording(){if(recorder!=null){stopSoundRecording();return;}
-        if(ContextCompat.checkSelfPermission(this,Manifest.permission.RECORD_AUDIO)!=PackageManager.PERMISSION_GRANTED)
-            audioPermission.launch(Manifest.permission.RECORD_AUDIO);else startSoundRecording();}
-    private void startSoundRecording(){File file=new File(getFilesDir(),"sound_"+UUID.randomUUID()+".m4a");
-        try{MediaRecorder active=new MediaRecorder();active.setAudioSource(MediaRecorder.AudioSource.MIC);
-            active.setOutputFormat(MediaRecorder.OutputFormat.MPEG_4);active.setAudioEncoder(MediaRecorder.AudioEncoder.AAC);
-            active.setOutputFile(file.getAbsolutePath());active.prepare();active.start();recorder=active;
-            recordingFile=file;recordingStartedAt=System.currentTimeMillis();
-            note("Recording started. Tap the button again to stop.");
-        }catch(Exception error){if(recorder!=null)recorder.release();recorder=null;file.delete();note("Could not start audio recording.");}}
-    private void stopSoundRecording(){File file=recordingFile;if(file==null)return;
-        long duration=System.currentTimeMillis()-recordingStartedAt;boolean success;
-        try{if(recorder!=null)recorder.stop();success=true;}catch(Exception error){success=false;}
-        if(recorder!=null)recorder.release();recorder=null;recordingFile=null;
-        if(!success||duration<1000){file.delete();note("Record at least one second of audio.");return;}
-        EditText input=new EditText(this);input.setHint("What did you hear? (e.g. coughing)");
-        AlertDialog dialog=new AlertDialog.Builder(this).setTitle("Save sound observation").setView(input)
-                .setPositiveButton("Save",null).setNegativeButton("Discard",(d,w)->file.delete())
-                .setOnCancelListener(d->file.delete()).create();
-        dialog.setOnShowListener(d->dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v->{
-            String detail=input.getText().toString().trim();if(detail.isEmpty()){input.setError("Describe the sound");return;}
-            logs.add(0,newLog(selectedPet(),"Observation",detail,"audio",recordingStartedAt)
-                    .put("audioFile",file.getName()).put("durationMs",Long.valueOf(duration)));
-            save();dialog.dismiss();render("Sound Journal");}));dialog.show();
-    }
-    private void playRecording(JSONObject entry){String audio=entry.optString("audioFile");
-        File file=new File(getFilesDir(),audio.substring(audio.lastIndexOf('/')+1));
-        if(!file.isFile()){note("Recording file is missing.");return;}
-        if(player!=null)player.release();
-        try{player=new MediaPlayer();player.setDataSource(file.getAbsolutePath());player.prepare();
-            player.setOnCompletionListener(done->{done.release();player=null;});player.start();
-        }catch(Exception error){note("Could not play this recording.");}}
-    @Override protected void onDestroy(){if(recorder!=null)recorder.release();
-        if(recordingFile!=null)recordingFile.delete();if(player!=null)player.release();super.onDestroy();}
+    private void captureVoice(String transcript){care.captureVoice(transcript);}
+    private List<JSONObject> soundRows(){return care.sounds();}
+    private void toggleSoundRecording(){care.toggleRecording();}
+    private void startSoundRecording(){care.startRecording();}
+    private void playRecording(JSONObject entry){care.play(entry);}
+    @Override protected void onStart(){super.onStart();if(care!=null)care.onStart();}
+    @Override protected void onStop(){if(care!=null)care.onStop();super.onStop();}
+    @Override protected void onDestroy(){if(care!=null)care.onDestroy();super.onDestroy();}
     private void setSystemBars(int color){WindowCompat.setDecorFitsSystemWindows(getWindow(),false);
         getWindow().setStatusBarColor(getColor(color));getWindow().setNavigationBarColor(getColor(color));
         WindowCompat.getInsetsController(getWindow(),getWindow().getDecorView()).setAppearanceLightStatusBars(!night);
@@ -390,20 +280,20 @@ public class MainActivity extends AppCompatActivity {
     private void pull(String key,List<JSONObject> output)throws Exception{
         JSONArray array=new JSONArray(preferences.getString(key,"[]"));
         for(int i=0;i<array.length();i++)output.add(array.getJSONObject(i));}
-    private void restore(){try{pull("pets",pets);pull("logs",logs);pull("reminders",reminders);}
-        catch(Exception error){pets.clear();logs.clear();reminders.clear();}
+    private void restore(){try{pull("pets",pets);pull("logs",legacyLogs);pull("reminders",reminders);}
+        catch(Exception error){pets.clear();legacyLogs.clear();reminders.clear();}
         for(JSONObject pet:pets)if(!pet.has("id"))put(pet,"id",UUID.randomUUID().toString());
-        for(JSONObject entry:logs){if(!entry.has("id"))put(entry,"id",UUID.randomUUID().toString());
+        for(JSONObject entry:legacyLogs){if(!entry.has("id"))put(entry,"id",UUID.randomUUID().toString());
             if(!entry.has("petId"))for(JSONObject pet:pets)if(pet.optString("name").equals(entry.optString("pet"))){
                 put(entry,"petId",pet.optString("id"));break;}}
-        if(!pets.isEmpty()||!logs.isEmpty())save();
+        if(!pets.isEmpty()||!legacyLogs.isEmpty())save();
         if(pets.isEmpty()){
             pets.add(new SafeJson().put("name","Mochi").put("species","Cat").put("breed","Mixed Breed")
                     .put("birthday","2024-09-26").put("sex","Female").put("notes","Playful, loves treats and sunny spots."));
             pets.add(new SafeJson().put("name","Bailey").put("species","Dog").put("breed","Golden Retriever")
                     .put("birthday","2022-05-13").put("sex","Male").put("notes","Enjoys long walks."));save();}}
     private String json(List<JSONObject> items){JSONArray array=new JSONArray();for(JSONObject item:items)array.put(item);return array.toString();}
-    private void save(){if(preferences==null)return;preferences.edit().putString("pets",json(pets)).putString("logs",json(logs))
+    private void save(){if(preferences==null)return;preferences.edit().putString("pets",json(pets)).putString("logs",json(legacyLogs))
             .putString("reminders",json(reminders)).apply();}
     @Override public void onBackPressed(){if(screenHistory.isEmpty()&&(screen.equals("Home")||screen.equals("Welcome")))super.onBackPressed();
         else navigateBack();}

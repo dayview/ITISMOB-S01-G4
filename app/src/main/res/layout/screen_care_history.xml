@@ -25,9 +25,18 @@
                 android:text="your saved care moments"
                 android:textColor="@color/text_secondary" android:textSize="14sp" />
             <Space android:layout_width="1dp" android:layout_height="19dp" />
+            <TextView android:id="@+id/careStatus" style="@style/LegacyBodyText"
+                android:layout_width="match_parent" android:layout_height="wrap_content"
+                android:accessibilityLiveRegion="polite" android:textSize="13sp" />
+            <TextView android:id="@+id/careAccount" android:layout_width="match_parent" android:layout_height="48dp"
+                android:gravity="center_vertical" android:text="Care account" android:textColor="@color/primary" />
+            <TextView android:id="@+id/deviceEntries" android:layout_width="match_parent" android:layout_height="48dp"
+                android:gravity="center_vertical" android:text="Import device care entries" android:textColor="@color/primary" />
             <LinearLayout android:id="@+id/entryContainer"
                 android:layout_width="match_parent" android:layout_height="wrap_content"
                 android:orientation="vertical" />
+            <TextView android:id="@+id/loadMore" android:layout_width="match_parent" android:layout_height="48dp"
+                android:gravity="center" android:text="Load older entries" android:textColor="@color/primary" android:visibility="gone" />
             <TextView android:id="@+id/newEntryButton" android:layout_width="match_parent"
                 android:layout_height="50dp" android:layout_marginTop="8dp"
                 android:background="@drawable/legacy_button" android:gravity="center"

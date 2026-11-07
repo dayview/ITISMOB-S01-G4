@@ -1,0 +1,21 @@
+{
+  "name": "purrfolio-care-backend",
+  "version": "1.0.0",
+  "directories": {
+    "test": "tests"
+  },
+  "scripts": {
+    "test": "firebase emulators:exec --project demo-purrfolio-care --only auth,firestore \"node --test --test-concurrency=1 tests/*.test.cjs\"",
+    "emulators": "firebase emulators:start --project demo-purrfolio-care --only auth,firestore"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "devDependencies": {
+    "@firebase/rules-unit-testing": "^6.0.0",
+    "firebase": "^13.2.0",
+    "firebase-tools": "^15.24.0"
+  },
+  "private": true
+}

@@ -20,4 +20,10 @@
         android:hint="Details"
         android:inputType="textCapSentences|textMultiLine"
         android:minHeight="48dp" />
+    <EditText android:id="@+id/amount" android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:hint="Amount (if applicable)" android:inputType="text" android:minHeight="48dp" />
+    <EditText android:id="@+id/date" android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:hint="Date (YYYY-MM-DD)" android:inputType="date" android:minHeight="48dp" />
+    <EditText android:id="@+id/time" android:layout_width="match_parent" android:layout_height="wrap_content"
+        android:hint="Time (e.g. 7:30 AM)" android:inputType="text" android:minHeight="48dp" />
 </LinearLayout>

@@ -1,0 +1,49 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function owner(uid) { return request.auth != null && request.auth.uid == uid; }
+    function valid(d, id) {
+      return d.keys().hasAll(['id','petId','petName','kind','text','source','amount','transcript',
+        'occurredAt','durationMs','audioDeviceId','status','revision','createdAt','updatedAt'])
+        && d.keys().hasOnly(['id','petId','petName','kind','text','source','amount','transcript',
+        'occurredAt','durationMs','audioDeviceId','status','revision','createdAt','updatedAt'])
+        && d.id == id && id.matches('[A-Za-z0-9_-]{1,128}')
+        && d.petId is string && d.petId.matches('[A-Za-z0-9_-]{1,128}')
+        && d.petName is string && d.petName.size() > 0 && d.petName.size() <= 120 && d.petName.matches('(?s).*\\S.*')
+        && d.kind in ['Feeding','Medication','Vitamins','Water','Playtime','Grooming','Vet Visit','Other','Observation']
+        && d.text is string && d.text.size() > 0 && d.text.size() <= 4000 && d.text.matches('(?s).*\\S.*')
+        && d.amount is string && d.amount.size() <= 120
+        && d.transcript is string && d.transcript.size() <= 4000
+        && d.occurredAt is int && d.occurredAt > 0 && d.occurredAt <= request.time.toMillis() + 86400000
+        && d.durationMs is int && d.revision is int && d.revision > 0
+        && d.createdAt is timestamp && d.updatedAt is timestamp
+        && d.status in ['ready','deleting']
+        && d.source in ['text','voice','audio']
+        && (d.source != 'voice' || (d.transcript.size() > 0 &&
+            (!(d.kind in ['Feeding','Medication','Vitamins','Water']) || d.amount.matches('(?s).*\\S.*'))))
+        && ((d.source == 'audio' && d.kind == 'Observation' && d.durationMs >= 1000 && d.durationMs <= 60000
+            && d.audioDeviceId is string && d.audioDeviceId.matches('[A-Za-z0-9_-]{1,128}'))
+          || (d.source != 'audio' && d.durationMs == 0 && d.audioDeviceId == ''));
+    }
+    // Existing live User Management rule, preserved verbatim on 2026-11-07.
+    match /users/{uid} {
+      allow read, write: if request.auth != null && request.auth.uid == uid;
+    }
+    match /users/{uid}/careLogs/{id} {
+      allow get, list: if owner(uid);
+      allow create: if owner(uid) && valid(request.resource.data,id)
+        && request.resource.data.revision == 1
+        && request.resource.data.createdAt == request.time && request.resource.data.updatedAt == request.time
+        && request.resource.data.status == 'ready';
+      allow update: if owner(uid) && valid(request.resource.data,id)
+        && request.resource.data.revision == resource.data.revision + 1
+        && request.resource.data.updatedAt == request.time
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(
+          ['kind','text','amount','occurredAt','status','revision','updatedAt'])
+        && ((resource.data.status == 'ready' && request.resource.data.status == 'ready')
+          || (resource.data.status == 'ready' && request.resource.data.status == 'deleting'
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status','revision','updatedAt'])));
+      allow delete: if owner(uid) && resource.data.status == 'deleting';
+    }
+  }
+}

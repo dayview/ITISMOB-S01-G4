@@ -523,9 +523,12 @@ public class PhaseTwoScreens {
         sectionLabel("Recent Recordings");List<JSONObject> recordings=soundRows.get();
         if(recordings.isEmpty())add(center("No sound observations saved for "+name()+" yet."),60);
         for(JSONObject entry:recordings){long duration=entry.optLong("durationMs")/1000;
-            add(infoRow("Play",entry.optString("text"),duration+"s · "+entry.optString("date"),"More",primary,
+            add(infoRow("Play",entry.optString("text"),duration+"s · "+entry.optString("date")+
+                    (entry.optBoolean("audioAvailable")?" · Audio on this device":" · Audio on original device"),"More",primary,
                     ()->playRecording.accept(entry)),70,5);}
         add(center("Tap a recording to play it. Edit or delete it from Care History."),52);
+        add(button("Care history & pending saves",true,()->go.accept("Care History")),48,8);
+        add(center("Audio stays on this device. Observation details are saved to your account."),48);
     }
     protected static final class SampleDocument {
         final String name,date,type,tint;
