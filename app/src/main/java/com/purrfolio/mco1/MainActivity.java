@@ -38,7 +38,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
-import kotlin.Unit;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.json.JSONException;
@@ -115,7 +114,6 @@ public class MainActivity extends AppCompatActivity {
             .put("date",new SimpleDateFormat("MMM d, yyyy · h:mm a",Locale.getDefault()).format(new Date(occurredAt)));}
     private String petName(){return selectedPet().optString("name","Mochi");}
     private void note(String message){Toast.makeText(this,message,Toast.LENGTH_LONG).show();}
-    private static Unit done(){return Unit.INSTANCE;}
     private void editPetPhoto(boolean addingPet){
         String target=addingPet?"Add Your Pet":screen;
         String photoUri=addingPet?pendingNewPetPhotoUri:selectedPet().optString("photoUri");
@@ -147,28 +145,28 @@ public class MainActivity extends AppCompatActivity {
         if(recordHistory&&!destination.equals(screen))screenHistory.addLast(screen);screen=destination;
         switch(destination){case "Welcome":showWelcome();return;case "App Theme":showAppTheme();return;
             case "Quick Log":showQuickLog();return;case "Care History":showCareHistory();return;}
-        if(ReferenceScreens.Companion.getDestinations().contains(destination)){
-            View view=new ReferenceScreens(this,selectedPet(),target->{render(target);return done();},
-                    ()->{choosePet();return done();},()->{editPetPhoto(false);return done();},
-                    ()->{navigateBack();return done();}).build(destination);
+        if(ReferenceScreens.destinations.contains(destination)){
+            View view=new ReferenceScreens(this,selectedPet(),target->{render(target);},
+                    ()->{choosePet();},()->{editPetPhoto(false);},
+                    ()->{navigateBack();}).build(destination);
             setContentView(view);ViewCompat.requestApplyInsets(view);return;
         }
-        if(PhaseTwoScreens.Companion.getDestinations().contains(destination)){
+        if(PhaseTwoScreens.destinations.contains(destination)){
             View view=new PhaseTwoScreens(this,selectedPet(),pets,logs,reminders,
-                    target->{render(target);return done();},()->{choosePet();return done();},
-                    index->{petIndex=index;render("Pet Detail");return done();},
+                    target->{render(target);},()->{choosePet();},
+                    index->{petIndex=index;render("Pet Detail");},
                     (values,adding)->{JSONObject updated=adding?new SafeJson():new SafeJson(selectedPet().toString());
                         for(String key:new String[]{"name","species","breed","birthday","sex","notes","photoUri"})
                             if(values.containsKey(key))put(updated,key,values.get(key));
                         if(adding){pets.add(updated);petIndex=pets.size()-1;}else{put(updated,"id",petId(selectedPet()));pets.set(petIndex,updated);}
-                        save();note("Pet profile saved on this device.");render("Pet Detail");return done();},
-                    (kind,detail)->{logs.add(0,newLog(selectedPet(),kind,detail));save();note("Care log saved on this device.");render("Care History");return done();},
-                    ()->{recognizeVoice();return done();},transcript->{captureVoice(transcript);return done();},
-                    ()->{toggleSoundRecording();return done();},this::soundRows,
-                    entry->{playRecording(entry);return done();},()->{addReminder();return done();},
-                    reminder->{put(reminder,"done",!reminder.optBoolean("done"));save();render("Reminders");return done();},
-                    ()->{render("Home");return done();},()->{navigateBack();return done();},
-                    pendingNewPetPhotoUri,adding->{editPetPhoto(adding);return done();}).build(destination);
+                        save();note("Pet profile saved on this device.");render("Pet Detail");},
+                    (kind,detail)->{logs.add(0,newLog(selectedPet(),kind,detail));save();note("Care log saved on this device.");render("Care History");},
+                    ()->{recognizeVoice();},transcript->{captureVoice(transcript);},
+                    ()->{toggleSoundRecording();},this::soundRows,
+                    entry->{playRecording(entry);},()->{addReminder();},
+                    reminder->{put(reminder,"done",!reminder.optBoolean("done"));save();render("Reminders");},
+                    ()->{render("Home");},()->{navigateBack();},
+                    pendingNewPetPhotoUri,adding->{editPetPhoto(adding);}).build(destination);
             setContentView(view);ViewCompat.requestApplyInsets(view);return;
         }
         render("More");
@@ -191,9 +189,9 @@ public class MainActivity extends AppCompatActivity {
         binding.backButton.setOnClickListener(v->navigateBack());binding.petChooser.setOnClickListener(v->choosePet());
     }
     private void bindCareDock(FloatingBottomNavBinding binding,String screen){
-        new ReferenceScreens(this,selectedPet(),target->{render(target);return done();},
-                ()->{choosePet();return done();},()->{editPetPhoto(false);return done();},
-                ()->{navigateBack();return done();}).bindDock(binding,screen);
+        new ReferenceScreens(this,selectedPet(),target->{render(target);},
+                ()->{choosePet();},()->{editPetPhoto(false);},
+                ()->{navigateBack();}).bindDock(binding,screen);
     }
     private void showQuickLog(){
         ScreenQuickLogBinding binding=ScreenQuickLogBinding.inflate(getLayoutInflater());setContentView(binding.getRoot());
