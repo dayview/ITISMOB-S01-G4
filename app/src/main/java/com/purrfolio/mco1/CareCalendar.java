@@ -52,7 +52,7 @@ public final class CareCalendar {
         }
     }
 
-    public static int coloRes(String category) {
+    public static int colorRes(String category) {
         switch (category) {
             case Reminder.MEDICATION:
             case Reminder.VACCINATION: return R.color.pink;

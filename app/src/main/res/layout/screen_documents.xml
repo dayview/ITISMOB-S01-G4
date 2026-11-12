@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
-    android:id="@+id/documentRoot"
+    android:id="@+id/documentsRoot"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@color/background"
@@ -136,7 +136,7 @@
                         android:textSize="13sp" />
 
                     <TextView
-                        android:id="@+id/dpcFilterOther"
+                        android:id="@+id/docFilterOther"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:background="@drawable/legacy_chip"
