@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<TextView xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/sectionLabel"
+    style="@style/LegacyBodyText"
+    android:layout_marginTop="6dp"
+    android:layout_marginBottom="10dp"
+    android:letterSpacing="0.12"
+    android:textColor="@color/primary"
+    android:textSize="12sp" />

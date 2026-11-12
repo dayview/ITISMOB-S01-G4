@@ -1,4 +1,7 @@
-plugins { id("com.android.application") }
+plugins {
+    id("com.android.application")
+    id("com.google.gms.google-services")
+}
 configurations.configureEach {
     exclude(group = "org.jetbrains.kotlin", module = "kotlin-stdlib-jdk7")
     exclude(group = "org.jetbrains.kotlin", module = "kotlin-stdlib-jdk8")
@@ -9,4 +12,11 @@ android { namespace = "com.purrfolio.mco1"; compileSdk = 35
     compileOptions { sourceCompatibility = JavaVersion.VERSION_17; targetCompatibility = JavaVersion.VERSION_17 }
 }
 
-dependencies { implementation("androidx.core:core:1.13.0"); implementation("androidx.appcompat:appcompat:1.7.0") }
+dependencies {
+    implementation("androidx.core:core:1.13.0")
+    implementation("androidx.appcompat:appcompat:1.7.0")
+
+    implementation(platform("com.google.firebase:firebase-bom:35.1.0"))
+    implementation("com.google.firebase:firebase-auth:25.0.0")
+    implementation("com.google.firebase:firebase-firestore:27.1.0")
+}

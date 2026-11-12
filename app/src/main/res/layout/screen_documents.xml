@@ -1,0 +1,189 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/documentRoot"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/background"
+    android:orientation="vertical"
+    tools:context=".MainActivity">
+
+    <include
+        android:id="@+id/header"
+        layout="@layout/legacy_screen_header"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content" />
+
+    <ScrollView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:clipToPadding="false"
+        android:fillViewport="false"
+        android:scrollbars="none">
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="vertical"
+            android:paddingStart="22dp"
+            android:paddingTop="16dp"
+            android:paddingEnd="22dp"
+            android:paddingBottom="24dp">
+
+            <TextView
+                android:id="@+id/documentsEyebrow"
+                style="@style/LegacyBodyText"
+                android:letterSpacing="0.18"
+                android:text="PET RECORDS"
+                android:textColor="@color/primary"
+                android:textSize="11sp" />
+
+            <Space android:layout_width="1dp" android:layout_height="10dp" />
+
+            <TextView
+                android:id="@+id/documentsTitle"
+                style="@style/LegacyBodyText"
+                android:fontFamily="@font/fredoka"
+                android:text="Documents"
+                android:textSize="30sp" />
+
+            <Space android:layout_width="1dp" android:layout_height="5dp" />
+
+            <TextView
+                android:id="@+id/documentsSubtitle"
+                style="@style/LegacyBodyText"
+                android:text="find and open saved vaccination cards, prescriptions and receipts"
+                android:textColor="@color/text_secondary"
+                android:textSize="14sp" />
+
+            <Space android:layout_width="1dp" android:layout_height="14dp" />
+
+            <EditText
+                android:id="@+id/documentSearch"
+                android:layout_width="match_parent"
+                android:layout_height="50dp"
+                android:background="@drawable/legacy_input"
+                android:hint="Search documents"
+                android:inputType="text"
+                android:paddingStart="16dp"
+                android:paddingEnd="16dp"
+                android:singleLine="true"
+                android:textSize="15sp" />
+
+            <Space android:layout_width="1dp" android:layout_height="12dp" />
+
+            <HorizontalScrollView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:scrollbars="none">
+
+                <LinearLayout
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal">
+
+                    <TextView
+                        android:id="@+id/docFilterAll"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginEnd="8dp"
+                        android:background="@drawable/legacy_chip"
+                        android:paddingStart="14dp"
+                        android:paddingTop="9dp"
+                        android:paddingEnd="14dp"
+                        android:paddingBottom="9dp"
+                        android:text="All"
+                        android:textSize="13sp" />
+
+                    <TextView
+                        android:id="@+id/docFilterVaccinations"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginEnd="8dp"
+                        android:background="@drawable/legacy_chip"
+                        android:paddingStart="14dp"
+                        android:paddingTop="9dp"
+                        android:paddingEnd="14dp"
+                        android:paddingBottom="9dp"
+                        android:text="Vaccinations"
+                        android:textSize="13sp" />
+
+                    <TextView
+                        android:id="@+id/docFilterMedications"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginEnd="8dp"
+                        android:background="@drawable/legacy_chip"
+                        android:paddingStart="14dp"
+                        android:paddingTop="9dp"
+                        android:paddingEnd="14dp"
+                        android:paddingBottom="9dp"
+                        android:text="Medications"
+                        android:textSize="13sp" />
+
+                    <TextView
+                        android:id="@+id/docFilterReceipts"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginEnd="8dp"
+                        android:background="@drawable/legacy_chip"
+                        android:paddingStart="14dp"
+                        android:paddingTop="9dp"
+                        android:paddingEnd="14dp"
+                        android:paddingBottom="9dp"
+                        android:text="Receipts"
+                        android:textSize="13sp" />
+
+                    <TextView
+                        android:id="@+id/dpcFilterOther"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:background="@drawable/legacy_chip"
+                        android:paddingStart="14dp"
+                        android:paddingTop="9dp"
+                        android:paddingEnd="14dp"
+                        android:paddingBottom="9dp"
+                        android:text="Other"
+                        android:textSize="13sp" />
+                </LinearLayout>
+
+            </HorizontalScrollView>
+
+            <Spinner
+                android:id="@+id/documentDateSpinner"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="6dp"
+                android:minHeight="44dp" />
+
+            <Space android:layout_width="1dp" android:layout_height="8dp" />
+
+            <LinearLayout
+                android:id="@+id/documentContainer"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="vertical" />
+
+            <TextView
+                android:id="@+id/documentsEmpty"
+                style="@style/LegacyBodyText"
+                android:gravity="center"
+                android:padding="24dp"
+                android:text="No documents yet. Documents added in the Paperless Inbox appear here."
+                android:textColor="@color/text_secondary"
+                android:textSize="14sp" />
+        </LinearLayout>
+
+    </ScrollView>
+
+    <include
+        android:id="@+id/bottomNav"
+        layout="@layout/legacy_bottom_nav"
+        android:layout_width="match_parent"
+        android:layout_height="78dp"
+        android:layout_marginStart="8dp"
+        android:layout_marginEnd="8dp"
+        android:layout_marginBottom="5dp" />
+
+</LinearLayout>
