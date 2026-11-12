@@ -62,7 +62,8 @@ public class PhaseTwoScreens {
     protected final JSONObject pet;
     protected final List<JSONObject> pets,logs,reminders;
     protected final Consumer<String> go;
-    protected final Runnable choose,recognizeVoice,toggleSoundRecording,addReminder,login,goBack;
+    protected final Runnable choose,recognizeVoice,toggleSoundRecording,addReminder,goBack;
+    protected final AccountActions account;
     protected final Consumer<Integer> selectPet;
     protected final BiConsumer<Map<String,String>,Boolean> savePet;
     protected final BiConsumer<String,String> saveLog;
@@ -83,14 +84,14 @@ public class PhaseTwoScreens {
             BiConsumer<String,String> saveLog,Runnable recognizeVoice,
             Consumer<String> captureVoice,Runnable toggleSoundRecording,
             Supplier<List<JSONObject>> soundRows,Consumer<JSONObject> playRecording,
-            Runnable addReminder,Consumer<JSONObject> toggleReminder,Runnable login,
+            Runnable addReminder,Consumer<JSONObject> toggleReminder,AccountActions account,
             Runnable goBack,String pendingPetPhotoUri,Consumer<Boolean> onPetPhoto){
         this.a=a;this.pet=pet;this.pets=pets;this.logs=logs;this.reminders=reminders;
         this.go=go;this.choose=choose;this.selectPet=selectPet;this.savePet=savePet;this.saveLog=saveLog;
         this.recognizeVoice=recognizeVoice;this.captureVoice=captureVoice;
         this.toggleSoundRecording=toggleSoundRecording;this.soundRows=soundRows;
         this.playRecording=playRecording;this.addReminder=addReminder;this.toggleReminder=toggleReminder;
-        this.login=login;this.goBack=goBack;this.pendingPetPhotoUri=pendingPetPhotoUri;this.onPetPhoto=onPetPhoto;
+        this.account=account;this.goBack=goBack;this.pendingPetPhotoUri=pendingPetPhotoUri;this.onPetPhoto=onPetPhoto;
         prefs=a.getSharedPreferences("purrfolio_demo",Activity.MODE_PRIVATE);
         night=(a.getResources().getConfiguration().uiMode&Configuration.UI_MODE_NIGHT_MASK)==Configuration.UI_MODE_NIGHT_YES;
         bg=color(night?"#101014":"#FCF9FF");surface=color(night?"#1C1B26":"#F3EDF8");
@@ -175,8 +176,13 @@ public class PhaseTwoScreens {
     protected FrameLayout portrait(int resource,int size){return portrait(resource,size,primary);}
     protected FrameLayout portrait(int size){return portrait(R.drawable.pdf_mochi,size,primary);}
     protected View portraitHero(int size,boolean decorated,boolean editable){FrameLayout frame=new FrameLayout(a);
-        frame.addView(portrait(size),new FrameLayout.LayoutParams(dp(size),dp(size),Gravity.CENTER));
-        if(editable){FrameLayout camera=action("Camera","Change photo",()->preview("Photo upload is not connected. The supplied image is shown for this frontend preview."));
+        FrameLayout image=portrait(size);
+        // Editable heroes are the user's own profile photo; the others keep the brand artwork.
+        String photo=editable?prefs.getString("profile:photo",null):null;
+        android.graphics.Bitmap bitmap=photo==null?null:UserRepository.decodePhoto(photo);
+        if(bitmap!=null){ImageView view=(ImageView)image.getChildAt(0);view.setImageBitmap(bitmap);view.setContentDescription("Your profile photo");}
+        frame.addView(image,new FrameLayout.LayoutParams(dp(size),dp(size),Gravity.CENTER));
+        if(editable){FrameLayout camera=action("Camera","Change photo",()->account.changeProfilePhoto());
             camera.setBackground(shape(lavender,30,false));camera.setTranslationX(dp((size-35)/2));camera.setTranslationY(dp((size-30)/2));
             frame.addView(camera,new FrameLayout.LayoutParams(dp(44),dp(44),Gravity.CENTER));}
         if(decorated){View heart=icon("Heart",26,pink);heart.setTranslationX(-dp((size+65)/2));heart.setTranslationY(-dp(15));
@@ -247,6 +253,8 @@ public class PhaseTwoScreens {
     protected View infoRow(String kind,String label,Runnable callback){return infoRow(kind,label,null,"Chevron",primary,callback);}
     protected View infoRow(String kind,String label,String detail,Runnable callback){return infoRow(kind,label,detail,"Chevron",primary,callback);}
     protected View toggleRow(String kind,String label,String description,boolean defaultValue,String key,boolean persist){
+        return toggleRow(kind,label,description,defaultValue,key,persist,null);}
+    protected View toggleRow(String kind,String label,String description,boolean defaultValue,String key,boolean persist,Consumer<Boolean> onChange){
         LinearLayout r=row();r.setBackground(shape());pad(r,14,8);
         LinearLayout.LayoutParams iconParams=new LinearLayout.LayoutParams(dp(30),dp(32));iconParams.rightMargin=dp(12);r.addView(icon(kind,27),iconParams);
         LinearLayout labels=col();labels.addView(text(label,14,ink,700));
@@ -258,7 +266,8 @@ public class PhaseTwoScreens {
         GradientDrawable track=shape(lavender,20,false);track.setSize(dp(46),dp(27));toggle.setTrackDrawable(track);
         toggle.setThumbTintList(ColorStateList.valueOf(Color.WHITE));
         toggle.setTrackTintList(new ColorStateList(new int[][]{new int[]{android.R.attr.state_checked},new int[]{}},new int[]{lavender,outline}));
-        toggle.setOnCheckedChangeListener((button,checked)->{if(persist)prefs.edit().putBoolean(key,checked).apply();});
+        toggle.setOnCheckedChangeListener((button,checked)->{if(persist)prefs.edit().putBoolean(key,checked).apply();
+            if(onChange!=null)onChange.accept(checked);});
         r.addView(toggle,new LinearLayout.LayoutParams(dp(50),dp(44)));return r;
     }
     protected View toggleRow(String kind,String label,String description){return toggleRow(kind,label,description,true,"setting:"+label,true);}
@@ -289,7 +298,8 @@ public class PhaseTwoScreens {
         top.addView(steps(3),new LinearLayout.LayoutParams(0,dp(44),1));top.addView(new View(a),new LinearLayout.LayoutParams(dp(44),1));add(top,48,12);
         TextView title=heading("Create Account",32);title.setGravity(Gravity.CENTER);add(title,48,4);
         add(center("Let's get to know you!",17,ink,600),28,24);
-        field("Full Name","Gracezel Castrence");field("Email Address","youremail@dlsu.edu.ph","Mail");
+        EditText fullName=field("Full Name","","Person","Gracezel Castrence",false,false,null,null);
+        EditText email=field("Email Address","","Mail","youremail@dlsu.edu.ph",false,false,null,null);
         EditText password=field("Password","","Lock","",true,false,null,null);
         LinearLayout requirements=col();requirements.setBackground(shape());pad(requirements,18,12);
         String[] checks={"At least 8 characters","1 letter and 1 number","1 special character"};
@@ -298,19 +308,30 @@ public class PhaseTwoScreens {
             r.addView(icon("Check",22),ip);r.addView(text(label,14,sub));requirements.addView(r,new LinearLayout.LayoutParams(-1,dp(32)));rows.add(r);}
         password.addTextChangedListener(new TextWatcher(){public void beforeTextChanged(CharSequence s,int start,int count,int after){}
             public void afterTextChanged(Editable value){}
-            public void onTextChanged(CharSequence value,int start,int before,int count){String v=value.toString();
-                boolean letter=false,digit=false,special=false;for(char c:v.toCharArray()){if(Character.isLetter(c))letter=true;
-                    else if(Character.isDigit(c))digit=true;else special=true;}
-                boolean[] ok={v.length()>=8,letter&&digit,special};for(int i=0;i<3;i++)rows.get(i).setAlpha(ok[i]?1f:.45f);}});
-        add(requirements,124,20);add(button("Continue",()->go.accept("Add Your Pet")),52);social();push(16);
+            public void onTextChanged(CharSequence value,int start,int before,int count){
+                List<Boolean> ok=Validators.passwordRules(value.toString());for(int i=0;i<3;i++)rows.get(i).setAlpha(ok.get(i)?1f:.45f);}});
+        add(requirements,124,20);
+        add(button("Continue",()->{
+            fullName.setError(Validators.fullName(fullName.getText().toString()));
+            email.setError(Validators.email(email.getText().toString()));
+            password.setError(Validators.password(password.getText().toString()));
+            if(fullName.getError()==null&&email.getError()==null&&password.getError()==null)
+                account.signUp(fullName.getText().toString(),email.getText().toString(),password.getText().toString());
+        }),52);social();push(16);
         TextView login=center("Already have an account?  Log In",14,sub,400);login.setOnClickListener(v->go.accept("Log In"));
         login.setMinHeight(dp(48));add(login,48);
     }
     protected void logIn(){header("Welcome back!","Good to see you again","Welcome",null,null,32,false);
-        add(portraitHero(145,true,false),170,14);field("Email Address","youremail@dlsu.edu.ph","Person");
-        field("Password","","Lock","",true,false,null,null);
+        add(portraitHero(145,true,false),170,14);
+        EditText email=field("Email Address","","Person","youremail@dlsu.edu.ph",false,false,null,null);
+        EditText password=field("Password","","Lock","",true,false,null,null);
         TextView forgot=text("Forgot password?",14,primary,700);forgot.setGravity(Gravity.END);forgot.setOnClickListener(v->go.accept("Reset Password"));
-        forgot.setMinHeight(dp(40));add(forgot,40,8);add(button("Log In",()->login.run()),52);social();
+        forgot.setMinHeight(dp(40));add(forgot,40,8);
+        add(button("Log In",()->{
+            email.setError(Validators.email(email.getText().toString()));
+            password.setError(password.getText().length()==0?"Enter your password.":null);
+            if(email.getError()==null&&password.getError()==null)account.logIn(email.getText().toString(),password.getText().toString());
+        }),52);social();
         LinearLayout card=row();card.setBackground(shape());pad(card,12,12);card.setOnClickListener(v->go.accept("Create Account"));
         FrameLayout avatar=new FrameLayout(a);avatar.setContentDescription("Create a new account");
         avatar.addView(icon("Person",48,primary),new FrameLayout.LayoutParams(dp(48),dp(48),Gravity.CENTER));
@@ -322,8 +343,9 @@ public class PhaseTwoScreens {
     }
     protected void resetPassword(){header("Reset Password",null,"Log In",null,null,31,false);
         add(center("We'll send you a link to reset\nyour password."),44,12);
-        field("Email Address","youremail@dlsu.edu.ph","Person");
-        add(button("Send Reset Link",()->preview("Password recovery requires the existing authentication integration. No reset email has been sent.")),52,26);
+        EditText email=field("Email Address","","Person","youremail@dlsu.edu.ph",false,false,null,null);
+        add(button("Send Reset Link",()->{email.setError(Validators.email(email.getText().toString()));
+            if(email.getError()==null)account.sendPasswordReset(email.getText().toString());}),52,26);
         LinearLayout card=col();card.setBackground(shape());pad(card,18,18);card.addView(section("Didn't receive the email?"));
         for(String message:new String[]{"Check your spam folder","Make sure you entered the\ncorrect email","Try again in a few minutes"}){
             LinearLayout r=row();LinearLayout.LayoutParams ip=new LinearLayout.LayoutParams(dp(32),dp(32));ip.rightMargin=dp(12);
@@ -331,42 +353,102 @@ public class PhaseTwoScreens {
     }
     protected void profile(){header("Profile",null,"More","Settings",()->go.accept("Account Settings"),30,true);
         add(portraitHero(130,true,true),150,8);
-        add(center(prefs.getString("profile:name","Gracezel Castrence"),20,ink,700),28,3);
-        add(center(prefs.getString("profile:email","youremail@dlsu.edu.ph"),13,sub,400),24,16);
-        View complete=infoRow("Progress","Account Complete","4 of 5 completed",()->go.accept("Personal Information"));
+        add(center(prefs.getString("profile:name",""),20,ink,700),28,3);
+        add(center(prefs.getString("profile:email",""),13,sub,400),24,16);
+        // Name, phone, birthday, photo and a verified email make up the five steps.
+        int done=account.isEmailVerified()?1:0;
+        for(String key:new String[]{"name","phone","birthday","photo"}){String value=prefs.getString("profile:"+key,null);
+            if(value!=null&&!value.trim().isEmpty())done++;}
+        String progress=done==5?"All 5 completed":!account.isEmailVerified()?done+" of 5 completed · Verify your email":done+" of 5 completed";
+        View complete=infoRow("Progress","Account Complete",progress,()->go.accept("Personal Information"));
         complete.setBackground(shape(elevated,20,true));add(complete,72,12);
         String[][] rows={{"Person","Personal Information","Personal Information"},{"Settings","Account Settings","Account Settings"},
                 {"Bell","Notifications","Notifications"},{"Lock","Privacy & Security","QR Privacy"},
                 {"Link","Linked Accounts","Account Settings"}};
         for(String[] item:rows)add(infoRow(item[0],item[1],()->go.accept(item[2])),56,5);
-        gap(8);add(button("Log Out",()->go.accept("Welcome")),52);push(6);
+        gap(8);add(button("Log Out",()->account.logOut()),52);push(6);
     }
     protected void personalInformation(){header("Personal Information",null,"Profile");add(portraitHero(125,false,true),155,18);
+        // Keys are the Firestore field names; MainActivity mirrors them into the profile:* preferences.
         Map<String,EditText> fields=new LinkedHashMap<>();
-        fields.put("name",field("Full Name",prefs.getString("profile:name","Gracezel Castrence")));
-        fields.put("email",field("Email Address",prefs.getString("profile:email","youremail@dlsu.edu.ph"),"Mail"));
-        fields.put("phone",field("Phone Number",prefs.getString("profile:phone","+63 912 345 6789"),"Phone"));
-        fields.put("birthday",field("Date of Birth",prefs.getString("profile:birthday","2004-09-25"),"Care"));
-        fields.put("country",field("Country / Region",prefs.getString("profile:country","Philippines"),"Location","",false,false,
+        fields.put("fullName",field("Full Name",prefs.getString("profile:name",""),"Person","Gracezel Castrence",false,false,null,null));
+        // Changing the sign-in email belongs to Account Settings, so it is read-only here.
+        EditText email=field("Email Address",prefs.getString("profile:email",""),"Mail");email.setFocusable(false);email.setAlpha(.6f);
+        fields.put("phone",field("Phone Number",prefs.getString("profile:phone",""),"Phone","+63 912 345 6789",false,false,null,null));
+        fields.put("birthday",field("Date of Birth",prefs.getString("profile:birthday",""),"Care","2004-09-25",false,false,null,null));
+        fields.put("country",field("Country / Region",prefs.getString("profile:country",""),"Location","Philippines",false,false,
                 Arrays.asList("Philippines","Singapore","Malaysia","Other"),null));
-        gap(20);add(button("Save Changes",()->{SharedPreferences.Editor editor=prefs.edit();
-            for(Map.Entry<String,EditText> e:fields.entrySet())editor.putString("profile:"+e.getKey(),e.getValue().getText().toString());
-            editor.apply();notice("Profile saved on this device.");go.accept("Profile");}),52);
+        gap(20);add(button("Save Changes",()->{EditText name=fields.get("fullName");
+            name.setError(Validators.fullName(name.getText().toString()));if(name.getError()!=null)return;
+            Map<String,String> values=new LinkedHashMap<>();
+            for(Map.Entry<String,EditText> e:fields.entrySet())values.put(e.getKey(),e.getValue().getText().toString().trim());
+            account.saveProfile(values);}),52);
     }
     protected void accountSettings(){header("Account Settings",null,"Profile");gap(12);
-        add(infoRow("Lock","Change Password",()->go.accept("Reset Password")),66,8);
+        // Accounts without an email/password sign-in (e.g. Google only) have no password to change.
+        if(account.hasPasswordLogin())add(infoRow("Lock","Change Password",this::changePasswordDialog),66,8);
         add(infoRow("Moon","App Theme",AppTheme.label(a),()->go.accept("App Theme")),72,8);
         add(infoRow("Globe","Language","English",()->preview("English is the available language in this frontend.")),72,8);
         add(infoRow("Database","Data & Storage",()->go.accept("Offline & Sync")),66,24);
-        sectionLabel("Account");add(infoRow("Trash","Delete Account",null,"Chevron",coral,
-                ()->preview("Account deletion requires authenticated account services. No account or local records have been deleted.")),66);
+        sectionLabel("Account");add(infoRow("Trash","Delete Account",null,"Chevron",coral,this::deleteAccountDialog),66);
     }
+    /** Form inside an AlertDialog. */
+    protected LinearLayout dialogForm(){LinearLayout form=col();pad(form,20,12,20,0);return form;}
+    /** Red line for errors that don't belong to one field (e.g. offline); hidden until needed. */
+    protected TextView dialogStatus(LinearLayout form){TextView status=text("",13,coral,600);status.setVisibility(View.GONE);
+        LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(-1,-2);p.bottomMargin=dp(8);form.addView(status,p);return status;}
+    protected void showStatus(TextView status,String message){status.setText(message==null?"":message);
+        status.setVisibility(message==null?View.GONE:View.VISIBLE);}
+    protected AlertDialog showFormDialog(String title,LinearLayout form,String confirm){
+        android.widget.ScrollView scroll=new android.widget.ScrollView(a);scroll.addView(form);
+        return new AlertDialog.Builder(a).setTitle(title).setView(scroll).setNegativeButton("Cancel",null).setPositiveButton(confirm,null).show();}
+    protected void changePasswordDialog(){
+        LinearLayout form=dialogForm();
+        EditText current=field("Current Password","","Lock","",true,false,null,form);
+        EditText fresh=field("New Password","","Lock","",true,false,null,form);
+        EditText confirm=field("Confirm New Password","","Lock","",true,false,null,form);
+        LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(-1,-2);p.bottomMargin=dp(8);
+        form.addView(text("At least 8 characters, with a letter, a number and a special character.",12,sub),p);
+        TextView status=dialogStatus(form);
+        AlertDialog dialog=showFormDialog("Change Password",form,"Update");
+        // Set after show() so a failed check keeps the dialog open.
+        dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener(v->{
+            String now=current.getText().toString(),next=fresh.getText().toString();
+            current.setError(now.isEmpty()?"Enter your current password.":null);
+            String rule=Validators.password(next);
+            fresh.setError(rule!=null?rule:next.equals(now)?"Use a different password from your current one.":null);
+            confirm.setError(confirm.getText().toString().equals(next)?null:"Passwords don't match.");
+            showStatus(status,null);
+            if(current.getError()==null&&fresh.getError()==null&&confirm.getError()==null)
+                account.changePassword(now,next,error->{if(error==null)dialog.dismiss();
+                    else if(error.startsWith("Current password"))current.setError(error);else showStatus(status,error);});
+        });
+    }
+    protected void deleteAccountDialog(){
+        LinearLayout form=dialogForm();
+        LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(-1,-2);p.bottomMargin=dp(12);
+        form.addView(text("This permanently deletes your PURRFOLIO account and profile. It can't be undone.\n\nEnter your password to confirm.",14,ink),p);
+        EditText password=field("Current Password","","Lock","",true,false,null,form);
+        TextView status=dialogStatus(form);
+        AlertDialog dialog=showFormDialog("Delete Account?",form,"Delete");
+        android.widget.Button delete=dialog.getButton(AlertDialog.BUTTON_POSITIVE);delete.setTextColor(coral);
+        delete.setOnClickListener(v->{
+            password.setError(password.getText().length()==0?"Enter your password.":null);
+            showStatus(status,null);
+            if(password.getError()==null)account.deleteAccount(password.getText().toString(),error->{if(error==null)dialog.dismiss();
+                else if(error.startsWith("Current password"))password.setError(error);else showStatus(status,error);});
+        });
+    }
+    /** One switch that mirrors users/{uid}.notifications.{field}; MainActivity saves it locally, then to Firestore. */
+    protected View notificationRow(String kind,String label,String description,String field){
+        return toggleRow(kind,label,description,UserRepository.NOTIFICATION_DEFAULTS.get(field),"notify:"+field,false,
+                enabled->account.setNotification(field,enabled));}
     protected void notifications(){header("Notifications",null,"Profile");sectionLabel("Care Reminders");
-        add(toggleRow("Bell","Care Reminders","Medication, feeding, playtime, etc."),70,22);
-        sectionLabel("Updates");add(toggleRow("Megaphone","App Updates","New features and improvements"),70,4);
-        add(toggleRow("Star","Tips & Insights","Pet care tips and recommendations"),70,22);
-        sectionLabel("Shared Care");add(toggleRow("Pets","Care Circle Activity","When someone updates a record"),70,22);
-        sectionLabel("Marketing");add(toggleRow("Mail","Product News","Occasional updates and offers",false,"setting:Product News",true),70,14);
+        add(notificationRow("Bell","Care Reminders","Medication, feeding, playtime, etc.","careReminders"),70,22);
+        sectionLabel("Updates");add(notificationRow("Megaphone","App Updates","New features and improvements","appUpdates"),70,4);
+        add(notificationRow("Star","Tips & Insights","Pet care tips and recommendations","tips"),70,22);
+        sectionLabel("Shared Care");add(notificationRow("Pets","Care Circle Activity","When someone updates a record","careCircle"),70,22);
+        sectionLabel("Marketing");add(notificationRow("Mail","Product News","Occasional updates and offers","productNews"),70,14);
         add(art(R.drawable.pdf_notification_cat_transparent,76),76,4);
         add(center("We'll only notify you\nabout what matters.",14,ink,500),44);
     }
