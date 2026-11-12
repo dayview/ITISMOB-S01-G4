@@ -13,6 +13,7 @@ import android.speech.RecognizerIntent
 import androidx.core.content.ContextCompat
 import java.io.File
 import java.util.UUID
+import android.os.Build
 import android.os.Bundle
 import android.view.View
 import android.widget.ArrayAdapter
@@ -111,7 +112,7 @@ class MainActivity : AppCompatActivity() {
         }
         override fun logOut() {
             auth.logOut()
-            preferences.edit().apply { profileKeys.values.forEach { remove("profile:$it") } }.apply()
+            clearLocalAccount()
             screenHistory.clear(); render("Welcome", recordHistory = false)
         }
         override val emailVerified get() = auth.currentUser?.isEmailVerified == true
@@ -128,6 +129,52 @@ class MainActivity : AppCompatActivity() {
         override fun changeProfilePhoto() {
             profilePhotoPicker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
         }
+        override val hasPasswordLogin get() = auth.hasPasswordLogin
+        override fun changePassword(currentPassword: String, newPassword: String, done: (String?) -> Unit) = runAccountTask {
+            auth.changePassword(currentPassword, newPassword)
+                .onSuccess { done(null); note("Password changed.") }
+                .onFailure { done(it.message) }
+        }
+        override fun deleteAccount(currentPassword: String, done: (String?) -> Unit) = runAccountTask {
+            // users/{uid} is deleted while still signed in, because the rules only let the owner remove it.
+            // When pets and logs move to Firestore, delete them inside this lambda too.
+            auth.deleteAccount(currentPassword) { uid -> users.deleteAll(uid) }
+                .onSuccess {
+                    done(null)
+                    clearLocalAccount()
+                    note("Your account has been deleted.")
+                    screenHistory.clear(); render("Welcome", recordHistory = false)
+                }
+                .onFailure { done(it.message) }
+        }
+        override fun setNotification(key: String, enabled: Boolean) {
+            preferences.edit().putBoolean("notify:$key", enabled).apply()
+            if (enabled) askNotificationPermission()
+            val uid = auth.currentUser?.uid ?: return
+            lifecycleScope.launch {
+                runCatching { users.setNotification(uid, key, enabled) }
+                    .onFailure { note("Couldn't sync this setting. It's still saved on this device.") }
+            }
+        }
+    }
+
+    /** Android 13+ blocks notifications until the user allows them; the switch stays saved either way. */
+    private val notificationPermission = registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        if (!granted) note("Notifications are off for PURRFOLIO. You can allow them later in Android Settings.")
+    }
+
+    private fun askNotificationPermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED
+        ) notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS)
+    }
+
+    /** Removes the signed-in user's cached profile and notification switches from this device. */
+    private fun clearLocalAccount() {
+        preferences.edit().apply {
+            profileKeys.values.forEach { remove("profile:$it") }
+            UserRepository.notificationDefaults.keys.forEach { remove("notify:$it") }
+        }.apply()
     }
 
     private val profilePhotoPicker = registerForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
@@ -167,6 +214,7 @@ class MainActivity : AppCompatActivity() {
     private fun cacheProfile(data: Map<String, Any?>) {
         preferences.edit().apply {
             profileKeys.forEach { (field, key) -> (data[field] as? String)?.takeIf { it.isNotBlank() }?.let { putString("profile:$key", it) } }
+            (data["notifications"] as? Map<*, *>)?.forEach { (key, value) -> if (value is Boolean) putBoolean("notify:$key", value) }
         }.apply()
     }
 

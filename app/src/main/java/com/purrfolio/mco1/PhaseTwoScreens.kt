@@ -180,14 +180,14 @@ class PhaseTwoScreens(
         r.addView(labels,LinearLayout.LayoutParams(0,-2,1f));if(trailing.isNotBlank())r.addView(icon(trailing,23),LinearLayout.LayoutParams(dp(27),dp(30)))
         return r
     }
-    private fun toggleRow(kind:String,label:String,description:String?=null,default:Boolean=true,key:String="setting:$label",persist:Boolean=true):View{
+    private fun toggleRow(kind:String,label:String,description:String?=null,default:Boolean=true,key:String="setting:$label",persist:Boolean=true,onChange:((Boolean)->Unit)?=null):View{
         val r=row().apply{background=shape();pad(this,14,8)};r.addView(icon(kind,27),LinearLayout.LayoutParams(dp(30),dp(32)).apply{rightMargin=dp(12)})
         val labels=col();labels.addView(text(label,14f,ink,700));if(description!=null)labels.addView(text(description,11f,sub),LinearLayout.LayoutParams(-1,-2).apply{topMargin=dp(5)})
         r.addView(labels,LinearLayout.LayoutParams(0,-2,1f))
         val toggle=Switch(a).apply{contentDescription=label;isChecked=prefs.getBoolean(key,default);showText=false;splitTrack=false;switchMinWidth=dp(46)
             thumbDrawable=shape(Color.WHITE,20,false).apply{setSize(dp(24),dp(24))};trackDrawable=shape(lavender,20,false).apply{setSize(dp(46),dp(27))}
             thumbTintList=ColorStateList.valueOf(Color.WHITE);trackTintList=ColorStateList(arrayOf(intArrayOf(android.R.attr.state_checked),intArrayOf()),intArrayOf(lavender,outline))
-            setOnCheckedChangeListener{_,checked->if(persist)prefs.edit().putBoolean(key,checked).apply()}
+            setOnCheckedChangeListener{_,checked->if(persist)prefs.edit().putBoolean(key,checked).apply();onChange?.invoke(checked)}
         };r.addView(toggle,LinearLayout.LayoutParams(dp(50),dp(44)));return r
     }
     private fun sectionLabel(label:String,gap:Int=12){add(section(label),-2,gap)}
@@ -282,18 +282,62 @@ class PhaseTwoScreens(
     }
     private fun accountSettings(){
         header("Account Settings",back="Profile");gap(12)
-        add(infoRow("Lock","Change Password"){go("Reset Password")},66,8)
+        // Accounts without an email/password sign-in (e.g. Google only) have no password to change.
+        if(account.hasPasswordLogin)add(infoRow("Lock","Change Password"){changePasswordDialog()},66,8)
         add(infoRow("Moon","App Theme",AppTheme.label(a)){go("App Theme")},72,8)
         add(infoRow("Globe","Language","English"){preview("English is the available language in this frontend.")},72,8)
         add(infoRow("Database","Data & Storage"){go("Offline & Sync")},66,24)
-        sectionLabel("Account");add(infoRow("Trash","Delete Account",tint=coral){preview("Account deletion requires authenticated account services. No account or local records have been deleted.")},66)
+        sectionLabel("Account");add(infoRow("Trash","Delete Account",tint=coral){deleteAccountDialog()},66)
+    }
+    /** Form inside an AlertDialog; [status] shows errors that don't belong to one field (e.g. offline). */
+    private fun dialogForm()=col().apply{pad(this,20,12,20,0)}
+    private fun dialogStatus(form:LinearLayout)=text("",13f,coral,600).apply{visibility=View.GONE;form.addView(this,LinearLayout.LayoutParams(-1,-2).apply{bottomMargin=dp(8)})}
+    private fun showStatus(status:TextView,message:String?){status.text=message?:"";status.visibility=if(message==null)View.GONE else View.VISIBLE}
+    private fun changePasswordDialog(){
+        val form=dialogForm()
+        val current=field("Current Password","","Lock",password=true,parent=form)
+        val fresh=field("New Password","","Lock",password=true,parent=form)
+        val confirm=field("Confirm New Password","","Lock",password=true,parent=form)
+        form.addView(text("At least 8 characters, with a letter, a number and a special character.",12f,sub),LinearLayout.LayoutParams(-1,-2).apply{bottomMargin=dp(8)})
+        val status=dialogStatus(form)
+        val dialog=AlertDialog.Builder(a).setTitle("Change Password").setView(ScrollView(a).apply{addView(form)})
+            .setNegativeButton("Cancel",null).setPositiveButton("Update",null).show()
+        // Set after show() so a failed check keeps the dialog open.
+        dialog.getButton(AlertDialog.BUTTON_POSITIVE).setOnClickListener{
+            val now=current.text.toString();val next=fresh.text.toString()
+            current.error=if(now.isEmpty())"Enter your current password." else null
+            fresh.error=Validators.password(next)?:if(next==now)"Use a different password from your current one." else null
+            confirm.error=if(confirm.text.toString()!=next)"Passwords don't match." else null
+            showStatus(status,null)
+            if(current.error==null&&fresh.error==null&&confirm.error==null)account.changePassword(now,next){error->
+                when{error==null->dialog.dismiss();error.startsWith("Current password")->current.error=error;else->showStatus(status,error)}
+            }
+        }
+    }
+    private fun deleteAccountDialog(){
+        val form=dialogForm()
+        form.addView(text("This permanently deletes your PURRFOLIO account and profile. It can't be undone.\n\nEnter your password to confirm.",14f,ink),LinearLayout.LayoutParams(-1,-2).apply{bottomMargin=dp(12)})
+        val password=field("Current Password","","Lock",password=true,parent=form)
+        val status=dialogStatus(form)
+        val dialog=AlertDialog.Builder(a).setTitle("Delete Account?").setView(ScrollView(a).apply{addView(form)})
+            .setNegativeButton("Cancel",null).setPositiveButton("Delete",null).show()
+        dialog.getButton(AlertDialog.BUTTON_POSITIVE).apply{setTextColor(coral)}.setOnClickListener{
+            password.error=if(password.text.isEmpty())"Enter your password." else null
+            showStatus(status,null)
+            if(password.error==null)account.deleteAccount(password.text.toString()){error->
+                when{error==null->dialog.dismiss();error.startsWith("Current password")->password.error=error;else->showStatus(status,error)}
+            }
+        }
     }
     private fun notifications(){
+        // Switches mirror users/{uid}.notifications; MainActivity saves each change locally, then to Firestore.
+        fun notify(kind:String,label:String,description:String,field:String)=toggleRow(kind,label,description,
+            UserRepository.notificationDefaults.getValue(field),"notify:$field",persist=false){account.setNotification(field,it)}
         header("Notifications",back="Profile");sectionLabel("Care Reminders")
-        add(toggleRow("Bell","Care Reminders","Medication, feeding, playtime, etc."),70,22)
-        sectionLabel("Updates");add(toggleRow("Megaphone","App Updates","New features and improvements"),70,4);add(toggleRow("Star","Tips & Insights","Pet care tips and recommendations"),70,22)
-        sectionLabel("Shared Care");add(toggleRow("Pets","Care Circle Activity","When someone updates a record"),70,22)
-        sectionLabel("Marketing");add(toggleRow("Mail","Product News","Occasional updates and offers",false),70,14)
+        add(notify("Bell","Care Reminders","Medication, feeding, playtime, etc.","careReminders"),70,22)
+        sectionLabel("Updates");add(notify("Megaphone","App Updates","New features and improvements","appUpdates"),70,4);add(notify("Star","Tips & Insights","Pet care tips and recommendations","tips"),70,22)
+        sectionLabel("Shared Care");add(notify("Pets","Care Circle Activity","When someone updates a record","careCircle"),70,22)
+        sectionLabel("Marketing");add(notify("Mail","Product News","Occasional updates and offers","productNews"),70,14)
         add(art(R.drawable.pdf_notification_cat_transparent,76),76,4);add(center("We'll only notify you\nabout what matters.",14f,ink,500),44)
     }
     private fun petForm(edit:Boolean){

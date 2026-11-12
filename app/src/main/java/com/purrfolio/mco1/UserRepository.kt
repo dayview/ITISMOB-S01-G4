@@ -29,20 +29,24 @@ class UserRepository(private val db: FirebaseFirestore = FirebaseFirestore.getIn
             "fullName" to fullName.trim(),
             "email" to email.trim(),
             "createdAt" to FieldValue.serverTimestamp(),
-            "notifications" to mapOf(
-                "careReminders" to true, "appUpdates" to true, "tips" to true,
-                "careCircle" to true, "productNews" to false
-            )
+            "notifications" to notificationDefaults
         )).await()
     }
 
     /** Returns an empty map when the document does not exist yet (e.g. first social sign-in). */
     suspend fun load(uid: String): Map<String, Any?> = doc(uid).get().await().data ?: emptyMap()
 
-    /** Merges only the given fields; dotted keys such as "notifications.tips" update one entry of a map. */
+    /**
+     * Merges only the given fields. Note: set(merge) does NOT treat dots as paths, so "notifications.tips"
+     * would create a field literally named that; nested maps (see setNotification) are merged instead.
+     */
     suspend fun update(uid: String, fields: Map<String, Any?>) {
         doc(uid).set(fields, SetOptions.merge()).await()
     }
+
+    /** Turns one notifications.* switch on or off and keeps the others. */
+    suspend fun setNotification(uid: String, key: String, enabled: Boolean) =
+        update(uid, mapOf("notifications" to mapOf(key to enabled)))
 
     /** Shrinks the picked image off the main thread; save the result with update(uid, mapOf("photo" to it)). */
     suspend fun preparePhoto(resolver: ContentResolver, uri: Uri): String =
@@ -53,6 +57,11 @@ class UserRepository(private val db: FirebaseFirestore = FirebaseFirestore.getIn
     }
 
     companion object {
+        /** notifications.* switches and their starting values for a new account. */
+        val notificationDefaults = linkedMapOf(
+            "careReminders" to true, "appUpdates" to true, "tips" to true, "careCircle" to true, "productNews" to false
+        )
+
         private const val MAX_SIDE = 512
         private const val MAX_BYTES = 700 * 1024 // leaves room for the other fields under the 1 MiB limit
 

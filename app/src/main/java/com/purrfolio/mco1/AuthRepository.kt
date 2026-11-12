@@ -1,6 +1,7 @@
 package com.purrfolio.mco1
 
 import com.google.firebase.FirebaseNetworkException
+import com.google.firebase.FirebaseTooManyRequestsException
 import com.google.firebase.auth.EmailAuthProvider
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseAuthInvalidCredentialsException
@@ -16,6 +17,10 @@ import kotlinx.coroutines.tasks.await
 /** Firebase Authentication wrapper; every failure carries a message that can be shown to the user as-is. */
 class AuthRepository(private val auth: FirebaseAuth = FirebaseAuth.getInstance()) {
     val currentUser: FirebaseUser? get() = auth.currentUser
+
+    /** True when the user can sign in with an email and password (false for a Google-only account). */
+    val hasPasswordLogin: Boolean
+        get() = auth.currentUser?.providerData?.any { it.providerId == EmailAuthProvider.PROVIDER_ID } == true
 
     suspend fun signUp(fullName: String, email: String, password: String): Result<FirebaseUser> = attempt {
         val user = auth.createUserWithEmailAndPassword(email.trim(), password).await().user!!
@@ -50,9 +55,15 @@ class AuthRepository(private val auth: FirebaseAuth = FirebaseAuth.getInstance()
 
     fun logOut() = auth.signOut()
 
+    /** Confirms the current password; a wrong one gets its own message instead of "Email or password is incorrect." */
     private suspend fun reauthenticate(password: String): FirebaseUser {
         val user = auth.currentUser ?: throw IllegalStateException("Please log in again.")
-        user.reauthenticate(EmailAuthProvider.getCredential(user.email!!, password)).await()
+        val email = user.email ?: throw IllegalStateException("This account has no password to confirm.")
+        try {
+            user.reauthenticate(EmailAuthProvider.getCredential(email, password)).await()
+        } catch (e: FirebaseAuthInvalidCredentialsException) {
+            throw IllegalArgumentException("Current password is incorrect.", e)
+        }
         return user
     }
 
@@ -71,6 +82,7 @@ class AuthRepository(private val auth: FirebaseAuth = FirebaseAuth.getInstance()
         is FirebaseAuthInvalidUserException -> "No account matches this email."
         is FirebaseAuthRecentLoginRequiredException -> "Please log in again to continue."
         is FirebaseNetworkException -> "You're offline. Check your connection and try again."
+        is FirebaseTooManyRequestsException -> "Too many attempts. Please wait a few minutes and try again."
         else -> e.localizedMessage ?: "Something went wrong. Please try again."
     }
 }
