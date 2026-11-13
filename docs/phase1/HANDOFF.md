@@ -1,5 +1,7 @@
 # HANDOFF: Purrfolio Phase 1 (functions 2.1 to 2.4)
 
+> **Update 2026-11-13: Java port.** Master migrated the whole app from Kotlin to Java (PR #4) and removed the Kotlin plugin, so the Phase 1 files were ported to Java on branch `leon/phase1-java-port`. File names below now end in `.java`, and `PetModels.kt` became four classes: `Pet.java`, `PetDraft.java`, `PetMigrations.java` and `DemoPets.java`. Behaviour is unchanged. Names that differ from the Kotlin version: `PetPhotoStore.importPhoto()` (was `import()`, a reserved word in Java), `PetDraft.isDirty()` is a method, `PetScreenHost.setBackHandler(Runnable)`, and `PetRules.isDuplicateName` takes a `List<Pet>`. Code snippets and the Kotlin-era verification notes are kept as history; the current QA results are in `docs/visual-qa/RESULTS.md`.
+
 Read this first, then `CLAUDE.md`, then `docs/PHASE1_GUIDE.md`. Written 2026-10-31 at the end of a planning and code-drafting session in Claude.ai. Nothing from that chat carries over except what is in these files.
 
 ## 1. How to work with Leon
@@ -10,7 +12,7 @@ Read this first, then `CLAUDE.md`, then `docs/PHASE1_GUIDE.md`. Written 2026-10-
 
 ## 2. Project in one paragraph
 
-Purrfolio (repo `dayview/ITISMOB-S01-G4`) is an Android pet-care organizer for the ITISMOB course (MCO1 proposal: "Purrfolio: Your Pet's Life in Pawgress"). Kotlin, **Views built programmatically** (no Compose), minSdk 24, compileSdk/targetSdk 35, only `core` and `appcompat` as dependencies. Pets, logs and reminders are `JSONObject` lists in SharedPreferences (`purrfolio_demo`), owned by `MainActivity`. Navigation is `MainActivity.render("Screen Name")` with a string back stack.
+Purrfolio (repo `dayview/ITISMOB-S01-G4`) is an Android pet-care organizer for the ITISMOB course (MCO1 proposal: "Purrfolio: Your Pet's Life in Pawgress"). Java (ported from Kotlin, see the note above), **Views built programmatically** (no Compose), minSdk 24, compileSdk/targetSdk 35, only `core` and `appcompat` as dependencies. Pets, logs and reminders are `JSONObject` lists in SharedPreferences (`purrfolio_demo`), owned by `MainActivity`. Navigation is `MainActivity.render("Screen Name")` with a string back stack.
 
 **Scope: frontend only.** No Firebase, network calls, auth, new permissions, or fake "it works" claims. Unfinished features are labelled previews.
 
@@ -29,7 +31,7 @@ Order of work: **Phase 1 = 2.1 to 2.4**, then 5.7, then 5.6, then 5.1, then 3.1.
 | Demo pets | Luna and Simba stay for development, shown only in debuggable builds; saved only if the tester taps "Add to my pets". |
 | View Pet Profile (2.2) | New `PetProfileScreen`, reached from the ⋯ menu on Pet Detail ("Pet profile" is the first item). |
 | Photos | `PickVisualMedia` picker, copied into `filesDir/pets/` as a JPEG, stored as a `file://` URI string. |
-| Data seam | `Pet` data class converts to and from the existing JSON. Screens use the `PetScreenHost` interface and never touch `MainActivity` directly. |
+| Data seam | `Pet` class converts to and from the existing JSON. Screens use the `PetScreenHost` interface and never touch `MainActivity` directly. |
 | Draft state | `PetDraft` lives in `MainActivity` and is saved in the instance-state Bundle, so typing survives the photo picker and rotation. |
 | Forms | Single column, labels above, errors replace helper text, optional fields marked "(optional)". Chips for Species and Sex. |
 | Accessibility bar | 48dp touch targets, 4.5:1 text contrast, 3:1 for input borders (`fieldBorder`), TalkBack roles and labels, visible focus rings. |
@@ -40,8 +42,8 @@ Order of work: **Phase 1 = 2.1 to 2.4**, then 5.7, then 5.6, then 5.1, then 3.1.
 
 Delivered as `purrfolio-phase1.zip` (unzips at the repo root):
 
-- 10 new files in `app/src/main/java/com/purrfolio/mco1/`: `PetRules.kt`, `PetModels.kt`, `PetPhotoStore.kt`, `PetUi.kt`, `PetScreenHost.kt`, `PetForm.kt`, `AddPetFlow.kt`, `EditPetScreen.kt`, `MyPetsScreen.kt`, `PetProfileScreen.kt`.
-- `phase1-shared-files.patch`: small edits to `MainActivity.kt` (about 150 added lines, wiring only), `ReferenceScreens.kt` (`petOptions()` adds "Pet profile"), and `AndroidManifest.xml` (photo-picker back-port service entry).
+- 13 new files in `app/src/main/java/com/purrfolio/mco1/`: `PetRules.java`, `Pet.java`, `PetDraft.java`, `PetMigrations.java`, `DemoPets.java`, `PetPhotoStore.java`, `PetUi.java`, `PetScreenHost.java`, `PetForm.java`, `AddPetFlow.java`, `EditPetScreen.java`, `MyPetsScreen.java`, `PetProfileScreen.java`.
+- (Kotlin-era `phase1-shared-files.patch`, no longer applies; the edits are now committed on the branch) small edits to `MainActivity.java` (about 150 added lines, wiring only), `ReferenceScreens.java` (`petOptions()` adds "Pet profile"), and `AndroidManifest.xml` (photo-picker back-port service entry).
 - `docs/visual-qa/capture_pets.py`, `docs/PHASE1_GUIDE.md`, `CLAUDE.md`.
 
 Leon has been (or is about to be) adding these by hand on his own branch (suggested name `leon/phase1-pets`, created from an up-to-date `master`). **Check the actual state with `git status` and the audit prompt in section 8; do not assume it is applied.**
@@ -49,7 +51,7 @@ Leon has been (or is about to be) adding these by hand on his own branch (sugges
 ## 6. How well verified (be honest about this)
 
 **Checked:**
-- All 10 new files compile against the Android SDK (API 34 stubs) with Kotlin 2.0.21.
+- Kotlin version: all 10 files compiled against the Android SDK (API 34 stubs) with Kotlin 2.0.21. Java port: builds with `./gradlew :app:assembleDebug` and passed the emulator QA in `docs/visual-qa/RESULTS.md`.
 - The new `MainActivity` block compiles in a test harness with stubbed members.
 - The patch applies cleanly to a fresh clone of master.
 - `PetRules` passes 29 unit-style checks (ages, validation, dates, duplicates).
@@ -66,7 +68,7 @@ Expect the first real build to surface small errors. Fix them as they appear.
 1. **Photo picker** falls back to the system picker on devices without Google Play services (Android 11 to 12). Test on an emulator image without Play Store too.
 2. **Back stack:** after *adding* a pet, `commitPet` calls `render("Pet Detail", recordHistory = false)` so Back does not reopen the form; after *editing* it calls `navigateBack()`. Verify both from a cold start and after rotation.
 3. **Draft cleanup:** `render()` discards the draft (and a newly copied photo) when leaving a form screen. Check no orphan files remain in `filesDir/pets/`.
-4. **Old code is now bypassed, not deleted:** `petForm()`, `myPets()`, `petCard()` in `PhaseTwoScreens.kt` are unused. Remove them in a separate PR after Leon's PR merges.
+4. **Old code is now bypassed, not deleted:** `petForm()`, `myPets()`, `petCard()` in `PhaseTwoScreens.java` are unused. Remove them in a separate PR after Leon's PR merges.
 5. **Wireframe difference:** the forms are single-column with labels above. Weight and Sex are no longer side by side as in the wireframe. The team may want to decide.
 6. **Sex chips** cannot be deselected once chosen ("Unknown" is the neutral choice).
 7. **Pet Detail** wellness rings and insights are still the wireframe's illustrative sample, already labelled as examples. Not changed.

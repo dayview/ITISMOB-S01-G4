@@ -1,5 +1,7 @@
 # CLAUDE.md — Purrfolio (ITISMOB-S01-G4)
 
+> **Update 2026-11-13: Java port.** Master migrated the whole app from Kotlin to Java (PR #4) and removed the Kotlin plugin, so the Phase 1 files were ported to Java on branch `leon/phase1-java-port`. File names below now end in `.java`, and `PetModels.kt` became four classes: `Pet.java`, `PetDraft.java`, `PetMigrations.java` and `DemoPets.java`. Behaviour is unchanged. Names that differ from the Kotlin version: `PetPhotoStore.importPhoto()` (was `import()`, a reserved word in Java), `PetDraft.isDirty()` is a method, `PetScreenHost.setBackHandler(Runnable)`, and `PetRules.isDuplicateName` takes a `List<Pet>`. Code snippets and the Kotlin-era verification notes are kept as history; the current QA results are in `docs/visual-qa/RESULTS.md`.
+
 Guidance for Claude Code / Opus when working in this repo. Read fully before editing.
 Owner of this workstream: **Leon** (functions tagged `(LEON)` in the MCO1 proposal).
 
@@ -20,16 +22,16 @@ Start with Phase 1 only. Stop and report after each phase.
 
 ## 2. Current codebase facts (verified from repo, Oct 2026)
 
-- Kotlin, **Android Views built programmatically** (no Compose, almost no XML layouts for new screens). `viewBinding = true`.
+- Java (ported from Kotlin, see the note above), **Android Views built programmatically** (no Compose, almost no XML layouts for new screens). `viewBinding = true`.
 - `applicationId com.purrfolio.mco1`, minSdk 24, compileSdk/targetSdk 35. Only deps: `androidx.core:core:1.13.0`, `androidx.appcompat:appcompat:1.7.0`.
-- `MainActivity.kt` (583 lines): owns data (`pets/logs/reminders` as `MutableList<JSONObject>` persisted in SharedPreferences `purrfolio_demo`) and routing via `render("Screen Name")` + `screenHistory` back stack.
-- `ReferenceScreens.kt`: 7 reference screens (Home, Pet Detail, Care, Pet Timeline, Sitter Mode, Pet Passport, Welcome).
-- `PhaseTwoScreens.kt` (525 lines): everything else, incl. `petForm(edit)`, `myPets()`, `petCard()`, `careCircle()`, `records()`.
-  Code style is dense one-liners with semicolons. **Do not copy that style into new code**; write readable, multi-line Kotlin.
+- `MainActivity.java` (about 645 lines): owns data (`pets/logs/reminders` as `MutableList<JSONObject>` persisted in SharedPreferences `purrfolio_demo`) and routing via `render("Screen Name")` + `screenHistory` back stack.
+- `ReferenceScreens.java`: 7 reference screens (Home, Pet Detail, Care, Pet Timeline, Sitter Mode, Pet Passport, Welcome).
+- `PhaseTwoScreens.java` (about 943 lines): everything else, incl. `petForm(edit)`, `myPets()`, `petCard()`, `careCircle()`, `records()`.
+  Code style is dense one-liners with semicolons. **Do not copy that style into new code**; write readable, multi-line Java.
 - Theme tokens are duplicated hex values per file (light/dark pairs). Reuse the same hex values; do not invent new colors.
 - Fonts: Fredoka (headings) + Nunito (UI) via `BrandType`. Wordmark must stay an image.
 - Visual-QA tooling: `docs/visual-qa/` (capture.py, contact-sheet.py, CHECKLIST.md, RESULTS.md). Debug-only
-  `--es preview_screen '<Screen>'` intent extra jumps to a screen (read `MainActivity.kt` ~line 91; verify it accepts non-reference screens before relying on it).
+  `--es preview_screen '<Screen>'` intent extra jumps to a screen (read `MainActivity.java` ~line 91; verify it accepts non-reference screens before relying on it).
 
 ## 3. Parallel-work rules (5 teammates, one repo)
 
@@ -37,11 +39,11 @@ Start with Phase 1 only. Stop and report after each phase.
 - **File ownership:** new files for my screens, **in the same flat folder and package as master**
   (`app/src/main/java/com/purrfolio/mco1/`, package `com.purrfolio.mco1`). No sub-packages or new folders, so every
   teammate's imports and the existing structure stay exactly as they are. Prefix by area so ownership is obvious:
-  - Phase 1 (done, see §7): `PetRules.kt`, `PetModels.kt`, `PetPhotoStore.kt`, `PetUi.kt`, `PetScreenHost.kt`, `PetForm.kt`,
-    `AddPetFlow.kt`, `EditPetScreen.kt`, `MyPetsScreen.kt`, `PetProfileScreen.kt`
-  - Later phases follow the same pattern: `PassportScreen.kt`, `TimelineScreen.kt`, `PaperlessInboxScreen.kt`, `CareCircleScreen.kt`
+  - Phase 1 (done, see §7): `PetRules.java`, `Pet.java`, `PetDraft.java`, `PetMigrations.java`, `DemoPets.java`, `PetPhotoStore.java`, `PetUi.java`, `PetScreenHost.java`, `PetForm.java`,
+    `AddPetFlow.java`, `EditPetScreen.java`, `MyPetsScreen.java`, `PetProfileScreen.java`
+  - Later phases follow the same pattern: `PassportScreen.java`, `TimelineScreen.java`, `PaperlessInboxScreen.java`, `CareCircleScreen.java`
     (each one screen class + a callback interface, like `PetScreenHost`).
-- Touching `MainActivity.kt` / `PhaseTwoScreens.kt` / `ReferenceScreens.kt`: only to (a) delegate to my new file, or (b) delete the code I moved. One-line routing changes. Announce in the PR description so teammates can rebase.
+- Touching `MainActivity.java` / `PhaseTwoScreens.java` / `ReferenceScreens.java`: only to (a) delegate to my new file, or (b) delete the code I moved. One-line routing changes. Announce in the PR description so teammates can rebase.
 - **Moving code out of shared files is a coordination step:** do it in its own small PR *first*, merge quickly, then everyone rebases. Do not mix refactor and feature in one PR.
 - Never reformat files you do not own (no auto-format sweeps).
 - Another teammate's functions (4.x Zel, 6.x/7.x Erick, 1.x/5.4/5.5/8.x Theo, 5.2/5.3/9–11 Pao M.) are off limits.
@@ -51,7 +53,7 @@ Start with Phase 1 only. Stop and report after each phase.
 Prefer boring and replaceable over clever.
 
 1. **Platform/androidx first.** Add a new dependency only if (a) it removes real complexity, (b) it needs no new permission, (c) it's a one-line Gradle change. Justify every dependency in the PR.
-2. **Introduce a data seam, not a framework.** Add plain Kotlin `data class Pet(...)` and a small `PetRepository` interface with a local implementation wrapping the existing JSON/SharedPreferences. UI talks to the interface only. When Firebase arrives, only the implementation changes. No DI library, no Room, no Compose migration.
+2. **Introduce a data seam, not a framework.** Add a plain Java `Pet` class and a small `PetRepository` interface with a local implementation wrapping the existing JSON/SharedPreferences. UI talks to the interface only. When Firebase arrives, only the implementation changes. No DI library, no Room, no Compose migration.
 3. **Keep the Views stack.** Do not migrate to Compose or Material3 theming now (changing the theme parent affects every teammate's screens).
 4. **One screen = one class/file, one entry function, callbacks passed in** (`onSaved`, `onBack`, `onNavigate`). No screen reads another screen's internals.
 5. User-facing text stays in the screen files for now (the repo has no `strings.xml` yet). When the team adds one, move strings in a single dedicated PR.
@@ -128,7 +130,7 @@ Known issues found in the current code (fix these):
 14. **My Pets (2.4):** switching pets must update Home, Pet Detail, Care History, Records consistently (state keyed by `petId`, never by name). Add a unit-free manual test list (§8).
 
 Deliverables for Phase 1:
-- `PetModels.kt` (`Pet`, mapper to/from existing `JSONObject`), `PetRepository` + local impl, `PetForm.kt`, `PetScreens.kt` (+ `ui/` helpers).
+- `Pet.java` (mapper to/from existing `JSONObject`), `PetRepository` + local impl, `PetForm.java`, `PetScreens.java` (+ `ui/` helpers).
 - Updated `strings.xml`.
 - Extended `docs/visual-qa/` captures for: Add Your Pet, Edit Pet Profile, My Pets, Pet Detail — **light + dark**, plus 1.3× and 2.0× font scale, plus one TalkBack walkthrough note.
 - PR description listing every checklist item below.
@@ -167,7 +169,7 @@ Functional smoke (Phase 1)
 - Plan first, list files you'll touch, then make small commits (one concern each: `refactor:`, `feat:`, `fix:`, `a11y:`, `docs:`).
 - Read before you edit; keep the existing look and wireframe fidelity; don't "improve" other people's screens.
 - Don't silently change shared behavior (navigation, theme, data keys). If a change affects teammates, say so in the PR.
-- Prefer deleting complexity to adding it. If a choice is between a dependency and ~30 lines of plain Kotlin, choose the plain Kotlin.
+- Prefer deleting complexity to adding it. If a choice is between a dependency and ~30 lines of plain Java, choose the plain Java.
 - If something in this file conflicts with the wireframe/proposal, stop and ask Leon.
 - Be honest in UI copy and docs: unimplemented = labelled preview, never faked.
 

@@ -79,3 +79,41 @@ Checked on the API 33 emulator (1080 × 2400), debug build, branch `leon/phase1`
 - Pet Detail (rings) at font 2.0×: metric values ("Good", "3/4") and the Insights text are clipped.
 - Bottom dock at font 2.0×: label descenders are clipped.
 - The selected pet resets to the first pet after the app restarts (`petIndex` is not saved). This behavior existed before this branch.
+
+## Phase 1 — Re-check after the Java port — 2026-11-13
+
+Master moved the app from Kotlin to Java (PR #4), so the Phase 1 files were ported and merged on branch `leon/phase1-java-port` (merge commit `9461c0f`, on top of master `12c1cb3`). The pet screens were then re-checked on the Pixel_6a emulator (API 33, 1080 × 2400), debug build, light mode, font scale 1.0×.
+
+### Build
+
+- `./gradlew :app:assembleDebug` with Android Studio's bundled JDK: **passed**. It needs `app/google-services.json` (copy `google-services.json.example` for a local build).
+- Lint was **not** re-run on this branch. The 2026-11-07 lint numbers above describe the Kotlin code and no longer apply.
+
+### Functional flows (Java build)
+
+| Check | Result |
+| --- | --- |
+| My Pets on first launch | Pass. Mochi shows "Selected"; both demo pets are listed. Seeded pets now have ids. |
+| Add Pet: empty name | Pass. Red error appears and focus moves to the field. |
+| Add Pet: duplicate name | Pass. Hint "You already have a pet named Mochi. You can still save." |
+| Add Pet: rotation while typing | Pass. Draft, step and hint survive. |
+| Add Pet: Skip this step, then Save pet with weight 200 | Pass. Save is blocked and the flow returns to Step 3 with the weight error. |
+| Add Pet: save | Pass. New pet is added and selected; `weightKg: "4.2"` is stored. |
+| Pet Profile | Pass. Birthday with age, "Not added yet" for empty weight, care and records links. |
+| Edit Pet: dirty Back | Pass. "Discard changes?" appears; Discard keeps the saved name unchanged. |
+| Edit Pet: save | Pass. Name updates, and the record keeps its other keys (id, notes, birthday). |
+| Photo picker | Pass. Picker opens and cancels cleanly; a picked image is copied to `files/pets/` as a JPEG, survives rotation, and the file is deleted when the form is discarded. |
+| Crashes | None in logcat during the pass. |
+
+### Not covered in this re-check
+
+- Dark mode and font scale 1.3× / 2.0×. These were checked on the Kotlin build (section above); the Java port did not change any layout code, but it was not re-captured.
+- Add Pet "Other" species field, future-date blocking in the calendar, and the Review step's Change links.
+- Replacing or removing an existing pet's photo from Edit Pet or Pet Detail (only the Add Pet photo path was exercised).
+- Switching pets from My Pets, and the demo-pet "Add to my pets" dialog.
+- TalkBack, Accessibility Scanner, a 360dp-wide screen, process death mid-flow, and a device without Google Play services.
+
+### Notes
+
+- Ported behaviour differences are API-shape only (`PetPhotoStore.importPhoto`, `PetDraft.isDirty()`, `PetRules.isDuplicateName(name, selfId, List<Pet>)`). See the update note at the top of `docs/phase1/HANDOFF.md`.
+- The selected pet still resets to the first pet after a restart (`petIndex` is not saved). Same as before this branch.
