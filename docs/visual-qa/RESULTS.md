@@ -87,7 +87,7 @@ Master moved the app from Kotlin to Java (PR #4), so the Phase 1 files were port
 ### Build
 
 - `./gradlew :app:assembleDebug` with Android Studio's bundled JDK: **passed**. It needs `app/google-services.json` (copy `google-services.json.example` for a local build).
-- Lint was **not** re-run on this branch. The 2026-11-07 lint numbers above describe the Kotlin code and no longer apply.
+- `./gradlew :app:lintDebug`: **0 errors, 122 warnings**. The 1 error from the Kotlin build (`CareArtwork` `NewApi`) is gone because master's Java `CareArtwork` does not have it. The 2026-11-07 numbers above describe the Kotlin code and no longer apply.
 
 ### Functional flows (Java build)
 
@@ -103,17 +103,22 @@ Master moved the app from Kotlin to Java (PR #4), so the Phase 1 files were port
 | Edit Pet: dirty Back | Pass. "Discard changes?" appears; Discard keeps the saved name unchanged. |
 | Edit Pet: save | Pass. Name updates, and the record keeps its other keys (id, notes, birthday). |
 | Photo picker | Pass. Picker opens and cancels cleanly; a picked image is copied to `files/pets/` as a JPEG, survives rotation, and the file is deleted when the form is discarded. |
+| Existing pet's photo: choose (Pet Detail photo → "Choose from device") | Pass. Picked image is copied to `files/pets/<petId>-<time>.jpg` and shown. |
+| Existing pet's photo: replace | Pass. Exactly one file remains and it has the new name; the old copy is deleted. |
+| Existing pet's photo: remove | Pass. File deleted and `photoUri` removed from the stored pet. |
+| Switch pets from My Pets | Pass. Tapping Bailey opens Bailey's Pet Detail; going back shows "Selected" on Bailey. |
+| Demo pet "Add to my pets" | Pass. Dialog appears; Luna is saved with a real UUID id (not `demo-luna`), becomes Selected, and a toast confirms. |
 | Crashes | None in logcat during the pass. |
 
 ### Not covered in this re-check
 
 - Dark mode and font scale 1.3× / 2.0×. These were checked on the Kotlin build (section above); the Java port did not change any layout code, but it was not re-captured.
 - Add Pet "Other" species field, future-date blocking in the calendar, and the Review step's Change links.
-- Replacing or removing an existing pet's photo from Edit Pet or Pet Detail (only the Add Pet photo path was exercised).
-- Switching pets from My Pets, and the demo-pet "Add to my pets" dialog.
+- Changing an existing pet's photo from the Edit Pet form (the Pet Detail photo menu was exercised, and Add Pet's photo path).
 - TalkBack, Accessibility Scanner, a 360dp-wide screen, process death mid-flow, and a device without Google Play services.
 
 ### Notes
 
 - Ported behaviour differences are API-shape only (`PetPhotoStore.importPhoto`, `PetDraft.isDirty()`, `PetRules.isDuplicateName(name, selfId, List<Pet>)`). See the update note at the top of `docs/phase1/HANDOFF.md`.
+- Pet Detail's centre picture is master's fixed artwork (a cat even for Bailey). It does not use the saved pet photo. Not changed by this branch.
 - The selected pet still resets to the first pet after a restart (`petIndex` is not saved). Same as before this branch.
