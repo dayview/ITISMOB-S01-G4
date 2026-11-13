@@ -195,9 +195,9 @@ public class ReferenceScreens {
         arrow.setBackground(shape(elevated,30));summary.addView(arrow);add(summary,76,7);
         for(int i=0;i<TASKS.length;i++)add(careRow(i,false),72,5);flexible(12);
     }
-    private void petOptions(){String[] options={"Switch pet","Edit pet profile","Pet Passport","Sitter Mode","Care History","Care Circle","Pet Records"};
-        String[] targets={null,"Edit Pet Profile","Pet Passport","Sitter Mode","Care History","Care Circle","Records"};
-        new AlertDialog.Builder(a).setTitle(name()).setItems(options,(dialog,index)->{if(index==0)choose.run();else go.accept(targets[index]);}).show();}
+    private void petOptions(){String[] options={"Pet profile","Switch pet","Edit pet profile","Pet Passport","Sitter Mode","Care History","Care Circle","Pet Records"};
+        String[] targets={"Pet Profile",null,"Edit Pet Profile","Pet Passport","Sitter Mode","Care History","Care Circle","Records"};
+        new AlertDialog.Builder(a).setTitle(name()).setItems(options,(dialog,index)->{if(targets[index]==null)choose.run();else go.accept(targets[index]);}).show();}
     private void overviewHeader(){FrameLayout header=new FrameLayout(a);
         header.addView(action("Back","Back",()->onBack.run()),new FrameLayout.LayoutParams(dp(48),dp(48),Gravity.START|Gravity.CENTER_VERTICAL));
         LinearLayout chooser=row();chooser.setGravity(Gravity.CENTER_VERTICAL);chooser.setContentDescription("Choose pet");chooser.setOnClickListener(v->choose.run());

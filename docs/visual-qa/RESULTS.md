@@ -37,3 +37,88 @@ These limitations matter for strict visual acceptance: the original full-resolut
 ## Compact viewport / system navigation
 
 Supplemental captures in `compact/` use 1080 × 2400 at density 480 (360dp wide). Home was inspected with both gesture and three-button system navigation; the dock stays above the system controls. The Log Care check exposed a compressed voice panel; the scroll child now measures its content height and the voice panel retains its full height, permitting vertical scrolling on short screens. Emulator density and navigation mode were restored after the checks.
+
+## Phase 1 — Pet screens (2.1 Add, 2.2 Profile, 2.3 Edit, 2.4 My Pets) — 2026-11-07
+
+Checked on the API 33 emulator (1080 × 2400), debug build, branch `leon/phase1`.
+
+### Build and lint
+
+- `./gradlew assembleDebug lint` with JDK 21: build compiles; lint reports **1 error, 119 warnings**.
+- The 1 error is `CareArtwork.kt:26` (`NewApi`, `TypedArray.use {}` needs API 31, minSdk is 24). It is **not part of Phase 1**: the file is unchanged by this branch and the same error exists on `master`. It needs a fix from the file's owner or a separate PR.
+- Warnings in the new Pet files: 5 (`PetPhotoStore.kt:7` ExifInterface; `AddPetFlow.kt:132` `SetTextI18n` ×4). The rest are in files this branch does not own.
+- The 24-warning baseline recorded above is out of date and cannot be compared with the current count.
+
+### Functional flows
+
+| Function | Result |
+| --- | --- |
+| 2.1 Add Pet | Pass. Name required, state survives rotation, "Other" shows its field, future birthdays disabled, Review is correct, Back and the discard dialog work. "Skip this step" can no longer save invalid data (weight 0). |
+| 2.2 View Profile | Pass. Empty fields read "Not added yet"; shortcut links open their screens. |
+| 2.3 Edit Pet | Pass. Clean Back leaves, dirty Back asks "Discard changes?", rename keeps the same id, validation errors show. |
+| 2.4 Manage Pets | Pass. Switching pets works and persists across a force-stop; demo pets can be added as real pets. |
+| Photos | Pass. Picker opens, photo is copied to private storage; Discard, replace and remove leave no orphan files. |
+
+### Font scale and dark mode
+
+| Screen | Font 2.0× (light) | Dark mode (font 1.3×) |
+| --- | --- | --- |
+| My Pets | Pass: text wraps, nothing cut off | Pass |
+| Add Pet (steps 1, 2, Review) | Pass: titles wrap, Next / Save pet stay pinned and tappable | Pass (step 1) |
+| Pet Profile | Pass: rows wrap, scrolls to Edit profile | Pass |
+| Edit Pet | Pass: all fields reachable, Save / Cancel visible | Pass, including the red weight error |
+
+### Not covered
+
+- **TalkBack walkthrough** and **Accessibility Scanner**: not run yet (need a person at the device).
+- Font scale 1.3× in light mode, a 360dp-wide screen, process death mid-flow, and an image without Google Play services.
+- Add Pet step 3 and Review in dark mode.
+
+### Problems seen in other screens (not changed)
+
+- Pet Detail (rings) at font 2.0×: metric values ("Good", "3/4") and the Insights text are clipped.
+- Bottom dock at font 2.0×: label descenders are clipped.
+- The selected pet resets to the first pet after the app restarts (`petIndex` is not saved). This behavior existed before this branch.
+
+## Phase 1 — Re-check after the Java port — 2026-11-13
+
+Master moved the app from Kotlin to Java (PR #4), so the Phase 1 files were ported and merged on branch `leon/phase1-java-port` (merge commit `9461c0f`, on top of master `12c1cb3`). The pet screens were then re-checked on the Pixel_6a emulator (API 33, 1080 × 2400), debug build, light mode, font scale 1.0×.
+
+### Build
+
+- `./gradlew :app:assembleDebug` with Android Studio's bundled JDK: **passed**. It needs `app/google-services.json` (copy `google-services.json.example` for a local build).
+- `./gradlew :app:lintDebug`: **0 errors, 122 warnings**. The 1 error from the Kotlin build (`CareArtwork` `NewApi`) is gone because master's Java `CareArtwork` does not have it. The 2026-11-07 numbers above describe the Kotlin code and no longer apply.
+
+### Functional flows (Java build)
+
+| Check | Result |
+| --- | --- |
+| My Pets on first launch | Pass. Mochi shows "Selected"; both demo pets are listed. Seeded pets now have ids. |
+| Add Pet: empty name | Pass. Red error appears and focus moves to the field. |
+| Add Pet: duplicate name | Pass. Hint "You already have a pet named Mochi. You can still save." |
+| Add Pet: rotation while typing | Pass. Draft, step and hint survive. |
+| Add Pet: Skip this step, then Save pet with weight 200 | Pass. Save is blocked and the flow returns to Step 3 with the weight error. |
+| Add Pet: save | Pass. New pet is added and selected; `weightKg: "4.2"` is stored. |
+| Pet Profile | Pass. Birthday with age, "Not added yet" for empty weight, care and records links. |
+| Edit Pet: dirty Back | Pass. "Discard changes?" appears; Discard keeps the saved name unchanged. |
+| Edit Pet: save | Pass. Name updates, and the record keeps its other keys (id, notes, birthday). |
+| Photo picker | Pass. Picker opens and cancels cleanly; a picked image is copied to `files/pets/` as a JPEG, survives rotation, and the file is deleted when the form is discarded. |
+| Existing pet's photo: choose (Pet Detail photo → "Choose from device") | Pass. Picked image is copied to `files/pets/<petId>-<time>.jpg` and shown. |
+| Existing pet's photo: replace | Pass. Exactly one file remains and it has the new name; the old copy is deleted. |
+| Existing pet's photo: remove | Pass. File deleted and `photoUri` removed from the stored pet. |
+| Switch pets from My Pets | Pass. Tapping Bailey opens Bailey's Pet Detail; going back shows "Selected" on Bailey. |
+| Demo pet "Add to my pets" | Pass. Dialog appears; Luna is saved with a real UUID id (not `demo-luna`), becomes Selected, and a toast confirms. |
+| Crashes | None in logcat during the pass. |
+
+### Not covered in this re-check
+
+- Dark mode and font scale 1.3× / 2.0×. These were checked on the Kotlin build (section above); the Java port did not change any layout code, but it was not re-captured.
+- Add Pet "Other" species field, future-date blocking in the calendar, and the Review step's Change links.
+- Changing an existing pet's photo from the Edit Pet form (the Pet Detail photo menu was exercised, and Add Pet's photo path).
+- TalkBack, Accessibility Scanner, a 360dp-wide screen, process death mid-flow, and a device without Google Play services.
+
+### Notes
+
+- Ported behaviour differences are API-shape only (`PetPhotoStore.importPhoto`, `PetDraft.isDirty()`, `PetRules.isDuplicateName(name, selfId, List<Pet>)`). See the update note at the top of `docs/phase1/HANDOFF.md`.
+- Pet Detail's centre picture is master's fixed artwork (a cat even for Bailey). It does not use the saved pet photo. Not changed by this branch.
+- The selected pet still resets to the first pet after a restart (`petIndex` is not saved). Same as before this branch.

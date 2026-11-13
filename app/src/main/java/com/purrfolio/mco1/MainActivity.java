@@ -62,7 +62,7 @@ public class MainActivity extends AppCompatActivity {
     }
     private static JSONObject put(JSONObject object,String key,Object value){try{return object.put(key,value);}
         catch(JSONException error){throw new IllegalStateException(error);}}
-    private String screen="Welcome",pendingCareCategory="Feeding",petPhotoPickerTarget="Pet Detail";
+    private String screen="Welcome",pendingCareCategory="Feeding";
     private final ArrayDeque<String> screenHistory=new ArrayDeque<>();
     private int petIndex;
     private SharedPreferences preferences;
@@ -72,7 +72,10 @@ public class MainActivity extends AppCompatActivity {
     private File recordingFile;
     private long recordingStartedAt;
     private MediaPlayer player;
-    private String pendingNewPetPhotoUri;
+    /** What the user has typed into the Add / Edit pet form. Kept here so it survives the photo picker and rotation. */
+    private PetDraft petDraft;
+    private Runnable formBackHandler;
+    private static final List<String> PET_FORM_SCREENS=Arrays.asList("Add Your Pet","Edit Pet Profile");
     private final ActivityResultLauncher<Intent> speechResult=registerForActivityResult(
             new ActivityResultContracts.StartActivityForResult(),result->{
                 ArrayList<String> words=result.getData()==null?null:result.getData().getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS);
@@ -82,14 +85,8 @@ public class MainActivity extends AppCompatActivity {
             new ActivityResultContracts.RequestPermission(),granted->{
                 if(granted)startSoundRecording();else note("Microphone permission is needed to record audio.");
             });
-    private final ActivityResultLauncher<String[]> petPhotoPicker=registerForActivityResult(
-            new ActivityResultContracts.OpenDocument(),uri->{
-                if(uri==null)return;
-                try{getContentResolver().takePersistableUriPermission(uri,Intent.FLAG_GRANT_READ_URI_PERMISSION);}catch(Exception ignored){}
-                if("Add Your Pet".equals(petPhotoPickerTarget))pendingNewPetPhotoUri=uri.toString();
-                else{put(selectedPet(),"photoUri",uri.toString());save();}
-                render(petPhotoPickerTarget);
-            });
+    private final ActivityResultLauncher<PickVisualMediaRequest> petPhotoPicker=registerForActivityResult(
+            new ActivityResultContracts.PickVisualMedia(),uri->{if(uri!=null)onPetPhotoPicked(uri);});
 
     // ---- User Management (Firebase Auth + Firestore users/{uid}) ----
     private AuthRepository auth;
@@ -238,8 +235,7 @@ public class MainActivity extends AppCompatActivity {
         night=(getResources().getConfiguration().uiMode&Configuration.UI_MODE_NIGHT_MASK)==Configuration.UI_MODE_NIGHT_YES;
         restore();
         if(state!=null){ArrayList<String> history=state.getStringArrayList("screenHistory");if(history!=null)screenHistory.addAll(history);
-            pendingNewPetPhotoUri=state.getString("pendingNewPetPhotoUri");
-            petPhotoPickerTarget=state.getString("petPhotoPickerTarget","Pet Detail");}
+            petDraft=PetDraft.fromBundle(state.getBundle("petDraft"));}
         String destination=state==null?null:state.getString("screen");
         if(destination==null)destination=(getApplicationInfo().flags&ApplicationInfo.FLAG_DEBUGGABLE)!=0?
                 getIntent().getStringExtra("preview_screen"):null;
@@ -253,8 +249,8 @@ public class MainActivity extends AppCompatActivity {
     }
     @Override protected void onSaveInstanceState(Bundle out){
         out.putString("screen",screen);out.putStringArrayList("screenHistory",new ArrayList<>(screenHistory));
-        out.putString("pendingNewPetPhotoUri",pendingNewPetPhotoUri);
-        out.putString("petPhotoPickerTarget",petPhotoPickerTarget);super.onSaveInstanceState(out);
+        if(petDraft!=null)out.putBundle("petDraft",petDraft.toBundle());
+        super.onSaveInstanceState(out);
     }
     private JSONObject selectedPet(){return pets.get(Math.min(Math.max(petIndex,0),pets.size()-1));}
     private String petId(JSONObject pet){if(!pet.has("id")){put(pet,"id",UUID.randomUUID().toString());save();}return pet.optString("id");}
@@ -268,23 +264,24 @@ public class MainActivity extends AppCompatActivity {
             .put("date",new SimpleDateFormat("MMM d, yyyy · h:mm a",Locale.getDefault()).format(new Date(occurredAt)));}
     private String petName(){return selectedPet().optString("name","Mochi");}
     private void note(String message){Toast.makeText(this,message,Toast.LENGTH_LONG).show();}
-    private void editPetPhoto(boolean addingPet){
-        String target=addingPet?"Add Your Pet":screen;
-        String photoUri=addingPet?pendingNewPetPhotoUri:selectedPet().optString("photoUri");
-        boolean hasPhoto=photoUri!=null&&!photoUri.isEmpty();
+    private void editPetPhoto(){
+        JSONObject pet=selectedPet();String photo=pet.optString("photoUri");
+        boolean hasPhoto=!photo.isEmpty();
         String[] options=hasPhoto?new String[]{"Choose from device","Remove photo","Cancel"}:
                 new String[]{"Choose from device","Cancel"};
-        new AlertDialog.Builder(this).setTitle(addingPet?"Pet photo":petName()+"'s photo").setItems(options,(dialog,index)->{
-            if(index==0){petPhotoPickerTarget=target;petPhotoPicker.launch(new String[]{"image/*"});}
-            else if(index==1&&hasPhoto){try{getContentResolver().releasePersistableUriPermission(Uri.parse(photoUri),Intent.FLAG_GRANT_READ_URI_PERMISSION);}catch(Exception ignored){}
-                if(addingPet)pendingNewPetPhotoUri=null;else{selectedPet().remove("photoUri");save();}render(target);}
+        new AlertDialog.Builder(this).setTitle(petName()+"'s photo").setItems(options,(dialog,index)->{
+            if(index==0)launchPhotoPicker();
+            else if(index==1&&hasPhoto){
+                PetPhotoStore.deleteIfOurs(this,photo);   // only deletes files inside filesDir/pets
+                pet.remove("photoUri");save();render(screen,false);}
         }).show();
     }
-    private void navigateBack(){if(!screenHistory.isEmpty()){render(screenHistory.removeLast(),false);return;}
+    private void navigateBack(){if(formBackHandler!=null){formBackHandler.run();return;}
+        if(!screenHistory.isEmpty()){render(screenHistory.removeLast(),false);return;}
         String target;
         switch(screen){
             case "Create Account":case "Log In":case "Reset Password":target="Welcome";break;
-            case "Pet Detail":case "Edit Pet Profile":case "Add Your Pet":target="Pets";break;
+            case "Pet Detail":case "Edit Pet Profile":case "Add Your Pet":case "Pet Profile":target="Pets";break;
             case "Quick Log":case "Voice Log":case "Sound Journal":case "Care History":target="Care";break;
             case "Paperless Inbox":case "Pet Timeline":case "Pet Passport":case "Browse Records":case "Vaccination Card":target="Records";break;
             case "Personal Information":case "Account Settings":case "Notifications":target="Profile";break;
@@ -295,13 +292,16 @@ public class MainActivity extends AppCompatActivity {
     private void render(String destination){render(destination,true);}
     private void render(String destination,boolean recordHistory){
         if(destination.startsWith("Quick Log:")){pendingCareCategory=destination.substring("Quick Log:".length());render("Quick Log",recordHistory);return;}
-        if("Add Your Pet".equals(screen)&&!"Add Your Pet".equals(destination))pendingNewPetPhotoUri=null;
+        formBackHandler=null;
+        if(PET_FORM_SCREENS.contains(screen)&&!PET_FORM_SCREENS.contains(destination))discardPetDraft();
         if(recordHistory&&!destination.equals(screen))screenHistory.addLast(screen);screen=destination;
         switch(destination){case "Welcome":showWelcome();return;case "App Theme":showAppTheme();return;
-            case "Quick Log":showQuickLog();return;case "Care History":showCareHistory();return;}
+            case "Quick Log":showQuickLog();return;case "Care History":showCareHistory();return;
+            case "Add Your Pet":showAddPet();return;case "Edit Pet Profile":showEditPet();return;
+            case "Pets":showMyPets();return;case "Pet Profile":showPetProfile();return;}
         if(ReferenceScreens.destinations.contains(destination)){
             View view=new ReferenceScreens(this,selectedPet(),target->{render(target);},
-                    ()->{choosePet();},()->{editPetPhoto(false);},
+                    ()->{choosePet();},()->{editPetPhoto();},
                     ()->{navigateBack();}).build(destination);
             setContentView(view);ViewCompat.requestApplyInsets(view);return;
         }
@@ -320,7 +320,7 @@ public class MainActivity extends AppCompatActivity {
                     entry->{playRecording(entry);},()->{addReminder();},
                     reminder->{put(reminder,"done",!reminder.optBoolean("done"));save();render("Reminders");},
                     account,()->{navigateBack();},
-                    pendingNewPetPhotoUri,adding->{editPetPhoto(adding);}).build(destination);
+                    null,adding->{}).build(destination);
             setContentView(view);ViewCompat.requestApplyInsets(view);return;
         }
         render("More");
@@ -344,8 +344,86 @@ public class MainActivity extends AppCompatActivity {
     }
     private void bindCareDock(FloatingBottomNavBinding binding,String screen){
         new ReferenceScreens(this,selectedPet(),target->{render(target);},
-                ()->{choosePet();},()->{editPetPhoto(false);},
+                ()->{choosePet();},()->{editPetPhoto();},
                 ()->{navigateBack();}).bindDock(binding,screen);
+    }
+
+    // ---- Pet screens: Add (2.1), Profile (2.2), Edit (2.3), My Pets (2.4) ----
+    private final PetScreenHost petHost=new PetScreenHost(){
+        @Override public void go(String destination){render(destination);}
+        @Override public void back(){navigateBack();}
+        @Override public void choosePhoto(){launchPhotoPicker();}
+        @Override public void savePet(Pet pet,boolean adding){commitPet(pet,adding);}
+        @Override public void selectPet(int index){petIndex=index;render("Pet Detail");}
+        @Override public void addDemoPet(Pet pet){
+            pets.add(pet.withId(UUID.randomUUID().toString()).toJson());
+            petIndex=pets.size()-1;
+            save();note("Added to your pets on this device.");
+            render("Pets",false);
+        }
+        @Override public void exitForm(){
+            formBackHandler=null;   // otherwise navigateBack() calls the handler again and re-asks
+            discardPetDraft();
+            navigateBack();
+        }
+        @Override public void setBackHandler(Runnable handler){formBackHandler=handler;}
+        @Override public View dock(String dockScreen){
+            return new ReferenceScreens(MainActivity.this,selectedPet(),target->{render(target);},
+                    ()->{choosePet();}).dock(dockScreen);
+        }
+    };
+    private List<Pet> savedPets(){List<Pet> result=new ArrayList<>();for(JSONObject pet:pets)result.add(Pet.fromJson(pet));return result;}
+    private void showContent(View view){setContentView(view);ViewCompat.requestApplyInsets(view);}
+    private void showAddPet(){
+        if(petDraft==null||petDraft.mode!=PetDraft.ADD)petDraft=PetDraft.forNewPet();
+        showContent(new AddPetFlow(this,petDraft,savedPets(),petHost).build());
+    }
+    private void showEditPet(){
+        Pet current=Pet.fromJson(selectedPet());
+        if(petDraft==null||petDraft.mode!=PetDraft.EDIT||!petDraft.id.equals(current.id))petDraft=PetDraft.forEdit(current);
+        showContent(new EditPetScreen(this,petDraft,savedPets(),petHost).build());
+    }
+    private void showMyPets(){showContent(new MyPetsScreen(this,savedPets(),petId(selectedPet()),petHost).build());}
+    private void showPetProfile(){showContent(new PetProfileScreen(this,Pet.fromJson(selectedPet()),petHost).build());}
+    private void commitPet(Pet pet,boolean adding){
+        PetDraft draft=petDraft;
+        if(adding){pets.add(pet.toJson());petIndex=pets.size()-1;}
+        else{
+            int index=-1;for(int i=0;i<pets.size();i++)if(pets.get(i).optString("id").equals(pet.id)){index=i;break;}
+            if(index<0)return;
+            pet.writeInto(pets.get(index));petIndex=index;   // keeps keys other people added
+            if(draft!=null&&!draft.originalPhotoUri.trim().isEmpty()&&!draft.originalPhotoUri.equals(pet.photoUri))
+                PetPhotoStore.deleteIfOurs(this,draft.originalPhotoUri);
+        }
+        petDraft=null;   // null BEFORE render, or discardPetDraft() deletes the photo we just saved
+        formBackHandler=null;
+        save();note("Pet profile saved on this device.");
+        if(adding)render("Pet Detail",false);else navigateBack();
+    }
+    private void discardPetDraft(){
+        if(petDraft!=null&&!petDraft.photoUri.equals(petDraft.originalPhotoUri))
+            PetPhotoStore.deleteIfOurs(this,petDraft.photoUri);
+        petDraft=null;
+    }
+    private void launchPhotoPicker(){
+        petPhotoPicker.launch(new PickVisualMediaRequest.Builder()
+                .setMediaType(ActivityResultContracts.PickVisualMedia.ImageOnly.INSTANCE).build());
+    }
+    private void onPetPhotoPicked(Uri uri){
+        PetDraft draft=petDraft;
+        if(draft!=null&&PET_FORM_SCREENS.contains(screen)){
+            String saved=PetPhotoStore.importPhoto(this,uri,draft.id);
+            if(saved==null){note("Couldn't use that photo.");return;}
+            if(!draft.photoUri.equals(draft.originalPhotoUri))PetPhotoStore.deleteIfOurs(this,draft.photoUri);
+            draft.photoUri=saved;
+        }else{
+            JSONObject pet=selectedPet();
+            String saved=PetPhotoStore.importPhoto(this,uri,petId(pet));
+            if(saved==null){note("Couldn't use that photo.");return;}
+            PetPhotoStore.deleteIfOurs(this,pet.optString("photoUri"));
+            put(pet,"photoUri",saved);save();
+        }
+        render(screen,false);
     }
     private void showQuickLog(){
         ScreenQuickLogBinding binding=ScreenQuickLogBinding.inflate(getLayoutInflater());setContentView(binding.getRoot());
@@ -547,6 +625,7 @@ public class MainActivity extends AppCompatActivity {
     private void restore(){try{pull("pets",pets);pull("logs",logs);pull("reminders",reminders);}
         catch(Exception error){pets.clear();logs.clear();reminders.clear();}
         for(JSONObject pet:pets)if(!pet.has("id"))put(pet,"id",UUID.randomUUID().toString());
+        PetMigrations.moveLegacyWeight(preferences,pets);
         for(JSONObject entry:logs){if(!entry.has("id"))put(entry,"id",UUID.randomUUID().toString());
             if(!entry.has("petId"))for(JSONObject pet:pets)if(pet.optString("name").equals(entry.optString("pet"))){
                 put(entry,"petId",pet.optString("id"));break;}}
@@ -555,7 +634,9 @@ public class MainActivity extends AppCompatActivity {
             pets.add(new SafeJson().put("name","Mochi").put("species","Cat").put("breed","Mixed Breed")
                     .put("birthday","2024-09-26").put("sex","Female").put("notes","Playful, loves treats and sunny spots."));
             pets.add(new SafeJson().put("name","Bailey").put("species","Dog").put("breed","Golden Retriever")
-                    .put("birthday","2022-05-13").put("sex","Male").put("notes","Enjoys long walks."));save();}}
+                    .put("birthday","2022-05-13").put("sex","Male").put("notes","Enjoys long walks."));
+            for(JSONObject pet:pets)put(pet,"id",UUID.randomUUID().toString());
+            save();}}
     private String json(List<JSONObject> items){JSONArray array=new JSONArray();for(JSONObject item:items)array.put(item);return array.toString();}
     private void save(){if(preferences==null)return;preferences.edit().putString("pets",json(pets)).putString("logs",json(logs))
             .putString("reminders",json(reminders)).apply();}
