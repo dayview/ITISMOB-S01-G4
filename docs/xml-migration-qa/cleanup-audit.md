@@ -1,17 +1,9 @@
-# Kotlin cleanup audit
+# Java source migration audit
 
-All Kotlin source files in this repository are under `app/src/main/java/com/purrfolio/mco1/`. No Kotlin source exists in test or other app source directories.
+All eight original app Kotlin source files have Java replacements. No `.kt` source remains in the repository. `MainActivity`, `ReferenceScreens`, `PhaseTwoScreens`, the theme and care helpers, and all custom artwork now compile as Java 17. The Android manifest still launches `com.purrfolio.mco1.MainActivity`.
 
-| File | Decision | Verified reason |
-| --- | --- | --- |
-| `MainActivity.kt` | Keep, consolidate | Manifest launcher Activity; owns screen routing, local pet/log/reminder state, View Binding controllers, and the theme selector. Its unreachable fallback screen builder was removed. |
-| `PhaseTwoScreens.kt` | Keep, migrate later | Still constructs most secondary destinations, forms, and interactions. `MainActivity` routes to it. The old App Theme implementation and unused screen list were removed. |
-| `ReferenceScreens.kt` | Keep, migrate later | Still constructs Home, Pet Detail, Care, Pet Timeline, Sitter Mode, and Pet Passport; also binds the shared XML dock. The old Welcome implementation was already removed. |
-| `CareArtwork.kt` | Keep | `CareArtwork` is declared by XML and used by both remaining screen builders; `PetRings` draws the concentric wellness view used by Pet Detail. |
-| `DetailArtwork.kt` | Keep | `DetailIcon`, `Waveform`, and `DemoQr` are used by `PhaseTwoScreens`. |
-| `BrandType.kt` | Keep | Applies the existing variable Fredoka and Nunito weights used by controllers and remaining screen builders. |
-| `AppTheme.kt` | Keep | Persists and applies Light, Dark, and System selection; referenced by `MainActivity` and account settings. |
+`*.gradle.kts` files remain because they are Gradle Kotlin DSL build configuration, not app source. The Kotlin Android plugin and `kotlinOptions` were removed. AndroidX still supplies a transitive Kotlin standard library; the app's Java source does not use Kotlin APIs. Legacy `kotlin-stdlib-jdk7` and `kotlin-stdlib-jdk8` variants are excluded to avoid duplicate classes with the transitive standard library.
 
-No Kotlin source file was deleted: every file still has a verified runtime or XML custom-view reference. The obsolete code removed from `MainActivity` included duplicate implementations of screens now routed through `ReferenceScreens` and `PhaseTwoScreens`, a second programmatic dock, and an unused `Account` prototype. Quick Log and Care History were moved to XML before removing their Kotlin layout builders. The reminder dialog form was also moved to XML.
+Welcome, App Theme, Quick Log, Care History, the shared dock, reminder and care dialogs, the reusable secondary-screen info row, and the root structures of reference and secondary screens use XML with View Binding. Dynamic lists, forms, Canvas artwork, and screen-specific content are still assembled from Java Views. The historical screenshots in this directory predate the final Java migration and should not be treated as a visual diff of the final build.
 
-The remaining programmatic UI is in `PhaseTwoScreens.kt` and `ReferenceScreens.kt`. Until those destinations are migrated individually and visually checked, XML is **not yet the primary implementation for every screen**. Keep both files and their custom drawing dependencies during that work.
+The final Java-only debug build passed `./gradlew :app:assembleDebug :app:lintDebug`. The Pixel 6 emulator started all 33 debug screen entry points with no process-start failures or AndroidRuntime fatal exceptions in the smoke-test log.

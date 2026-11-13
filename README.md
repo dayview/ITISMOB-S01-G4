@@ -1,6 +1,6 @@
 # PURRFOLIO — MCO1 Wireframe Frontend (Android Studio)
 
-Standalone Kotlin / Android Views application inspired by **the actual supplied 6-page MCO1 wireframe document**, including User Management, Pet Management, Shared Care, Care Logging, Records, Reminders, Calendar, Pet ID, Emergency, Offline & Sync, and Security & Privacy.
+Standalone Java / Android Views application inspired by **the actual supplied 6-page MCO1 wireframe document**, including User Management, Pet Management, Shared Care, Care Logging, Records, Reminders, Calendar, Pet ID, Emergency, Offline & Sync, and Security & Privacy.
 
 ## Open
 Open this folder in Android Studio, let Android Gradle Plugin sync, then Run. It uses applicationId `com.purrfolio.mco1`, minimum SDK 24. **Requires Android SDK + Gradle.** The emulator follows system dark/light mode.
@@ -39,11 +39,11 @@ Some dynamic screens are deliberately simplified from the source reference rathe
 
 ## Seven-screen reference reconstruction
 
-The seven reference presentations live in `ReferenceScreens.kt`, with Canvas icons and wellness arcs in `CareArtwork.kt`. Existing local profiles, care-log persistence, and forms remain in `MainActivity.kt`. Home's care schedule and wellness insights are illustrative reference data; clinical records and public sitter sharing are not fabricated.
+The reference presentations live in `ReferenceScreens.java`, with Canvas icons and wellness arcs in `CareArtwork.java` and `PetRings.java`. Local profiles, care-log persistence, and forms remain in `MainActivity.java`. Secondary screens live in `PhaseTwoScreens.java`. Home's care schedule and wellness insights are illustrative reference data; clinical records and public sitter sharing are not fabricated.
 
 Navigation: welcome → existing account/login flows → Home; pet avatar → overview; center plus → Log Care; Care dock tab → timeline; overview options → Passport or Sitter Mode. More also links to Sitter Mode.
 
-Build with JDK 17 or 21 (the project's Gradle 8.9/Kotlin 2.0.21 combination does not support JDK 25):
+Build with JDK 17 or 21:
 
 ```sh
 ./gradlew :app:assembleDebug :app:lintDebug

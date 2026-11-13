@@ -1,36 +1,36 @@
-package com.purrfolio.mco1
+package com.purrfolio.mco1;
 
-import android.view.View
+import android.view.View;
 
 /**
- * Everything the pet screens need from the rest of the app. MainActivity implements this once
+ * Everything the pet screens need from the rest of the app. MainActivity implements this once.
  * Screens never touch MainActivity directly, so they are easy to move, test, or reuse.
  */
-interface PetScreenHost {
+public interface PetScreenHost {
     /** Navigate to a named screen, e.g. "Home" or "Care History". */
-    fun go(destination: String)
+    void go(String destination);
 
     /** Same as the system Back button. */
-    fun back()
+    void back();
 
     /** Open the system photo picker for the current draft. */
-    fun choosePhoto()
+    void choosePhoto();
 
     /** Save a new pet (adding = true) or the changes to an existing pet. Navigates to the pet afterwards. */
-    fun savePet(pet: Pet, adding: Boolean)
+    void savePet(Pet pet, boolean adding);
 
-    /** Make the pet at [index] the selected pet and open it. */
-    fun selectPet(index: Int)
+    /** Make the pet at index the selected pet and open it. */
+    void selectPet(int index);
 
     /** Development only: copy a demo pet into the saved pets. */
-    fun addDemoPet(pet: Pet)
+    void addDemoPet(Pet pet);
 
     /** Leave the Add / Edit form without saving (the host throws the draft away). */
-    fun exitForm()
+    void exitForm();
 
     /** Lets a form handle the system Back button itself (e.g. go to the previous step). Null removes it. */
-    fun setBackHandler(handler: (() -> Unit)?)
+    void setBackHandler(Runnable handler);
 
     /** The floating bottom navigation bar, with the given tab highlighted ("Pets", "Home", ...). */
-    fun dock(screen: String): View
+    View dock(String screen);
 }
