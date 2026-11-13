@@ -637,7 +637,8 @@ public class PhaseTwoScreens {
         identity.addView(portrait(58),portraitParams);
         LinearLayout copy=col();copy.addView(heading(name(),23));copy.addView(text(pet.optString("species")+" · 2 years old",12,sub));
         identity.addView(copy,new LinearLayout.LayoutParams(0,-2,1));identity.addView(icon("Down",24));add(identity,80,12);
-        add(chips(Arrays.asList("All","Vaccinations","Medications","Receipts"),v->go.accept("Browse Records")),38,16);
+        // Each chip opens Search Records with that filter; receipts are documents.
+        add(chips(Arrays.asList("All","Vaccinations","Medications","Receipts"),v->openRecordSearch(v.equals("Receipts")?"Documents":v)),38,16);
         LinearLayout upload=col();upload.setBackground(shape(elevated,24,true));pad(upload,16,14);upload.setGravity(Gravity.CENTER);
         upload.addView(art(R.drawable.pdf_folder,118),new LinearLayout.LayoutParams(-1,dp(118)));
         TextView title=section("Scan or upload a document");title.setGravity(Gravity.CENTER);upload.addView(title,new LinearLayout.LayoutParams(-1,dp(32)));
@@ -646,7 +647,7 @@ public class PhaseTwoScreens {
         upload.addView(button("Add Document",()->preview("Document upload requires file selection and storage integration. No sample file has been uploaded.")),bp);
         add(upload,278,18);
         LinearLayout h=row();h.addView(section("Recent Documents"),new LinearLayout.LayoutParams(0,-2,1));
-        TextView all=text("See All",12,primary,700);all.setOnClickListener(v->go.accept("Browse Records"));h.addView(all);add(h,28,8);
+        TextView all=text("See All",12,primary,700);all.setOnClickListener(v->openRecordSearch("All"));h.addView(all);add(h,28,8);
         for(int i=0;i<2;i++)add(documentRow(documents.get(i),false),66,5);demoLabel("Sample documents");
     }
     protected void vaccination(){header("Vaccination Card","Added on Sep 12, 2026 · Sample document","Records","More",
@@ -675,40 +676,124 @@ public class PhaseTwoScreens {
         View child=container.getChildAt(i);if(child instanceof ViewGroup)drawTypeSelection((ViewGroup)child,selected);
         else if(child instanceof TextView){TextView t=(TextView)child;boolean active=t.getText().toString().equals(selected);
             t.setBackground(shape(active?lavender:surface,24,true));t.setTextColor(active?color("#24192E"):ink);}}}
-    protected void recordsSearch(){header("Records","Find specific documents, visits,\nmedications, and more.","Records");
-        final String[] selectedType={"All"},selectedDate={"All"};
-        LinearLayout search=row();EditText query=new EditText(a);query.setHint("Search records…");query.setContentDescription("Search records");
+    // ---- 5.4 Search & Filter Records ----
+    /** Type chip that Browse Records opens with; set by the chips on the Records screen and used once. */
+    protected static final String RECORD_TYPE_PREF="ui:records-type";
+    private static final String[][] RECORD_TYPE_CHIPS={{"All","Medications","Vaccinations"},{"Appointments","Care Logs"},{"Documents","Observations"}};
+    private static final String[][] RECORD_DATE_CHIPS={{"All","This Month","Last 3 Months"},{"Last Year","Custom"}};
+    protected void openRecordSearch(String typeLabel){prefs.edit().putString(RECORD_TYPE_PREF,typeLabel).apply();go.accept("Browse Records");}
+    protected void recordsSearch(){header("Search Records","Find "+name()+"'s care logs, visits,\nmedications, and more.","Records");
+        // Every record of the selected pet; the filters below only narrow this list.
+        List<PetRecord> petRecords=RecordSearch.filter(RecordSearch.fromCareLogs(logs),pet.optString("id"),null,RecordSearch.DateRange.ALL,"");
+        // Used once, so opening search from anywhere else (e.g. More) starts with no filters.
+        String savedType=prefs.getString(RECORD_TYPE_PREF,"All");prefs.edit().remove(RECORD_TYPE_PREF).apply();
+        final String[] selectedType={PetRecord.Type.fromLabel(savedType)==null?"All":savedType},selectedDate={"All"};
+        final RecordSearch.DateRange[] customRange={null};
+        final Runnable[] refresh={null},clearFilters={null};
+
+        LinearLayout search=row();EditText query=new EditText(a);query.setHint("Search by keyword…");query.setContentDescription("Search records by keyword");
         query.setTextSize(15);BrandType.apply(query,false,400);query.setTextColor(ink);query.setHintTextColor(sub);
         query.setBackground(shape(surface,30,true));query.setSingleLine();pad(query,18,10);
         search.addView(query,new LinearLayout.LayoutParams(0,dp(48),1));
-        FrameLayout filter=action("Filter","Filter records",()->notice("Choose a type or date below."));filter.setBackground(shape(elevated,28,true));
-        LinearLayout.LayoutParams fp=new LinearLayout.LayoutParams(dp(48),dp(48));fp.leftMargin=dp(10);search.addView(filter,fp);add(search,48,22);
+        FrameLayout clear=action("Filter","Clear all filters",()->{clearFilters[0].run();notice("Filters cleared.");});clear.setBackground(shape(elevated,28,true));
+        LinearLayout.LayoutParams fp=new LinearLayout.LayoutParams(dp(48),dp(48));fp.leftMargin=dp(10);search.addView(clear,fp);add(search,48,22);
         sectionLabel("Filter by Type");LinearLayout typeControls=col();add(typeControls,-2,18);
-        sectionLabel("Filter by Date");LinearLayout dateControls=col();add(dateControls,-2,20);
-        TextView count=section("Recent Results (4)");add(count,28,8);LinearLayout results=col();add(results);demoLabel("Searchable sample documents");
-        Runnable refresh=()->{results.removeAllViews();List<SampleDocument> matches=new ArrayList<>();
-            String term=query.getText().toString().toLowerCase(Locale.ROOT);
-            for(SampleDocument d:documents)if((selectedType[0].equals("All")||d.type.equals(selectedType[0]))&&
-                    (term.isEmpty()||d.name.toLowerCase(Locale.ROOT).contains(term))&&
-                    (!selectedDate[0].equals("This Month")||d.date.startsWith("Sep"))&&
-                    (!selectedDate[0].equals("Custom")||d.date.startsWith("Sep 12")))matches.add(d);
-            count.setText("Recent Results ("+matches.size()+")");
-            for(SampleDocument d:matches){LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(-1,dp(62));p.bottomMargin=dp(5);
-                results.addView(documentRow(d,true),p);}
-            if(matches.isEmpty())results.addView(center("No matching sample documents."));};
-        drawRecordChips(typeControls,new String[][]{{"All","Vaccinations","Medications"},{"Appointments","Documents","Care Logs"}},
-                selectedType,refresh,false);
-        drawRecordChips(dateControls,new String[][]{{"All","This Month","Last 3 Months"},{"Last Year","Custom"}},
-                selectedDate,refresh,true);
+        sectionLabel("Filter by Date");LinearLayout dateControls=col();add(dateControls,-2,4);
+        TextView rangeLabel=text("",13,primary,700);rangeLabel.setVisibility(View.GONE);rangeLabel.setMinHeight(dp(36));
+        rangeLabel.setGravity(Gravity.CENTER_VERTICAL);add(rangeLabel,-2,0);gap(14);
+        TextView count=section("Results");add(count,28,8);LinearLayout results=col();add(results);
+
+        refresh[0]=()->{results.removeAllViews();
+            PetRecord.Type type=PetRecord.Type.fromLabel(selectedType[0]);
+            RecordSearch.DateRange range=customRange[0]!=null&&selectedDate[0].equals("Custom")?customRange[0]:
+                    RecordSearch.DateRange.forLabel(selectedDate[0],System.currentTimeMillis());
+            List<PetRecord> matches=RecordSearch.filter(petRecords,null,type,range,query.getText().toString());
+            count.setText(matches.size()==1?"1 Result":matches.size()+" Results");
+            for(PetRecord record:matches){LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(-1,-2);p.bottomMargin=dp(5);
+                results.addView(recordRow(record),p);}
+            if(matches.isEmpty())results.addView(emptyRecords(petRecords.isEmpty(),type,clearFilters[0]));};
+        Consumer<String> pickType=value->{selectedType[0]=value;refresh[0].run();};
+        Runnable[] pickCustom={null};
+        Consumer<String> pickDate=value->{
+            if(!value.equals("Custom")){selectedDate[0]=value;customRange[0]=null;rangeLabel.setVisibility(View.GONE);refresh[0].run();return;}
+            pickCustom[0].run();};
+        pickCustom[0]=()->pickDateRange(range->{selectedDate[0]="Custom";customRange[0]=range;
+                    rangeLabel.setText(rangeText(range)+"  ·  Change");rangeLabel.setVisibility(View.VISIBLE);
+                    drawTypeSelection(dateControls,"Custom");refresh[0].run();},
+                ()->drawTypeSelection(dateControls,selectedDate[0])); // cancelled: keep the previous chip
+        rangeLabel.setOnClickListener(v->pickCustom[0].run());
+        clearFilters[0]=()->{selectedType[0]="All";selectedDate[0]="All";customRange[0]=null;rangeLabel.setVisibility(View.GONE);
+            drawTypeSelection(typeControls,"All");drawTypeSelection(dateControls,"All");
+            if(query.getText().length()>0)query.setText("");else refresh[0].run();};
+        drawRecordChips(typeControls,RECORD_TYPE_CHIPS,selectedType[0],pickType);
+        drawRecordChips(dateControls,RECORD_DATE_CHIPS,selectedDate[0],pickDate);
         query.addTextChangedListener(new TextWatcher(){public void beforeTextChanged(CharSequence s,int start,int count,int after){}
-            public void afterTextChanged(Editable s){}public void onTextChanged(CharSequence s,int start,int before,int count){refresh.run();}});
-        refresh.run();
+            public void afterTextChanged(Editable s){}public void onTextChanged(CharSequence s,int start,int before,int count){refresh[0].run();}});
+        refresh[0].run();
     }
-    private void drawRecordChips(LinearLayout container,String[][] groups,String[] selected,Runnable refresh,boolean dates){
-        container.removeAllViews();for(String[] labels:groups)container.addView(chips(Arrays.asList(labels),selected[0],value->{
-            selected[0]=value;drawTypeSelection(container,value);
-            if(dates&&value.equals("Custom"))notice("Showing the sample document dated Sep 12, 2026.");refresh.run();}),
-                new LinearLayout.LayoutParams(-1,dp(42)));
+    private void drawRecordChips(LinearLayout container,String[][] groups,String selected,Consumer<String> onSelect){
+        container.removeAllViews();for(String[] labels:groups)container.addView(chips(Arrays.asList(labels),selected,value->{
+            drawTypeSelection(container,value);onSelect.accept(value);}),new LinearLayout.LayoutParams(-1,dp(42)));
+    }
+    /** Asks for the first and then the last day; the range includes both whole days. */
+    private void pickDateRange(Consumer<RecordSearch.DateRange> picked,Runnable cancelled){
+        Calendar today=Calendar.getInstance();
+        DatePickerDialog from=new DatePickerDialog(a,(view,year,month,day)->{
+            Calendar start=Calendar.getInstance();start.set(year,month,day);
+            DatePickerDialog to=new DatePickerDialog(a,(view2,year2,month2,day2)->{
+                Calendar end=Calendar.getInstance();end.set(year2,month2,day2);
+                picked.accept(RecordSearch.DateRange.custom(start.getTimeInMillis(),end.getTimeInMillis()));},year,month,day);
+            to.setTitle("To");to.setOnCancelListener(d->cancelled.run());notice("Now choose the last day.");to.show();
+        },today.get(Calendar.YEAR),today.get(Calendar.MONTH),today.get(Calendar.DAY_OF_MONTH));
+        from.setTitle("From");from.setOnCancelListener(d->cancelled.run());notice("Choose the first day.");from.show();
+    }
+    private String rangeText(RecordSearch.DateRange range){SimpleDateFormat day=new SimpleDateFormat("MMM d, yyyy",Locale.getDefault());
+        String first=day.format(new java.util.Date(range.from)),last=day.format(new java.util.Date(range.to-1));
+        return first.equals(last)?first:first+" – "+last;}
+    private String recordTime(PetRecord record){return record.hasTime()?
+            new SimpleDateFormat("MMM d, yyyy · h:mm a",Locale.getDefault()).format(new java.util.Date(record.timeMillis)):"No date";}
+    private String recordIcon(PetRecord record){switch(record.type){
+        case MEDICATIONS:return "Medication";case VACCINATIONS:return "Medical";case APPOINTMENTS:return "Vet Visit";
+        case DOCUMENTS:return "Document";case OBSERVATIONS:return "Wave";
+        default:return CARE_KINDS.contains(record.title)?record.title:"Notes";}}
+    protected View recordRow(PetRecord record){LinearLayout r=row();r.setBackground(shape());pad(r,13,9);r.setMinimumHeight(dp(62));
+        r.setFocusable(true);r.setOnClickListener(v->openRecord(record));
+        LinearLayout.LayoutParams iconParams=new LinearLayout.LayoutParams(dp(34),dp(36));iconParams.rightMargin=dp(14);
+        r.addView(icon(recordIcon(record),32),iconParams);
+        LinearLayout copy=col();copy.addView(text(record.title,14,ink,700));
+        TextView detail=text(recordTime(record)+(record.detail.isEmpty()?"":" · "+record.detail),12,sub);
+        detail.setMaxLines(2);detail.setEllipsize(android.text.TextUtils.TruncateAt.END);
+        LinearLayout.LayoutParams dp5=new LinearLayout.LayoutParams(-1,-2);dp5.topMargin=dp(5);copy.addView(detail,dp5);
+        r.addView(copy,new LinearLayout.LayoutParams(0,-2,1));
+        String tag=record.type.label.endsWith("s")?record.type.label.substring(0,record.type.label.length()-1):record.type.label;
+        TextView label=text(tag,10,primary,500);label.setBackground(shape(elevated,18,false));pad(label,7,5);
+        LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(-2,-2);p.leftMargin=dp(6);p.rightMargin=dp(7);r.addView(label,p);
+        r.addView(icon("Chevron",20));
+        r.setContentDescription(tag+": "+record.title+", "+recordTime(record)+(record.detail.isEmpty()?"":", "+record.detail));
+        return r;
+    }
+    /** Shows a record's details; care logs can be edited or deleted from Care History. */
+    protected void openRecord(PetRecord record){
+        JSONObject entry=null;for(JSONObject log:logs)if(log.optString("id").equals(record.id)){entry=log;break;}
+        StringBuilder message=new StringBuilder(recordTime(record)).append("\n").append(record.type.label);
+        if(!record.detail.isEmpty())message.append("\n\n").append(record.detail);
+        AlertDialog.Builder dialog=new AlertDialog.Builder(a).setTitle(record.title).setMessage(message).setPositiveButton("Close",null);
+        if(PetRecord.SOURCE_CARE_LOG.equals(record.source))dialog.setNegativeButton("Open Care History",(d,w)->go.accept("Care History"));
+        JSONObject recording=entry;
+        if(recording!=null&&!recording.optString("audioFile").isEmpty())dialog.setNeutralButton("Play",(d,w)->playRecording.accept(recording));
+        dialog.show();
+    }
+    private View emptyRecords(boolean noRecordsAtAll,PetRecord.Type type,Runnable clearFilters){
+        LinearLayout box=col();box.setGravity(Gravity.CENTER);box.setBackground(shape());pad(box,18,18);
+        String message;
+        if(noRecordsAtAll)message="No records for "+name()+" yet.\nLog care and it will show up here.";
+        else if(type==PetRecord.Type.VACCINATIONS||type==PetRecord.Type.DOCUMENTS)
+            message="No "+type.label.toLowerCase(Locale.ROOT)+" found.\nVaccination cards and documents will appear here\nonce they can be saved in Pet Records.";
+        else message="No records match these filters.";
+        TextView text=center(message,14,sub,400);box.addView(text,new LinearLayout.LayoutParams(-1,-2));
+        LinearLayout.LayoutParams bp=new LinearLayout.LayoutParams(-1,dp(46));bp.topMargin=dp(14);
+        box.addView(noRecordsAtAll?button("Log Care",()->go.accept("Care")):button("Clear filters",true,clearFilters),bp);
+        return box;
     }
     private static final String[][] SCHEDULE={{"Breakfast","8:00 AM","Feeding"},{"Vitamins","12:00 PM","Medication"},
             {"Playtime","5:00 PM","Playtime"},{"Dinner","7:00 PM","Feeding"}};
