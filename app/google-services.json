@@ -7,9 +7,9 @@
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:832921726765:android:a981e0b34658a760eeeda4",
+        "mobilesdk_app_id": "1:832921726765:android:85ef982fbd5dda97eeeda4",
         "android_client_info": {
-          "package_name": "com.itismob.mco.purrfolio"
+          "package_name": "com.purrfolio.mco1"
         }
       },
       "oauth_client": [],
