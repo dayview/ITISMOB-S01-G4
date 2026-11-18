@@ -2,6 +2,9 @@ plugins {
     id("com.android.application")
     id("com.google.gms.google-services")
 }
+
+layout.buildDirectory.set(file(System.getProperty("user.home") + "/AndroidBuilds/purrfolio-app"))
+
 configurations.configureEach {
     exclude(group = "org.jetbrains.kotlin", module = "kotlin-stdlib-jdk7")
     exclude(group = "org.jetbrains.kotlin", module = "kotlin-stdlib-jdk8")

@@ -18,7 +18,7 @@
         android:layout_width="match_parent"
         android:layout_height="0dp"
         android:layout_weight="1"
-        android:layout_clipToPadding="false"
+        android:clipToPadding="false"
         android:fillViewport="false"
         android:scrollbars="none">
 
@@ -72,7 +72,7 @@
                     android:layout_height="44dp"
                     android:contentDescription="Previous month"
                     android:gravity="center"
-                    android:text="<"
+                    android:text="‹"
                     android:textColor="@color/primary"
                     android:textSize="30sp" />
 
@@ -91,7 +91,7 @@
                     android:layout_height="44dp"
                     android:contentDescription="Next month"
                     android:gravity="center"
-                    android:text=">"
+                    android:text="›"
                     android:textColor="@color/primary"
                     android:textSize="30sp" />
             </LinearLayout>
