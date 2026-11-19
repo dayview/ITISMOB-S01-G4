@@ -17,7 +17,12 @@ public class PetForm {
     private final Runnable choosePhoto;
     private final Runnable refresh;
 
+    private static final java.util.List<String> RELATION_CHOICES =
+            java.util.Arrays.asList("Owner", "Family", "Sitter", "Other");
+
     private PetUi.LabeledField nameField, otherField, breedField, birthdayField, weightField, notesField;
+    private PetUi.LabeledField medicalField, vetClinicField, vetPhoneField, contactNameField, contactPhoneField,
+            microchipField;
 
     public PetForm(PetUi ui, PetDraft draft, java.util.List<Pet> existingPets, Runnable choosePhoto, Runnable refresh) {
         this.ui = ui;
@@ -108,6 +113,46 @@ public class PetForm {
         add(into, notesField.root);
     }
 
+    // ---- health and emergency group (Edit screen only; feeds the Pet Passport) ----
+
+    public void addHealthAndEmergency(LinearLayout into) {
+        android.widget.TextView heading = ui.heading("Health and emergency", 20f);
+        ui.markHeading(heading);
+        add(into, heading, 12);
+
+        medicalField = ui.textField("Medical information", true, draft.medicalInfo,
+                "Allergies, medications, conditions.", PetUi.DEFAULT_TEXT_INPUT, true, PetRules.NOTES_MAX,
+                value -> draft.medicalInfo = value);
+        add(into, medicalField.root);
+
+        int capWords = InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_CAP_WORDS;
+        vetClinicField = ui.textField("Veterinarian or clinic", true, draft.vetClinic, null,
+                capWords, false, PetRules.TEXT_MAX, value -> draft.vetClinic = value);
+        add(into, vetClinicField.root);
+
+        vetPhoneField = ui.textField("Veterinarian phone", true, draft.vetPhone,
+                "For example: +63 912 345 6789", InputType.TYPE_CLASS_PHONE, false, 20,
+                value -> draft.vetPhone = value);
+        add(into, vetPhoneField.root);
+
+        contactNameField = ui.textField("Emergency contact name", true, draft.emergencyContactName, null,
+                capWords, false, PetRules.TEXT_MAX, value -> draft.emergencyContactName = value);
+        add(into, contactNameField.root);
+
+        add(into, ui.choiceChips("Relationship", true, RELATION_CHOICES, draft.emergencyContactRelation,
+                choice -> draft.emergencyContactRelation = choice));
+
+        contactPhoneField = ui.textField("Emergency contact phone", true, draft.emergencyContactPhone,
+                "For example: +63 912 345 6789", InputType.TYPE_CLASS_PHONE, false, 20,
+                value -> draft.emergencyContactPhone = value);
+        add(into, contactPhoneField.root);
+
+        microchipField = ui.textField("Microchip number", true, draft.microchipId,
+                "9 to 15 digits. Spaces and dashes are fine.", InputType.TYPE_CLASS_PHONE, false, 20,
+                value -> draft.microchipId = value);
+        add(into, microchipField.root);
+    }
+
     // ---- error validation: show every error, then move focus to the first one ----
 
     private boolean apply(PetUi.LabeledField[] fields, String[] errors) {
@@ -145,9 +190,14 @@ public class PetForm {
 
     /** Used by the one-page Edit screen, where every field is on screen at once. */
     public boolean validateAll() {
-        return apply(new PetUi.LabeledField[]{nameField, otherField, breedField, birthdayField, weightField, notesField},
+        return apply(new PetUi.LabeledField[]{nameField, otherField, breedField, birthdayField, weightField, notesField,
+                        medicalField, vetClinicField, vetPhoneField, contactNameField, contactPhoneField, microchipField},
                 new String[]{PetRules.nameError(draft.name), otherSpeciesError(),
                         PetRules.shortTextError(draft.breed, "Breed"), PetRules.birthdayError(draft.birthday),
-                        PetRules.weightError(draft.weight), PetRules.notesError(draft.notes)});
+                        PetRules.weightError(draft.weight), PetRules.notesError(draft.notes),
+                        PetRules.notesError(draft.medicalInfo), PetRules.shortTextError(draft.vetClinic, "Clinic name"),
+                        PetRules.phoneError(draft.vetPhone),
+                        PetRules.shortTextError(draft.emergencyContactName, "Contact name"),
+                        PetRules.phoneError(draft.emergencyContactPhone), PetRules.microchipError(draft.microchipId)});
     }
 }

@@ -62,6 +62,7 @@ public class EditPetScreen {
         form.addPhotoAndName(body);
         form.addSpecies(body);
         form.addDetails(body);
+        form.addHealthAndEmergency(body);
     }
 
     private void save() {
