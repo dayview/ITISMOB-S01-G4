@@ -31,6 +31,12 @@ public interface PetScreenHost {
     /** Lets a form handle the system Back button itself (e.g. go to the previous step). Null removes it. */
     void setBackHandler(Runnable handler);
 
+    /** Opens the phone app with this number typed in. It never places the call by itself. */
+    void dial(String phone);
+
+    /** Opens the system share sheet with this plain text. The user picks the app; the app never sends it itself. */
+    void shareText(String title, String body);
+
     /** The floating bottom navigation bar, with the given tab highlighted ("Pets", "Home", ...). */
     View dock(String screen);
 }
