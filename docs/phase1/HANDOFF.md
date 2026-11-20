@@ -82,7 +82,7 @@ Expect the first real build to surface small errors. Fix them as they appear.
 4. Capture screenshots with `capture_pets.py` (light, dark, font scale 1.3 and 2.0) and add notes to `docs/visual-qa/RESULTS.md`.
 5. Open a PR. In the description, list the three shared files edited so teammates can rebase.
 6. Later, in separate PRs: delete the dead code (risk 4), and ask Zel to stop hard-coding the adb path in `docs/visual-qa/capture.py`.
-7. Phase 2 (5.7 Pet Passport) is built on branch `leon/5-7-pet-passport`, not yet merged. It follows the same pattern (`PassportScreen.java`, two new `PetScreenHost` methods `dial` and `shareText`, seven new `Pet` keys, state still held by `MainActivity`). Results and gaps are in `docs/visual-qa/RESULTS.md`. Still to do: (a) delete the dead `ReferenceScreens.passport()` and `petSummary()` in a separate PR; (b) the team questions in section 9.
+7. Phase 2 (5.7 Pet Passport) is built and merged (PR #6). It follows the same pattern (`PassportScreen.java`, two new `PetScreenHost` methods `dial` and `shareText`, seven new `Pet` keys, state still held by `MainActivity`). Results and gaps are in `docs/visual-qa/RESULTS.md`. The dead `ReferenceScreens.passport()` and `petSummary()` were removed in a separate cleanup PR. Still to do: the team questions in section 9.
 
 **Audit prompt for the start of a session:**
 
