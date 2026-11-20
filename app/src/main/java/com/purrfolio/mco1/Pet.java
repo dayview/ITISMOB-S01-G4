@@ -21,8 +21,23 @@ public final class Pet {
     /** A file:// URI inside the app's private storage (see PetPhotoStore), or a legacy content:// URI. */
     public final String photoUri;
 
+    // Passport and emergency details. Key names match the feat/emergency branch. All optional, "" when unknown.
+    /** Allergies, medications and conditions, as one free-text note. */
+    public final String medicalInfo;
+    public final String vetClinic;
+    public final String vetPhone;
+    public final String emergencyContactName;
+    /** One of Owner, Family, Sitter, Other (or empty). */
+    public final String emergencyContactRelation;
+    public final String emergencyContactPhone;
+    /** Microchip number as typed (digits, spaces or dashes). */
+    public final String microchipId;
+
     public Pet(String id, String name, String species, String breed, String birthday,
-               String sex, String weightKg, String notes, String photoUri) {
+               String sex, String weightKg, String notes, String photoUri,
+               String medicalInfo, String vetClinic, String vetPhone,
+               String emergencyContactName, String emergencyContactRelation,
+               String emergencyContactPhone, String microchipId) {
         this.id = id;
         this.name = name;
         this.species = species;
@@ -32,6 +47,19 @@ public final class Pet {
         this.weightKg = weightKg;
         this.notes = notes;
         this.photoUri = photoUri;
+        this.medicalInfo = medicalInfo;
+        this.vetClinic = vetClinic;
+        this.vetPhone = vetPhone;
+        this.emergencyContactName = emergencyContactName;
+        this.emergencyContactRelation = emergencyContactRelation;
+        this.emergencyContactPhone = emergencyContactPhone;
+        this.microchipId = microchipId;
+    }
+
+    /** Pre-passport form (with a photo): the passport fields start empty. */
+    public Pet(String id, String name, String species, String breed, String birthday,
+               String sex, String weightKg, String notes, String photoUri) {
+        this(id, name, species, breed, birthday, sex, weightKg, notes, photoUri, "", "", "", "", "", "", "");
     }
 
     /** Short form used by the demo pets: no photo. */
@@ -42,7 +70,9 @@ public final class Pet {
 
     /** Copy of this pet with a different id. */
     public Pet withId(String newId) {
-        return new Pet(newId, name, species, breed, birthday, sex, weightKg, notes, photoUri);
+        return new Pet(newId, name, species, breed, birthday, sex, weightKg, notes, photoUri,
+                medicalInfo, vetClinic, vetPhone, emergencyContactName, emergencyContactRelation,
+                emergencyContactPhone, microchipId);
     }
 
     /** Creates a brand-new JSON record for this pet. */
@@ -63,6 +93,13 @@ public final class Pet {
         putOrRemove(target, "weightKg", weightKg);
         putOrRemove(target, "notes", notes);
         putOrRemove(target, "photoUri", photoUri);
+        putOrRemove(target, "medicalInfo", medicalInfo);
+        putOrRemove(target, "vetClinic", vetClinic);
+        putOrRemove(target, "vetPhone", vetPhone);
+        putOrRemove(target, "emergencyContactName", emergencyContactName);
+        putOrRemove(target, "emergencyContactRelation", emergencyContactRelation);
+        putOrRemove(target, "emergencyContactPhone", emergencyContactPhone);
+        putOrRemove(target, "microchipId", microchipId);
         return target;
     }
 
@@ -71,7 +108,10 @@ public final class Pet {
         return new Pet(json.optString("id"), json.optString("name"),
                 species.trim().isEmpty() ? "Cat" : species,
                 json.optString("breed"), json.optString("birthday"), json.optString("sex"),
-                json.optString("weightKg"), json.optString("notes"), json.optString("photoUri"));
+                json.optString("weightKg"), json.optString("notes"), json.optString("photoUri"),
+                json.optString("medicalInfo"), json.optString("vetClinic"), json.optString("vetPhone"),
+                json.optString("emergencyContactName"), json.optString("emergencyContactRelation"),
+                json.optString("emergencyContactPhone"), json.optString("microchipId"));
     }
 
     static void put(JSONObject target, String key, Object value) {

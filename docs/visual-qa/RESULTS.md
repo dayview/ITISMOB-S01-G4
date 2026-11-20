@@ -122,3 +122,58 @@ Master moved the app from Kotlin to Java (PR #4), so the Phase 1 files were port
 - Ported behaviour differences are API-shape only (`PetPhotoStore.importPhoto`, `PetDraft.isDirty()`, `PetRules.isDuplicateName(name, selfId, List<Pet>)`). See the update note at the top of `docs/phase1/HANDOFF.md`.
 - Pet Detail's centre picture is master's fixed artwork (a cat even for Bailey). It does not use the saved pet photo. Not changed by this branch.
 - The selected pet still resets to the first pet after a restart (`petIndex` is not saved). Same as before this branch.
+
+## Pet Passport (5.7) — 2026-11-19
+
+Branch `leon/5-7-pet-passport` (base master `0404862`, not yet merged). Checked on the Pixel_6a emulator (API 33, 1080 × 2400), debug build.
+
+### Build
+
+- `./gradlew :app:assembleDebug`: **passed**.
+- `./gradlew :app:lintDebug`: **0 errors, 122 warnings**. Same as the Phase 1 baseline; none of the warnings are in the files this branch touches.
+
+### Functional flows
+
+| Check | Result |
+| --- | --- |
+| Edit Pet: new "Health and emergency" fields | Pass. Saved values show again when Edit is reopened. |
+| Storage round trip | Pass. `medicalInfo`, `vetClinic`, `vetPhone`, `emergencyContactName`, `emergencyContactRelation`, `emergencyContactPhone` and `microchipId` are written to `purrfolio_demo.xml` (read with `run-as`). |
+| Clear a field | Pass. The key is removed from the stored JSON, and the row shows only what is left (e.g. the phone). |
+| Bad phone number | Pass. Red border, specific message replaces the helper text, focus stays on the field. |
+| Edit Pet: dirty Back | Pass. "Discard changes?" appears; Discard leaves without saving (no `weightKg` stored). |
+| Rotation on Edit | Pass. Typed weight `4.2` survives portrait → landscape → portrait. |
+| Passport with no details (Bailey) | Pass. "No passport details yet" card, "Add passport details" button, rows read "Not added yet". |
+| Passport with details | Pass. Every saved value is shown; weight now appears with " kg". |
+| Call | Pass. Opens the dialer with the number filled in. It does not place the call. |
+| Share passport | Pass. Confirm dialog, then the system share sheet with the text preview. Nothing was sent. |
+| Share with nothing to share | Pass. "Nothing to share yet" dialog with Cancel and "Add details". |
+| Entry point: Pet Detail ⋯ menu → "Pet Passport" | Pass. |
+| Entry point: Pet Profile "Pet passport" link | Pass. Back returns to Pet Profile. |
+| Crashes | None. `logcat -b crash` and `FATAL EXCEPTION` counts were 0. |
+
+### Accessibility (measured, not heard)
+
+| Check | Result |
+| --- | --- |
+| Tap targets (`uiautomator dump`) | Pass. Rows 61dp tall, Call 52 × 48dp, Share 52dp. |
+| Labels | Each row is one stop with a specific sentence ("Veterinarian, Paws Clinic. Double tap to edit."). Call buttons say who they call. |
+| Contrast | Pass. 9 colour pairs checked; lowest is 4.77:1 (row label on card, light mode). |
+| Dark mode | Pass visually. |
+| Font scale 2.0× | Passport text wraps cleanly and Share is reachable. |
+
+### Known issue (not changed here)
+
+- At font scale 2.0× the bottom dock's labels are clipped on every screen. Cause: fixed heights in the shared dock styles in `app/src/main/res/values/styles.xml` (`PurrfolioDockCell` 66dp, `PurrfolioDockLabel` 21dp). Needs a team decision because it is a shared file. An earlier theory that it came from the 78dp root in `floating_bottom_nav.xml` was wrong; a WRAP_CONTENT test on the Passport screen changed nothing and was reverted.
+
+### Not covered
+
+- TalkBack and Accessibility Scanner were not run. The labels above come from the code and the UI dump, not from listening.
+- The "No dialer app" and "No share app" fallback dialogs.
+- The Emergency and Sitter screens' links to Passport (they use the same route name but were not clicked).
+- The Edit "Health and emergency" section at large font and in dark mode; font scale 1.3×.
+- A 360dp-wide screen, and Android 11–12 without Google Play services.
+
+### Notes
+
+- Old `ReferenceScreens.passport()` is now unreachable (the pet route in `MainActivity.render()` returns first). Cleanup is planned as a separate PR.
+- Test data used on the emulator (pet "MochiX" with fake vet and contact numbers) is not part of the repo.

@@ -2,6 +2,7 @@ package com.purrfolio.mco1;
 
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.List;
 import java.util.Locale;
@@ -116,6 +117,86 @@ public final class PetRules {
             try { value = Double.valueOf(text); } catch (NumberFormatException ignored) { }
         }
         return value == null || value <= 0.0 || value > WEIGHT_MAX_KG ? "Enter the weight in kg, like 4.2" : null;
+    }
+
+    private static final Pattern PHONE_CHARS = Pattern.compile("[0-9 +()\\-]+");
+    private static final Pattern MICROCHIP_CHARS = Pattern.compile("[0-9 \\-]+");
+
+    private static int countDigits(String text) {
+        int count = 0;
+        for (int i = 0; i < text.length(); i++) if (Character.isDigit(text.charAt(i))) count++;
+        return count;
+    }
+
+    /** Optional. Null when fine (or empty), otherwise the message to show under the field. */
+    public static String phoneError(String raw) {
+        String text = raw.trim();
+        if (text.isEmpty()) return null;
+        int digits = countDigits(text);
+        boolean ok = PHONE_CHARS.matcher(text).matches() && digits >= 7 && digits <= 15;
+        return ok ? null : "Enter a phone number like +63 912 345 6789";
+    }
+
+    /** Optional. Digits with optional spaces or dashes, 9 to 15 digits in total. */
+    public static String microchipError(String raw) {
+        String text = raw.trim();
+        if (text.isEmpty()) return null;
+        int digits = countDigits(text);
+        boolean ok = MICROCHIP_CHARS.matcher(text).matches() && digits >= 9 && digits <= 15;
+        return ok ? null : "Microchip numbers have 9 to 15 digits";
+    }
+
+    // ---- Passport text: shared by the Pet Passport screen and the share action ----
+
+    /** "Paws Clinic · 12345678", just the clinic, just the phone, or null when both are blank. */
+    public static String vetLine(Pet pet) {
+        String clinic = pet.vetClinic.trim();
+        String phone = pet.vetPhone.trim();
+        if (clinic.isEmpty() && phone.isEmpty()) return null;
+        if (clinic.isEmpty()) return phone;
+        return phone.isEmpty() ? clinic : clinic + " · " + phone;
+    }
+
+    /** "Sam Cruz (Family) · +63...", with any missing part left out, or null when there is nothing. */
+    public static String contactLine(Pet pet) {
+        String name = pet.emergencyContactName.trim();
+        String relation = pet.emergencyContactRelation.trim();
+        String who = name.isEmpty() ? "" : relation.isEmpty() ? name : name + " (" + relation + ")";
+        String phone = pet.emergencyContactPhone.trim();
+        if (who.isEmpty() && phone.isEmpty()) return null;
+        if (who.isEmpty()) return phone;
+        return phone.isEmpty() ? who : who + " · " + phone;
+    }
+
+    /**
+     * Plain text for the share sheet. Only filled fields are listed. Returns "" when the pet has no health,
+     * vet, contact or microchip details yet (weight alone does not count). Vaccinations are left out on purpose:
+     * that row only links to a sample document.
+     */
+    public static String passportSummary(Pet pet) {
+        List<String> details = new ArrayList<>();
+        addLine(details, "Medical information", pet.medicalInfo.trim());
+        addLine(details, "Veterinarian", vetLine(pet));
+        addLine(details, "Emergency contact", contactLine(pet));
+        addLine(details, "Microchip", pet.microchipId.trim());
+        if (details.isEmpty()) return "";
+
+        List<String> lines = new ArrayList<>();
+        lines.add("Pet passport: " + pet.name.trim());
+        String age = ageLabel(pet.birthday);
+        List<String> kind = new ArrayList<>();
+        if (!pet.species.trim().isEmpty()) kind.add(pet.species.trim());
+        if (age != null) kind.add(age);
+        if (!kind.isEmpty()) lines.add(String.join(" · ", kind));
+        lines.addAll(details);
+        String weight = pet.weightKg.trim();
+        if (!weight.isEmpty()) lines.add("Weight: " + weight + " kg");
+        lines.add("Shared from Purrfolio");
+        return String.join("\n", lines);
+    }
+
+    private static void addLine(List<String> into, String label, String value) {
+        if (value != null && !value.isEmpty()) into.add(label + ": " + value);
     }
 
     /** True when another pet already uses this name. Used for a gentle hint, never a block. */

@@ -82,7 +82,7 @@ Expect the first real build to surface small errors. Fix them as they appear.
 4. Capture screenshots with `capture_pets.py` (light, dark, font scale 1.3 and 2.0) and add notes to `docs/visual-qa/RESULTS.md`.
 5. Open a PR. In the description, list the three shared files edited so teammates can rebase.
 6. Later, in separate PRs: delete the dead code (risk 4), and ask Zel to stop hard-coding the adb path in `docs/visual-qa/capture.py`.
-7. Then Phase 2 (5.7 Pet Passport). Follow the same pattern: one screen class, one callback interface, draft or state held by `MainActivity`, shared `PetUi` kit. Pointers are in `CLAUDE.md` section 11.
+7. Phase 2 (5.7 Pet Passport) is built on branch `leon/5-7-pet-passport`, not yet merged. It follows the same pattern (`PassportScreen.java`, two new `PetScreenHost` methods `dial` and `shareText`, seven new `Pet` keys, state still held by `MainActivity`). Results and gaps are in `docs/visual-qa/RESULTS.md`. Still to do: (a) delete the dead `ReferenceScreens.passport()` and `petSummary()` in a separate PR; (b) the team questions in section 9.
 
 **Audit prompt for the start of a session:**
 
@@ -93,3 +93,6 @@ Expect the first real build to surface small errors. Fix them as they appear.
 - Keep the single-column form layout, or restore the wireframe's side-by-side Weight and Sex?
 - Add a `strings.xml` (one dedicated PR) or keep strings inline?
 - For 5.1, adopt the ML Kit Document Scanner (adds a Play services dependency) or keep the plain file picker?
+- 5.7 Pet Passport, for Paoski (`feat/emergency`): port that branch to Java, or rebase it onto the keys now in `Pet`? Is a single `medicalInfo` field acceptable instead of separate Allergies and Medications?
+- 5.7 Pet Passport, for the owner of Pet ID QR: Share Passport now shares text and no longer opens "Pet ID QR". Is that okay?
+- 5.7 Pet Passport, for everyone: is it okay that `PetScreenHost` and `MainActivity` gained `dial` and `shareText`? Should the Vaccinations row stay a "Sample document" link?

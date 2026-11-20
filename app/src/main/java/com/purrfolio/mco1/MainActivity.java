@@ -302,7 +302,8 @@ public class MainActivity extends AppCompatActivity {
             case "Add Your Pet":showAddPet();return;case "Edit Pet Profile":showEditPet();return;
             case "Pets":showMyPets();return;case "Pet Profile":showPetProfile();return;
             case "Reminders":showReminders();return;case "Calendar":showCareCalendar();return;
-            case "Browse Records":showDocuments();return;}
+            case "Browse Records":showDocuments();return;
+            case "Pet Passport":showPassport();return;}
         if(ReferenceScreens.destinations.contains(destination)){
             View view=new ReferenceScreens(this,selectedPet(),target->{render(target);},
                     ()->{choosePet();},()->{editPetPhoto();},
@@ -371,6 +372,20 @@ public class MainActivity extends AppCompatActivity {
             navigateBack();
         }
         @Override public void setBackHandler(Runnable handler){formBackHandler=handler;}
+        @Override public void dial(String phone){
+            try{startActivity(new Intent(Intent.ACTION_DIAL,Uri.parse("tel:"+phone.replaceAll("[^0-9+]",""))));}
+            catch(android.content.ActivityNotFoundException error){
+                new AlertDialog.Builder(MainActivity.this).setTitle("Frontend preview")
+                        .setMessage("No dialer app is available on this device.").setPositiveButton("OK",null).show();}
+        }
+        @Override public void shareText(String title,String body){
+            Intent send=new Intent(Intent.ACTION_SEND).setType("text/plain")
+                    .putExtra(Intent.EXTRA_SUBJECT,title).putExtra(Intent.EXTRA_TEXT,body);
+            try{startActivity(Intent.createChooser(send,title));}
+            catch(android.content.ActivityNotFoundException error){
+                new AlertDialog.Builder(MainActivity.this).setTitle("Frontend preview")
+                        .setMessage("No app is available to share with on this device.").setPositiveButton("OK",null).show();}
+        }
         @Override public View dock(String dockScreen){
             return new ReferenceScreens(MainActivity.this,selectedPet(),target->{render(target);},
                     ()->{choosePet();}).dock(dockScreen);
@@ -389,6 +404,7 @@ public class MainActivity extends AppCompatActivity {
     }
     private void showMyPets(){showContent(new MyPetsScreen(this,savedPets(),petId(selectedPet()),petHost).build());}
     private void showPetProfile(){showContent(new PetProfileScreen(this,Pet.fromJson(selectedPet()),petHost).build());}
+    private void showPassport(){showContent(new PassportScreen(this,Pet.fromJson(selectedPet()),petHost).build());}
     private void commitPet(Pet pet,boolean adding){
         PetDraft draft=petDraft;
         if(adding){pets.add(pet.toJson());petIndex=pets.size()-1;}
