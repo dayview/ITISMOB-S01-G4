@@ -232,6 +232,8 @@ public class MainActivity extends AppCompatActivity {
     }
 
     @Override protected void onCreate(Bundle state){
+        requestNotificationPermission();
+        BackendHub.get().start(getApplicationContext(), petRefs());
         AppTheme.applySaved(this);super.onCreate(state);
         auth=new AuthRepository();users=new UserRepository();
         preferences=getSharedPreferences("purrfolio_demo",MODE_PRIVATE);
@@ -297,8 +299,15 @@ public class MainActivity extends AppCompatActivity {
         if(destination.startsWith("Quick Log:")){pendingCareCategory=destination.substring("Quick Log:".length());render("Quick Log",recordHistory);return;}
         if("Add Your Pet".equals(screen)&&!"Add Your Pet".equals(destination))pendingNewPetPhotoUri=null;
         if(recordHistory&&!destination.equals(screen))screenHistory.addLast(screen);screen=destination;
-        switch(destination){case "Welcome":showWelcome();return;case "App Theme":showAppTheme();return;
-            case "Quick Log":showQuickLog();return;case "Care History":showCareHistory();return;}
+        switch(destination){
+            case "Welcome":showWelcome();return;
+            case "App Theme":showAppTheme();return;
+            case "Quick Log":showQuickLog();return;
+            case "Care History":showCareHistory();return;
+            case "Reminders": showReminders(); return;
+            case "Calendar": showCareCalendar(); return;
+            case "Browse Records": showDocuments(); return;
+        }
         if(ReferenceScreens.destinations.contains(destination)){
             View view=new ReferenceScreens(this,selectedPet(),target->{render(target);},
                     ()->{choosePet();},()->{editPetPhoto(false);},
@@ -561,4 +570,27 @@ public class MainActivity extends AppCompatActivity {
             .putString("reminders",json(reminders)).apply();}
     @Override public void onBackPressed(){if(screenHistory.isEmpty()&&(screen.equals("Home")||screen.equals("Welcome")))super.onBackPressed();
         else navigateBack();}
+    private List<PetRef> petRefs(){
+        List<PetRef> refs=new ArrayList<>();
+        for(JSONObject pet:pets)refs.add(new PetRef(petId(pet),pet.optString("name","Pet")));
+        return refs;}
+    private PetRef currentPet(){
+        if(pets.isEmpty())return new PetRef("","Pet");
+        return new PetRef(petId(selectedPet()),petName());}
+    private void requestNotificationPermission(){
+        if(android.os.Build.VERSION.SDK_INT>=33&&androidx.core.content.ContextCompat.checkSelfPermission(this,
+                Manifest.permission.POST_NOTIFICATIONS)!=android.content.pm.PackageManager.PERMISSION_GRANTED){
+            androidx.core.app.ActivityCompat.requestPermissions(this,new String[]{Manifest.permission.POST_NOTIFICATIONS},4001);}}
+    private void showReminders(){
+        ScreenRemindersBinding binding=ScreenRemindersBinding.inflate(getLayoutInflater());setContentView(binding.getRoot());
+        applyLegacyInsets(binding.remindersRoot);bindLegacyHeader(binding.header,"Reminders");bindCareDock(binding.bottomNav,"Reminders");
+        new RemindersScreen(this,binding,petRefs(),currentPet()).bind();}
+    private void showCareCalendar(){
+        ScreenCareCalendarBinding binding=ScreenCareCalendarBinding.inflate(getLayoutInflater());setContentView(binding.getRoot());
+        applyLegacyInsets(binding.calendarRoot);bindLegacyHeader(binding.header,"Calendar");bindCareDock(binding.bottomNav,"Calendar");
+        new CareCalendarScreen(this,binding,petRefs()).bind();}
+    private void showDocuments(){
+        ScreenDocumentsBinding binding=ScreenDocumentsBinding.inflate(getLayoutInflater());setContentView(binding.getRoot());
+        applyLegacyInsets(binding.documentsRoot);bindLegacyHeader(binding.header,"Documents");bindCareDock(binding.bottomNav,"Browse Records");
+        new DocumentsScreen(this,binding,currentPet()).bind();}
 }
