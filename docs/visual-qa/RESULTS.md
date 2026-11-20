@@ -125,7 +125,7 @@ Master moved the app from Kotlin to Java (PR #4), so the Phase 1 files were port
 
 ## Pet Passport (5.7) — 2026-11-19
 
-Branch `leon/5-7-pet-passport` (base master `0404862`, not yet merged). Checked on the Pixel_6a emulator (API 33, 1080 × 2400), debug build.
+Branch `leon/5-7-pet-passport` (base master `0404862`; merged into master as PR #6). Checked on the Pixel_6a emulator (API 33, 1080 × 2400), debug build.
 
 ### Build
 
@@ -175,5 +175,5 @@ Branch `leon/5-7-pet-passport` (base master `0404862`, not yet merged). Checked 
 
 ### Notes
 
-- Old `ReferenceScreens.passport()` is now unreachable (the pet route in `MainActivity.render()` returns first). Cleanup is planned as a separate PR.
+- Old `ReferenceScreens.passport()` is now unreachable (the pet route in `MainActivity.render()` returns first). It was removed in a separate cleanup PR.
 - Test data used on the emulator (pet "MochiX" with fake vet and contact numbers) is not part of the repo.
