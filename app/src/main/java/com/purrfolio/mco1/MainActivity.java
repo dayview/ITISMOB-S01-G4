@@ -11,6 +11,7 @@ import android.graphics.PorterDuff;
 import android.media.MediaPlayer;
 import android.media.MediaRecorder;
 import android.net.Uri;
+import android.os.Build;
 import android.os.Bundle;
 import android.speech.RecognizerIntent;
 import android.view.View;
@@ -20,24 +21,30 @@ import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.Toast;
 import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.PickVisualMediaRequest;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowCompat;
 import androidx.core.view.WindowInsetsCompat;
+import com.google.firebase.auth.FirebaseUser;
 import com.purrfolio.mco1.databinding.*;
 import java.io.File;
 import java.text.SimpleDateFormat;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
+import java.util.function.Consumer;
 import org.json.JSONArray;
 import org.json.JSONObject;
 import org.json.JSONException;
@@ -84,8 +91,149 @@ public class MainActivity extends AppCompatActivity {
                 render(petPhotoPickerTarget);
             });
 
+    // ---- User Management (Firebase Auth + Firestore users/{uid}) ----
+    private AuthRepository auth;
+    private UserRepository users;
+    private boolean accountBusy;
+    /** Firestore field → profile:* key read by the Profile and Personal Information screens. */
+    private static final Map<String,String> PROFILE_KEYS=new LinkedHashMap<>();
+    static{PROFILE_KEYS.put("fullName","name");PROFILE_KEYS.put("email","email");PROFILE_KEYS.put("phone","phone");
+        PROFILE_KEYS.put("birthday","birthday");PROFILE_KEYS.put("country","country");PROFILE_KEYS.put("photo","photo");}
+
+    private final AccountActions account=new AccountActions(){
+        @Override public boolean isEmailVerified(){FirebaseUser user=auth.getCurrentUser();return user!=null&&user.isEmailVerified();}
+        @Override public void signUp(String fullName,String email,String password){
+            if(!beginAccountTask())return;
+            auth.signUp(fullName,email,password,accountTask(user->{
+                users.create(user.getUid(),fullName,email); // queued by Firestore if offline
+                Map<String,Object> cached=new HashMap<>();cached.put("fullName",fullName.trim());cached.put("email",email.trim());
+                cacheProfile(cached);
+                note("Account created! Check your inbox to verify your email.");
+                screenHistory.clear();render("Add Your Pet",false);
+            },MainActivity.this::note));
+        }
+        @Override public void logIn(String email,String password){
+            if(!beginAccountTask())return;
+            auth.logIn(email,password,accountTask(user->users.load(user.getUid()).addOnCompleteListener(task->{
+                Map<String,Object> data=new HashMap<>();data.put("fullName",user.getDisplayName());data.put("email",user.getEmail());
+                if(task.isSuccessful())data.putAll(task.getResult());
+                cacheProfile(data);
+                screenHistory.clear();render("Home",false);
+            }),MainActivity.this::note));
+        }
+        @Override public void sendPasswordReset(String email){
+            if(!beginAccountTask())return;
+            auth.sendPasswordReset(email,accountTask(ignored->{
+                note("If an account exists for "+email.trim()+", a reset link is on its way.");render("Log In");
+            },MainActivity.this::note));
+        }
+        @Override public void logOut(){
+            auth.logOut();clearLocalAccount();
+            screenHistory.clear();render("Welcome",false);
+        }
+        @Override public void saveProfile(Map<String,String> fields){
+            SharedPreferences.Editor editor=preferences.edit();
+            for(Map.Entry<String,String> field:fields.entrySet()){
+                String key="profile:"+(PROFILE_KEYS.containsKey(field.getKey())?PROFILE_KEYS.get(field.getKey()):field.getKey());
+                if(field.getValue().trim().isEmpty())editor.remove(key);else editor.putString(key,field.getValue());
+            }
+            editor.apply();
+            note("Profile saved.");render("Profile");
+            syncProfile(new HashMap<>(fields));
+        }
+        @Override public void changeProfilePhoto(){
+            profilePhotoPicker.launch(new PickVisualMediaRequest.Builder()
+                    .setMediaType(ActivityResultContracts.PickVisualMedia.ImageOnly.INSTANCE).build());
+        }
+        @Override public boolean hasPasswordLogin(){return auth.hasPasswordLogin();}
+        @Override public void changePassword(String currentPassword,String newPassword,Consumer<String> done){
+            if(!beginAccountTask())return;
+            auth.changePassword(currentPassword,newPassword,accountTask(ignored->{done.accept(null);note("Password changed.");},done));
+        }
+        @Override public void deleteAccount(String currentPassword,Consumer<String> done){
+            if(!beginAccountTask())return;
+            // users/{uid} is deleted while still signed in, because the rules only let the owner remove it.
+            // When pets and logs move to Firestore, delete them inside this lambda too.
+            auth.deleteAccount(currentPassword,uid->users.deleteAll(uid),accountTask(ignored->{
+                done.accept(null);clearLocalAccount();
+                note("Your account has been deleted.");
+                screenHistory.clear();render("Welcome",false);
+            },done));
+        }
+        @Override public void setNotification(String key,boolean enabled){
+            preferences.edit().putBoolean("notify:"+key,enabled).apply();
+            if(enabled)askNotificationPermission();
+            FirebaseUser user=auth.getCurrentUser();if(user==null)return;
+            users.setNotification(user.getUid(),key,enabled)
+                    .addOnFailureListener(error->note("Couldn't sync this setting. It's still saved on this device."));
+        }
+    };
+
+    private final ActivityResultLauncher<PickVisualMediaRequest> profilePhotoPicker=registerForActivityResult(
+            new ActivityResultContracts.PickVisualMedia(),uri->{
+                if(uri==null)return;
+                users.preparePhoto(getContentResolver(),uri).addOnCompleteListener(task->{
+                    if(!task.isSuccessful()){note("That photo couldn't be used. Try another image.");return;}
+                    String photo=task.getResult();
+                    preferences.edit().putString("profile:photo",photo).apply();
+                    render(screen,false);
+                    syncProfile(Collections.singletonMap("photo",photo));
+                });
+            });
+
+    /** Android 13+ blocks notifications until the user allows them; the switch stays saved either way. */
+    private final ActivityResultLauncher<String> notificationPermission=registerForActivityResult(
+            new ActivityResultContracts.RequestPermission(),granted->{
+                if(!granted)note("Notifications are off for PURRFOLIO. You can allow them later in Android Settings.");
+            });
+
+    private void askNotificationPermission(){
+        if(Build.VERSION.SDK_INT>=Build.VERSION_CODES.TIRAMISU&&
+                ContextCompat.checkSelfPermission(this,Manifest.permission.POST_NOTIFICATIONS)!=PackageManager.PERMISSION_GRANTED)
+            notificationPermission.launch(Manifest.permission.POST_NOTIFICATIONS);
+    }
+
+    /** Runs one Firebase request at a time so repeated taps don't send duplicates. */
+    private boolean beginAccountTask(){if(accountBusy)return false;accountBusy=true;return true;}
+    private <T> AuthRepository.Callback<T> accountTask(Consumer<T> success,Consumer<String> failure){
+        return new AuthRepository.Callback<T>(){
+            @Override public void onSuccess(T value){accountBusy=false;success.accept(value);}
+            @Override public void onError(String message){accountBusy=false;failure.accept(message);}
+        };
+    }
+
+    /**
+     * Sends profile changes to Firestore after they are already saved on the device. Offline writes
+     * are queued by Firestore and only finish once the device reconnects, so nothing waits on this.
+     */
+    private void syncProfile(Map<String,?> fields){
+        FirebaseUser user=auth.getCurrentUser();if(user==null)return;
+        users.update(user.getUid(),new HashMap<>(fields))
+                .addOnFailureListener(error->note("Couldn't sync your profile. It's still saved on this device."));
+    }
+
+    /** Copies Firestore profile fields and notification switches into the profile:* and notify:* preferences. */
+    private void cacheProfile(Map<String,Object> data){
+        SharedPreferences.Editor editor=preferences.edit();
+        for(Map.Entry<String,String> key:PROFILE_KEYS.entrySet()){Object value=data.get(key.getKey());
+            if(value instanceof String&&!((String)value).trim().isEmpty())editor.putString("profile:"+key.getValue(),(String)value);}
+        Object notifications=data.get("notifications");
+        if(notifications instanceof Map)for(Map.Entry<?,?> entry:((Map<?,?>)notifications).entrySet())
+            if(entry.getValue() instanceof Boolean)editor.putBoolean("notify:"+entry.getKey(),(Boolean)entry.getValue());
+        editor.apply();
+    }
+
+    /** Removes the signed-in user's cached profile and notification switches from this device. */
+    private void clearLocalAccount(){
+        SharedPreferences.Editor editor=preferences.edit();
+        for(String key:PROFILE_KEYS.values())editor.remove("profile:"+key);
+        for(String key:UserRepository.NOTIFICATION_DEFAULTS.keySet())editor.remove("notify:"+key);
+        editor.apply();
+    }
+
     @Override protected void onCreate(Bundle state){
         AppTheme.applySaved(this);super.onCreate(state);
+        auth=new AuthRepository();users=new UserRepository();
         preferences=getSharedPreferences("purrfolio_demo",MODE_PRIVATE);
         night=(getResources().getConfiguration().uiMode&Configuration.UI_MODE_NIGHT_MASK)==Configuration.UI_MODE_NIGHT_YES;
         restore();
@@ -95,7 +243,13 @@ public class MainActivity extends AppCompatActivity {
         String destination=state==null?null:state.getString("screen");
         if(destination==null)destination=(getApplicationInfo().flags&ApplicationInfo.FLAG_DEBUGGABLE)!=0?
                 getIntent().getStringExtra("preview_screen"):null;
-        render(destination==null?"Welcome":destination,false);
+        // Skip Welcome when Firebase still has a signed-in user from last time.
+        String start=auth.getCurrentUser()!=null?"Home":"Welcome";
+        render(destination==null?start:destination,false);
+    }
+    @Override protected void onResume(){super.onResume();
+        // Picks up email verification done in the browser; the result shows the next time Profile is drawn.
+        FirebaseUser user=auth.getCurrentUser();if(user!=null)user.reload();
     }
     @Override protected void onSaveInstanceState(Bundle out){
         out.putString("screen",screen);out.putStringArrayList("screenHistory",new ArrayList<>(screenHistory));
@@ -165,7 +319,7 @@ public class MainActivity extends AppCompatActivity {
                     ()->{toggleSoundRecording();},this::soundRows,
                     entry->{playRecording(entry);},()->{addReminder();},
                     reminder->{put(reminder,"done",!reminder.optBoolean("done"));save();render("Reminders");},
-                    ()->{render("Home");},()->{navigateBack();},
+                    account,()->{navigateBack();},
                     pendingNewPetPhotoUri,adding->{editPetPhoto(adding);}).build(destination);
             setContentView(view);ViewCompat.requestApplyInsets(view);return;
         }
