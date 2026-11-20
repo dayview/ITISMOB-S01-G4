@@ -315,7 +315,9 @@ public class MainActivity extends AppCompatActivity {
                     target->{render(target);},()->{choosePet();},
                     index->{petIndex=index;render("Pet Detail");},
                     (values,adding)->{JSONObject updated=adding?new SafeJson():new SafeJson(selectedPet().toString());
-                        for(String key:new String[]{"name","species","breed","birthday","sex","notes","photoUri"})
+                        for(String key:new String[]{"name","species","breed","birthday","sex","notes","photoUri",
+                                "medicalInfo","vetClinic","vetPhone",
+                                "emergencyContactName","emergencyContactRelation","emergencyContactPhone"})
                             if(values.containsKey(key))put(updated,key,values.get(key));
                         if(adding){pets.add(updated);petIndex=pets.size()-1;}else{put(updated,"id",petId(selectedPet()));pets.set(petIndex,updated);}
                         save();note("Pet profile saved on this device.");render("Pet Detail");},
@@ -652,7 +654,11 @@ public class MainActivity extends AppCompatActivity {
         if(!pets.isEmpty()||!logs.isEmpty())save();
         if(pets.isEmpty()){
             pets.add(new SafeJson().put("name","Mochi").put("species","Cat").put("breed","Mixed Breed")
-                    .put("birthday","2024-09-26").put("sex","Female").put("notes","Playful, loves treats and sunny spots."));
+                    .put("birthday","2024-09-26").put("sex","Female").put("notes","Playful, loves treats and sunny spots.")
+                    .put("medicalInfo","No known allergies. Due for annual vaccination booster in November.")
+                    .put("vetClinic","Paws Animal Clinic").put("vetPhone","+63 917 123 4567")
+                    .put("emergencyContactName","Gracezel Castrence").put("emergencyContactRelation","Owner")
+                    .put("emergencyContactPhone","+63 917 234 5678"));
             pets.add(new SafeJson().put("name","Bailey").put("species","Dog").put("breed","Golden Retriever")
                     .put("birthday","2022-05-13").put("sex","Male").put("notes","Enjoys long walks."));
             for(JSONObject pet:pets)put(pet,"id",UUID.randomUUID().toString());

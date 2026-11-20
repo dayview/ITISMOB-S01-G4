@@ -3,6 +3,8 @@ package com.purrfolio.mco1;
 import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.DatePickerDialog;
+import android.content.ActivityNotFoundException;
+import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.res.ColorStateList;
 import android.content.res.Configuration;
@@ -140,7 +142,7 @@ public class PhaseTwoScreens {
     protected TextView center(String value){return center(value,14,sub,400);}
     protected FrameLayout action(String kind,String label,Runnable callback){FrameLayout frame=new FrameLayout(a);
         frame.setContentDescription(label);frame.setFocusable(true);frame.setOnClickListener(v->callback.run());
-        int tint=kind.equals("Check")||kind.equals("Camera")?color("#201528"):kind.equals("Warning")?coral:primary;
+        int tint=kind.equals("Check")||kind.equals("Camera")?color("#201528"):kind.equals("Warning")||kind.equals("Lock")?coral:primary;
         frame.addView(icon(kind,26,tint),new FrameLayout.LayoutParams(dp(26),dp(26),Gravity.CENTER));
         frame.setMinimumWidth(dp(48));frame.setMinimumHeight(dp(48));return frame;}
     protected TextView button(String label,boolean secondary,int tint,Runnable callback){TextView t=text(label,15,secondary?primary:color("#201528"),700);
@@ -819,22 +821,42 @@ public class PhaseTwoScreens {
         info.addView(text("You can choose what information\nis shown on "+name()+"'s ID card.",12,sub),new LinearLayout.LayoutParams(0,-2,1));
         add(info,80);
     }
-    protected void emergency(){header("Emergency Mode","Quick access to important\ninformation when it matters.","More","Warning",
-            ()->preview("Emergency details have not been configured in this prototype."),30,false);
+    protected void emergency(){header("Emergency Mode","Quick access when it matters.","More","Lock",
+            ()->preview("All emergency information stays stored on this device. Nothing is transmitted, shared, or synced automatically."),30,false);
+        String medical=pet.optString("medicalInfo").trim();
+        String vetClinic=pet.optString("vetClinic").trim(),vetPhone=pet.optString("vetPhone").trim();
+        String contactName=pet.optString("emergencyContactName").trim(),contactRelation=pet.optString("emergencyContactRelation").trim(),
+                contactPhone=pet.optString("emergencyContactPhone").trim();
+        boolean hasEmergencyInfo=!(medical+vetClinic+vetPhone+contactName+contactPhone).isEmpty();
         LinearLayout card=row();card.setBackground(shape(night?color("#302026"):color("#FBE5EA"),20,true));pad(card,14,14);
+        card.setFocusable(true);card.setOnClickListener(v->go.accept(hasEmergencyInfo?"Pet Passport":"Edit Pet Profile"));
         LinearLayout.LayoutParams photoParams=new LinearLayout.LayoutParams(dp(102),dp(102));photoParams.rightMargin=dp(14);
         card.addView(portrait(R.drawable.pdf_mochi,102,coral),photoParams);
-        LinearLayout copy=col();copy.addView(heading(name(),26));copy.addView(text(pet.optString("species")+" · 2 years old",13,sub));
-        LinearLayout.LayoutParams bp=new LinearLayout.LayoutParams(-1,dp(42));bp.topMargin=dp(10);
-        copy.addView(button("EMERGENCY INFO",false,color("#FF8298"),()->preview("No emergency contact or clinical record is configured. Open Pet Passport to review available details.")),bp);
+        LinearLayout copy=col();copy.addView(heading(name(),26));copy.addView(text(emergencyAgeLabel(),13,sub));
+        LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(-1,-2);lp.topMargin=dp(8);
+        copy.addView(text("EMERGENCY INFO",12,coral,700),lp);
         card.addView(copy,new LinearLayout.LayoutParams(0,-2,1));add(card,142,12);
-        add(infoRow("Medical","Medical Information","Allergies, medications, conditions","Chevron",coral,()->go.accept("Pet Passport")),68,6);
-        add(infoRow("Vet Visit","Veterinarian","Contact not configured","Phone",coral,
-                ()->preview("Add a verified veterinary contact before using this action.")),68,6);
-        add(infoRow("Phone","Emergency Contact","Contact not configured","Phone",coral,()->go.accept("Personal Information")),68,6);
-        add(infoRow("Pets","Care Circle","View your caregivers","Chevron",coral,()->go.accept("Care Circle")),68,6);
+        add(infoRow("Medical","Medical Information",medical.isEmpty()?"No medical information added yet":medical,"Chevron",coral,
+                ()->go.accept("Edit Pet Profile")),68,6);
+        String vetDetail=vetClinic.isEmpty()?"No veterinarian added yet":vetClinic+(vetPhone.isEmpty()?"":" · call");
+        add(infoRow("Vet Visit","Veterinarian",vetDetail,"Phone",coral,()->{
+            if(!vetPhone.isEmpty())dial(vetPhone);else preview("No veterinary phone number saved yet. Add one from Edit Pet Profile.");}),68,6);
+        String contactDetail=contactName.isEmpty()?"No emergency contact added yet"
+                :contactName+(contactRelation.isEmpty()?"":" ("+contactRelation+")");
+        // Opens Pet Passport, which shows the same contact with its own Call button (or "Not added yet" → Edit).
+        add(infoRow("Phone","Emergency Contact",contactDetail,"Chevron",coral,()->go.accept("Pet Passport")),68,6);
+        List<String> circle=new ArrayList<>();
+        for(String[] caregiver:CAREGIVERS)if(!caregiver[1].equals("Owner")&&circle.size()<3)circle.add(caregiver[0]);
+        add(infoRow("Pets","Care Circle",String.join(", ",circle),"Chevron",coral,()->go.accept("Care Circle")),68,6);
         add(infoRow("Document","Pet Passport","View and share full summary","Chevron",coral,()->go.accept("Pet Passport")),68,20);
         add(button("Share Emergency Info",false,color("#FF8298"),()->preview("Emergency sharing is not connected. No information has been shared.")),52);
+    }
+    /** "Cat · 2 years old", or just the species when the birthday is missing or invalid. */
+    private String emergencyAgeLabel(){String species=pet.optString("species","Pet");
+        String age=PetRules.ageLabel(pet.optString("birthday"));return age==null?species:species+" · "+age;}
+    private void dial(String phone){
+        try{a.startActivity(new Intent(Intent.ACTION_DIAL,Uri.parse("tel:"+phone.replaceAll("[^0-9+]",""))));}
+        catch(ActivityNotFoundException error){preview("No dialer app is available on this device.");}
     }
     protected void offline(){header("Offline & Sync","Keep recording, even without\ninternet connection.","More");
         add(art(R.drawable.pdf_offline_cat,112),112);
