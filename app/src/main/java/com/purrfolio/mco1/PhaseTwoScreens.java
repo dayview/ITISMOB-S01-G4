@@ -548,57 +548,59 @@ public class PhaseTwoScreens {
     }
     private static final String[][] CAREGIVERS={{"You","Owner"},{"Mom","Family"},{"Ate","Sitter"},{"Jam","Family"}};
     private static final int[] CAREGIVER_IMAGES={R.drawable.pdf_owner,R.drawable.pdf_mom,R.drawable.pdf_ate,R.drawable.pdf_jam};
-    protected void avatar(FrameLayout frame,String label,String role,int image,int size,float fraction,int top){
-        LinearLayout view=col();view.setGravity(Gravity.CENTER);
-        view.setContentDescription(label+", "+role+", sample caregiver");
-        view.setOnClickListener(v->go.accept(label.equals(name())?"Pet Detail":"Care Circle Access"));
-        view.addView(portrait(image,size,label.equals("Ate")||label.equals("Mom")?mint:primary));
-        view.addView(center(label,14,ink,700),new LinearLayout.LayoutParams(-1,dp(21)));
-        if(!role.isEmpty())view.addView(center(role,12,sub,400),new LinearLayout.LayoutParams(-1,dp(19)));
-        FrameLayout.LayoutParams p=new FrameLayout.LayoutParams(dp(size+14),-2);p.topMargin=dp(top);frame.addView(view,p);view.setTag(fraction);
+    private String accessKey(String person,String permission){return "access:"+person.toLowerCase(Locale.ROOT)+":"+permission;}
+    private boolean accessDefault(String person,String permission){
+        if(permission.equals("logs"))return true;
+        return permission.equals("view")&&!person.equals("Ate");
     }
-    protected View circleDiagram(boolean access){FrameLayout frame=new FrameLayout(a);
-        if(access){avatar(frame,"You","Owner",R.drawable.pdf_owner,60,.13f,6);
-            avatar(frame,name(),"",R.drawable.pdf_mochi,96,.5f,6);
-            avatar(frame,"Mom","Family",R.drawable.pdf_mom,60,.87f,6);
-            avatar(frame,"Ate","Sitter",R.drawable.pdf_ate,60,.13f,125);
-            avatar(frame,"Jam","Family",R.drawable.pdf_jam,60,.5f,140);
-            LinearLayout invite=col();invite.setGravity(Gravity.CENTER);invite.setTag(.87f);
-            invite.setOnClickListener(v->preview("Caregiver invitations require authenticated shared accounts."));
-            FrameLayout plus=action("Plus","Invite caregiver",()->preview("Invitations are a frontend preview."));
-            plus.setBackground(shape(surface,40,true));invite.addView(plus,new LinearLayout.LayoutParams(dp(64),dp(64)));
-            invite.addView(center("Invite",14,ink,700));FrameLayout.LayoutParams ip=new FrameLayout.LayoutParams(dp(74),dp(96));ip.topMargin=dp(127);frame.addView(invite,ip);
-        }else{avatar(frame,name(),"",R.drawable.pdf_mochi,120,.5f,40);
-            avatar(frame,"You","Owner",R.drawable.pdf_owner,54,.12f,8);
-            avatar(frame,"Mom","Family",R.drawable.pdf_mom,54,.88f,8);
-            avatar(frame,"Ate","Sitter",R.drawable.pdf_ate,54,.12f,120);
-            avatar(frame,"Jam","Family",R.drawable.pdf_jam,54,.88f,120);}
-        frame.addOnLayoutChangeListener((v,l,t,r,b,ol,ot,or,ob)->{
-            for(int i=0;i<frame.getChildCount();i++){View child=frame.getChildAt(i);Object tag=child.getTag();
-                if(tag instanceof Float)child.setTranslationX(v.getWidth()*(Float)tag-child.getWidth()/2f);}});
-        frame.addView(icon("Heart",23,pink),new FrameLayout.LayoutParams(dp(23),dp(23),Gravity.TOP|Gravity.CENTER_HORIZONTAL));return frame;
+    private String accessSummary(String person){
+        if(person.equals("You"))return "Full access";
+        int count=0;for(String permission:new String[]{"view","logs","reminders","documents"})
+            if(prefs.getBoolean(accessKey(person,permission),accessDefault(person,permission)))count++;
+        return count+" of 4 permissions";
     }
-    protected void careCircle(boolean access){header("Care Circle",access?"People who help care for "+name()+".":"People who care for "+name(),
-            "More",access?"Person":null,()->preview("Invitations require connected shared accounts."),30,false);
-        if(!access)add(center("Share access so family and sitters\ncan help keep "+name()+" happy and healthy."),44,8);
-        add(circleDiagram(access),access?250:235,10);
-        if(access){add(chips(Arrays.asList("Access Control","Activity Log"),value->{if(value.equals("Activity Log"))go.accept("Activity Log");}),42,16);
-            sectionLabel("Access Permissions");
-            add(toggleRow("Document","View Profile & Records","Can view all pet information",true,"access:view",true),65,3);
-            add(toggleRow("Edit","Add & Edit Care Logs","Can add and edit care activities",true,"access:logs",true),65,3);
-            add(toggleRow("Bell","Manage Reminders","Can create and edit reminders",false,"access:reminders",true),65,3);
-            add(toggleRow("Folder","Manage Documents","Can add and edit documents",false,"access:documents",true),65,8);
-            add(button("Save Permissions",()->preview("Preferences are saved on this device as a preview. No caregiver access has been granted.")),50);
-        }else{add(button("Invite Caregiver",()->preview("Sample Care Circle: invitations and shared access are not connected.")),50,20);
-            sectionLabel("Care Circle (4) · Demo",10);
-            for(int i=0;i<CAREGIVERS.length;i++){String label=CAREGIVERS[i][0],role=CAREGIVERS[i][1];
-                LinearLayout r=row();r.setBackground(shape());pad(r,10,7);r.setOnClickListener(v->go.accept("Care Circle Access"));
-                LinearLayout.LayoutParams photo=new LinearLayout.LayoutParams(dp(46),dp(46));photo.rightMargin=dp(14);
-                r.addView(portrait(CAREGIVER_IMAGES[i],46),photo);
-                LinearLayout labels=col();labels.addView(text(label,15,ink,700));
-                LinearLayout.LayoutParams detail=new LinearLayout.LayoutParams(-1,-2);detail.topMargin=dp(5);
-                labels.addView(text(role+" · "+(label.equals("You")?"Full access":label.equals("Ate")?"Today's care only":"Care + Records"),12,sub),detail);
-                r.addView(labels,new LinearLayout.LayoutParams(0,-2,1));r.addView(icon("Chevron",22));add(r,62,4);}}
+    protected void careCircle(boolean access){
+        if(access){
+            String person=prefs.getString("ui:care-circle-person","Mom");
+            String role="Family";int image=R.drawable.pdf_mom;
+            for(int i=1;i<CAREGIVERS.length;i++)if(CAREGIVERS[i][0].equals(person)){
+                role=CAREGIVERS[i][1];image=CAREGIVER_IMAGES[i];break;}
+            header(person+"'s access",role+" · Local preview only","Care Circle");
+            LinearLayout identity=row();identity.setBackground(shape());pad(identity,14,10);
+            LinearLayout.LayoutParams photo=new LinearLayout.LayoutParams(dp(48),dp(48));photo.rightMargin=dp(14);
+            identity.addView(portrait(image,48),photo);
+            LinearLayout labels=col();labels.addView(text(person,17,ink,700));
+            labels.addView(text("Care for "+name(),13,sub),new LinearLayout.LayoutParams(-1,-2));
+            identity.addView(labels);add(identity,68,20);
+            sectionLabel("Permissions",8);
+            add(toggleRow("Document","View Profile & Records","Can view pet information",accessDefault(person,"view"),accessKey(person,"view"),true),65,4);
+            add(toggleRow("Edit","Add & Edit Care Logs","Can update care activities",accessDefault(person,"logs"),accessKey(person,"logs"),true),65,4);
+            add(toggleRow("Bell","Manage Reminders","Can create and edit reminders",false,accessKey(person,"reminders"),true),65,4);
+            add(toggleRow("Folder","Manage Documents","Can add and edit documents",false,accessKey(person,"documents"),true),65,12);
+            add(text("Changes save on this device only. No caregiver access has been granted.",13,sub),-2,20);
+            add(button("View activity log",true,()->go.accept("Activity Log")),52);
+        }else{
+            header("Care Circle","People who help care for "+name()+".","More");
+            add(text("Sample caregivers · Sharing is not connected",13,sub),-2,20);
+            sectionLabel("People",8);
+            for(int i=0;i<CAREGIVERS.length;i++){
+                String person=CAREGIVERS[i][0],role=CAREGIVERS[i][1];
+                LinearLayout r=row();r.setBackground(shape());pad(r,12,8);r.setMinimumHeight(dp(68));
+                LinearLayout.LayoutParams photo=new LinearLayout.LayoutParams(dp(44),dp(44));photo.rightMargin=dp(14);
+                r.addView(portrait(CAREGIVER_IMAGES[i],44),photo);
+                LinearLayout labels=col();labels.addView(text(person,16,ink,700));
+                LinearLayout.LayoutParams detail=new LinearLayout.LayoutParams(-1,-2);detail.topMargin=dp(3);
+                labels.addView(text(role+" · "+accessSummary(person),13,sub),detail);
+                r.addView(labels,new LinearLayout.LayoutParams(0,-2,1));
+                if(!person.equals("You")){
+                    r.addView(icon("Chevron",22));r.setFocusable(true);
+                    r.setContentDescription(person+", "+role+", "+accessSummary(person)+". View permissions.");
+                    r.setOnClickListener(v->{prefs.edit().putString("ui:care-circle-person",person).apply();go.accept("Care Circle Access");});}
+                add(r,-2,6);
+            }
+            gap(12);add(button("Invite caregiver",()->preview("Invitations require connected shared accounts.")),52,12);
+            add(button("View activity log",true,()->go.accept("Activity Log")),52);
+        }
     }
     protected void voiceLog(){header("Voice Log","Describe the care activity in your own words.","Care");
         add(new Waveform(a,primary),90,20);add(button("Record voice",()->recognizeVoice.run()),52,12);
