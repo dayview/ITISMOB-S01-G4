@@ -57,6 +57,16 @@ public final class LocalDocument {
         return json;
     }
 
+    /** The label of the filter chip on the documents screen that this document belongs under. */
+    public String tabLabel() {
+        switch (type) {
+            case "Vaccination": return "Vaccinations";
+            case "Medication": return "Medications";
+            case "Receipt": return "Receipts";
+            default: return "Other";
+        }
+    }
+
     public boolean looksLikeImage() {
         return DocumentRules.isImage(fileName);
     }

@@ -117,6 +117,74 @@ public class LocalDocumentRepositoryTest {
         assertEquals("good", all.get(0).id);
     }
 
+    // ---- filter: tab, search and date range ----
+
+    private static long at(int year, int month, int day) {
+        java.util.Calendar c = java.util.Calendar.getInstance();
+        c.clear();
+        c.set(year, month - 1, day, 12, 0, 0);
+        return c.getTimeInMillis();
+    }
+
+    private static LocalDocument typed(String id, String title, String type, String fileName, long addedAt) {
+        return new LocalDocument(id, "pet-1", title, type, fileName, "docs/pet-1/" + id, addedAt, 100);
+    }
+
+    private static List<String> ids(List<LocalDocument> docs) {
+        List<String> out = new java.util.ArrayList<>();
+        for (LocalDocument d : docs) out.add(d.id);
+        return out;
+    }
+
+    @Test public void tabLabelsMatchTheFilterChips() {
+        assertEquals("Vaccinations", typed("a", "t", "Vaccination", "a.pdf", 0).tabLabel());
+        assertEquals("Medications", typed("a", "t", "Medication", "a.pdf", 0).tabLabel());
+        assertEquals("Receipts", typed("a", "t", "Receipt", "a.pdf", 0).tabLabel());
+        assertEquals("Other", typed("a", "t", "Other", "a.pdf", 0).tabLabel());
+        assertEquals("Other", typed("a", "t", "Invoice", "a.pdf", 0).tabLabel());
+    }
+
+    @Test public void filterByTab() {
+        long now = at(2026, 11, 22);
+        List<LocalDocument> docs = java.util.Arrays.asList(
+                typed("v", "Rabies card", "Vaccination", "card.pdf", now),
+                typed("r", "Vet bill", "Receipt", "bill.pdf", now));
+        assertEquals(2, LocalDocumentRepository.filter(docs, "All", "", 0, now).size());
+        assertEquals(java.util.Collections.singletonList("v"),
+                ids(LocalDocumentRepository.filter(docs, "Vaccinations", "", 0, now)));
+        assertTrue(LocalDocumentRepository.filter(docs, "Medications", "", 0, now).isEmpty());
+    }
+
+    @Test public void filterSearchesTitleAndFileNameIgnoringCase() {
+        long now = at(2026, 11, 22);
+        List<LocalDocument> docs = java.util.Arrays.asList(
+                typed("a", "Rabies card", "Vaccination", "scan001.pdf", now),
+                typed("b", "Vet bill", "Receipt", "CLINIC.png", now));
+        assertEquals(java.util.Collections.singletonList("a"),
+                ids(LocalDocumentRepository.filter(docs, "All", "  RABIES ", 0, now)));
+        assertEquals(java.util.Collections.singletonList("b"),
+                ids(LocalDocumentRepository.filter(docs, "All", "clinic", 0, now)));
+        assertEquals(2, LocalDocumentRepository.filter(docs, "All", null, 0, now).size());
+    }
+
+    @Test public void filterByDateRange() {
+        long now = at(2026, 11, 22);
+        List<LocalDocument> docs = java.util.Arrays.asList(
+                typed("today", "t", "Other", "a.pdf", at(2026, 11, 22)),
+                typed("monthStart", "t", "Other", "a.pdf", at(2026, 11, 1)),
+                typed("lastMonth", "t", "Other", "a.pdf", at(2026, 10, 31)),
+                typed("fourMonths", "t", "Other", "a.pdf", at(2026, 7, 10)),
+                typed("lastYear", "t", "Other", "a.pdf", at(2025, 12, 1)),
+                typed("old", "t", "Other", "a.pdf", at(2024, 1, 1)));
+        assertEquals(6, LocalDocumentRepository.filter(docs, "All", "", 0, now).size());
+        assertEquals(java.util.Arrays.asList("today", "monthStart"),
+                ids(LocalDocumentRepository.filter(docs, "All", "", 1, now)));
+        assertEquals(java.util.Arrays.asList("today", "monthStart", "lastMonth"),
+                ids(LocalDocumentRepository.filter(docs, "All", "", 2, now)));
+        assertEquals(java.util.Arrays.asList("today", "monthStart", "lastMonth", "fourMonths", "lastYear"),
+                ids(LocalDocumentRepository.filter(docs, "All", "", 3, now)));
+    }
+
     @Test public void survivesBeingReopened() {
         repository.add(doc("a", "pet-1", 100));
         LocalDocumentRepository reopened = new LocalDocumentRepository(storage);

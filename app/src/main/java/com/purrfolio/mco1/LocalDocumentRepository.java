@@ -7,8 +7,10 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 
 /**
  * Remembers the list of {@link LocalDocument}s between app launches (5.1 Pet Paperless Inbox).
@@ -68,6 +70,45 @@ public final class LocalDocumentRepository {
         }
         Collections.sort(documents, (a, b) -> Long.compare(b.addedAt, a.addedAt));
         return documents;
+    }
+
+    /**
+     * Narrows a list the same way the documents screen narrows the online ones.
+     * tab: "All", "Vaccinations", "Medications", "Receipts" or "Other". The search text matches the
+     * title or the file name. rangeIndex: 0 all time, 1 this month, 2 last 3 months, 3 last year.
+     * The current time is passed in so a test does not depend on today's date.
+     */
+    public static List<LocalDocument> filter(List<LocalDocument> docs, String tab, String query,
+                                             int rangeIndex, long nowMillis) {
+        List<LocalDocument> out = new ArrayList<>();
+        String q = query == null ? "" : query.trim().toLowerCase(Locale.ROOT);
+        long cutOff = cutOffFor(rangeIndex, nowMillis);
+        for (LocalDocument d : docs) {
+            boolean tabOk = tab == null || tab.equals("All") || d.tabLabel().equals(tab);
+            boolean queryOk = q.isEmpty() || d.title.toLowerCase(Locale.ROOT).contains(q)
+                    || d.fileName.toLowerCase(Locale.ROOT).contains(q);
+            if (tabOk && queryOk && d.addedAt >= cutOff) out.add(d);
+        }
+        return out;
+    }
+
+    /** Oldest time that still counts for the range. Long.MIN_VALUE means no limit. */
+    private static long cutOffFor(int rangeIndex, long nowMillis) {
+        Calendar cutOff = Calendar.getInstance();
+        cutOff.setTimeInMillis(nowMillis);
+        switch (rangeIndex) {
+            case 1:
+                cutOff.set(Calendar.DAY_OF_MONTH, 1);
+                cutOff.set(Calendar.HOUR_OF_DAY, 0);
+                cutOff.set(Calendar.MINUTE, 0);
+                cutOff.set(Calendar.SECOND, 0);
+                cutOff.set(Calendar.MILLISECOND, 0);
+                break;
+            case 2: cutOff.add(Calendar.MONTH, -3); break;
+            case 3: cutOff.add(Calendar.YEAR, -1); break;
+            default: return Long.MIN_VALUE;
+        }
+        return cutOff.getTimeInMillis();
     }
 
     /** The documents of one pet, newest first. */
