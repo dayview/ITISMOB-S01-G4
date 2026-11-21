@@ -278,7 +278,7 @@ public class ReferenceScreens {
     }
     private void sitter(){
         header("Sitter Mode");
-        TextView introduction=text("Care essentials for "+name(),22,ink,700,true);
+        TextView introduction=title("Care essentials for "+name(),20);
         add(introduction,-2,6);
         TextView description=text("Keep notes and contacts ready for the people who care for "+name()+".",14,sub);
         add(description,-2,20);
