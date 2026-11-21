@@ -112,6 +112,74 @@ public class RecordSearchTest {
         assertEquals(null, PetRecord.Type.fromLabel("All"));
     }
 
+    @Test public void documentsBecomeDocumentsExceptVaccinationCards() {
+        PetDocument receipt = document("d1", "Receipt", "Vet receipt", "receipt.pdf");
+        PetRecord r = PetRecord.fromDocument(receipt);
+        assertEquals(PetRecord.Type.DOCUMENTS, r.type);
+        assertEquals("d1", r.id);
+        assertEquals("mochi", r.petId);
+        assertEquals("Vet receipt", r.title);
+        assertEquals("Receipt document · receipt.pdf · Added by Theo", r.detail);
+        assertEquals(NOW, r.timeMillis);
+        assertEquals(PetRecord.SOURCE_DOCUMENT, r.source);
+        assertEquals(PetRecord.Type.VACCINATIONS, PetRecord.fromDocument(document("d2", "Vaccination", "Rabies card", "")).type);
+    }
+
+    @Test public void untitledDocumentUsesItsFileName() {
+        assertEquals("scan.jpg", PetRecord.fromDocument(document("d3", "Other", "", "scan.jpg")).title);
+    }
+
+    @Test public void remindersGetTheRightType() {
+        assertEquals(PetRecord.Type.MEDICATIONS, PetRecord.fromReminder(reminder(Reminder.MEDICATION, false)).type);
+        assertEquals(PetRecord.Type.VACCINATIONS, PetRecord.fromReminder(reminder(Reminder.VACCINATION, false)).type);
+        assertEquals(PetRecord.Type.APPOINTMENTS, PetRecord.fromReminder(reminder(Reminder.VET, false)).type);
+        assertEquals(PetRecord.Type.CARE_LOGS, PetRecord.fromReminder(reminder(Reminder.FEEDING, false)).type);
+        assertEquals(PetRecord.Type.CARE_LOGS, PetRecord.fromReminder(reminder(Reminder.OTHERS, false)).type);
+    }
+
+    @Test public void reminderFieldsAreCopied() {
+        PetRecord r = PetRecord.fromReminder(reminder(Reminder.MEDICATION, true));
+        assertEquals("r1", r.id);
+        assertEquals("mochi", r.petId);
+        assertEquals("Heartworm pill", r.title);
+        assertEquals("Medication reminder · Repeats daily · With food", r.detail);
+        assertEquals(NOW - 1, r.timeMillis);
+        assertEquals(PetRecord.SOURCE_REMINDER, r.source);
+    }
+
+    @Test public void documentsAndRemindersAreSearchedWithCareLogs() {
+        List<PetRecord> all = new ArrayList<>(records);
+        all.addAll(RecordSearch.fromDocuments(Arrays.asList(document("d2", "Vaccination", "Rabies card", ""))));
+        all.addAll(RecordSearch.fromReminders(Arrays.asList(reminder(Reminder.VACCINATION, false))));
+        assertEquals(Arrays.asList("d2", "r1"),
+                ids(RecordSearch.filter(all, "mochi", PetRecord.Type.VACCINATIONS, RecordSearch.DateRange.ALL, "")));
+        assertEquals(Arrays.asList("d2"), ids(RecordSearch.filter(all, "mochi", null, RecordSearch.DateRange.ALL, "rabies")));
+    }
+
+    private static PetDocument document(String id, String type, String title, String fileName) {
+        PetDocument d = new PetDocument();
+        d.id = id;
+        d.petId = "mochi";
+        d.type = type;
+        d.title = title;
+        d.fileName = fileName;
+        d.addedAt = NOW;
+        d.authorName = "Theo";
+        return d;
+    }
+
+    private static Reminder reminder(String category, boolean daily) {
+        Reminder r = new Reminder();
+        r.id = "r1";
+        r.petId = "mochi";
+        r.title = "Heartworm pill";
+        r.detail = "With food";
+        r.category = category;
+        r.timeMillis = NOW - 1; // just before the document, so the order is predictable
+        r.repeatDaily = daily;
+        return r;
+    }
+
     private static JSONObject log(String kind, String audioFile) throws Exception {
         JSONObject log = new JSONObject().put("id", "log1").put("petId", "mochi").put("kind", kind)
                 .put("text", "1/2 cup").put("occurredAt", NOW);

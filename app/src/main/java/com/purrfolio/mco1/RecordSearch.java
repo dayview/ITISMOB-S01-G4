@@ -86,6 +86,20 @@ public final class RecordSearch {
         return records;
     }
 
+    /** Turns Pet Records documents into records. */
+    public static List<PetRecord> fromDocuments(List<PetDocument> documents) {
+        List<PetRecord> records = new ArrayList<>();
+        for (PetDocument document : documents) records.add(PetRecord.fromDocument(document));
+        return records;
+    }
+
+    /** Turns reminders into records. */
+    public static List<PetRecord> fromReminders(List<Reminder> reminders) {
+        List<PetRecord> records = new ArrayList<>();
+        for (Reminder reminder : reminders) records.add(PetRecord.fromReminder(reminder));
+        return records;
+    }
+
     /**
      * The records that match every filter, newest first (entries without a time go last).
      *

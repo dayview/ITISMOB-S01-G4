@@ -647,7 +647,7 @@ public class PhaseTwoScreens {
         upload.addView(button("Add Document",()->preview("Document upload requires file selection and storage integration. No sample file has been uploaded.")),bp);
         add(upload,278,18);
         LinearLayout h=row();h.addView(section("Recent Documents"),new LinearLayout.LayoutParams(0,-2,1));
-        TextView all=text("See All",12,primary,700);all.setOnClickListener(v->openRecordSearch("All"));h.addView(all);add(h,28,8);
+        TextView all=text("See All",12,primary,700);all.setOnClickListener(v->go.accept("Paperless Inbox"));h.addView(all);add(h,28,8);
         for(int i=0;i<2;i++)add(documentRow(documents.get(i),false),66,5);demoLabel("Sample documents");
     }
     protected void vaccination(){header("Vaccination Card","Added on Sep 12, 2026 · Sample document","Records","More",
@@ -683,8 +683,17 @@ public class PhaseTwoScreens {
     private static final String[][] RECORD_DATE_CHIPS={{"All","This Month","Last 3 Months"},{"Last Year","Custom"}};
     protected void openRecordSearch(String typeLabel){prefs.edit().putString(RECORD_TYPE_PREF,typeLabel).apply();go.accept("Browse Records");}
     protected void recordsSearch(){header("Search Records","Find "+name()+"'s care logs, visits,\nmedications, and more.","Records");
-        // Every record of the selected pet; the filters below only narrow this list.
-        List<PetRecord> petRecords=RecordSearch.filter(RecordSearch.fromCareLogs(logs),pet.optString("id"),null,RecordSearch.DateRange.ALL,"");
+        // Every record of the selected pet (care logs on the phone, plus documents and reminders from
+        // Firestore once they load); the filters below only narrow this list.
+        String petId=pet.optString("id");BackendHub hub=BackendHub.get();
+        List<PetRef> petRefs=new ArrayList<>();
+        for(JSONObject p:pets)if(!p.optString("id").isEmpty())petRefs.add(new PetRef(p.optString("id"),p.optString("name","Pet")));
+        hub.start(a,petRefs);hub.watchDocuments(petId);
+        List<PetRecord> petRecords=new ArrayList<>();
+        Runnable collect=()->{List<PetRecord> all=new ArrayList<>(RecordSearch.fromCareLogs(logs));
+            all.addAll(RecordSearch.fromDocuments(hub.documents()));all.addAll(RecordSearch.fromReminders(hub.reminders()));
+            petRecords.clear();petRecords.addAll(RecordSearch.filter(all,petId,null,RecordSearch.DateRange.ALL,""));};
+        collect.run();
         // Used once, so opening search from anywhere else (e.g. More) starts with no filters.
         String savedType=prefs.getString(RECORD_TYPE_PREF,"All");prefs.edit().remove(RECORD_TYPE_PREF).apply();
         final String[] selectedType={PetRecord.Type.fromLabel(savedType)==null?"All":savedType},selectedDate={"All"};
@@ -730,6 +739,11 @@ public class PhaseTwoScreens {
         query.addTextChangedListener(new TextWatcher(){public void beforeTextChanged(CharSequence s,int start,int count,int after){}
             public void afterTextChanged(Editable s){}public void onTextChanged(CharSequence s,int start,int before,int count){refresh[0].run();}});
         refresh[0].run();
+        // Documents and reminders arrive from Firestore after the screen opens (and change live).
+        Runnable reload=()->{collect.run();refresh[0].run();};hub.observe(reload);
+        results.addOnAttachStateChangeListener(new View.OnAttachStateChangeListener(){
+            @Override public void onViewAttachedToWindow(View v){}
+            @Override public void onViewDetachedFromWindow(View v){hub.unobserve(reload);}});
     }
     private void drawRecordChips(LinearLayout container,String[][] groups,String selected,Consumer<String> onSelect){
         container.removeAllViews();for(String[] labels:groups)container.addView(chips(Arrays.asList(labels),selected,value->{
@@ -779,6 +793,10 @@ public class PhaseTwoScreens {
         if(!record.detail.isEmpty())message.append("\n\n").append(record.detail);
         AlertDialog.Builder dialog=new AlertDialog.Builder(a).setTitle(record.title).setMessage(message).setPositiveButton("Close",null);
         if(PetRecord.SOURCE_CARE_LOG.equals(record.source))dialog.setNegativeButton("Open Care History",(d,w)->go.accept("Care History"));
+        else if(PetRecord.SOURCE_REMINDER.equals(record.source))dialog.setNegativeButton("Open Reminders",(d,w)->go.accept("Reminders"));
+        else if(PetRecord.SOURCE_DOCUMENT.equals(record.source)){
+            for(PetDocument document:BackendHub.get().documents())if(document.id.equals(record.id)){
+                dialog.setNegativeButton("View Document",(d,w)->DocumentRepository.view(a,document));break;}}
         JSONObject recording=entry;
         if(recording!=null&&!recording.optString("audioFile").isEmpty())dialog.setNeutralButton("Play",(d,w)->playRecording.accept(recording));
         dialog.show();
@@ -788,7 +806,7 @@ public class PhaseTwoScreens {
         String message;
         if(noRecordsAtAll)message="No records for "+name()+" yet.\nLog care and it will show up here.";
         else if(type==PetRecord.Type.VACCINATIONS||type==PetRecord.Type.DOCUMENTS)
-            message="No "+type.label.toLowerCase(Locale.ROOT)+" found.\nVaccination cards and documents will appear here\nonce they can be saved in Pet Records.";
+            message="No "+type.label.toLowerCase(Locale.ROOT)+" found.\nDocuments and reminders saved for "+name()+"\nwill appear here.";
         else message="No records match these filters.";
         TextView text=center(message,14,sub,400);box.addView(text,new LinearLayout.LayoutParams(-1,-2));
         LinearLayout.LayoutParams bp=new LinearLayout.LayoutParams(-1,dp(46));bp.topMargin=dp(14);

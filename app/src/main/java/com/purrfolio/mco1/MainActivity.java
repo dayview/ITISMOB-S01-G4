@@ -302,7 +302,7 @@ public class MainActivity extends AppCompatActivity {
             case "Add Your Pet":showAddPet();return;case "Edit Pet Profile":showEditPet();return;
             case "Pets":showMyPets();return;case "Pet Profile":showPetProfile();return;
             case "Reminders":showReminders();return;case "Calendar":showCareCalendar();return;
-            case "Browse Records":showDocuments();return;
+            case "Paperless Inbox":showDocuments();return;
             case "Pet Passport":showPassport();return;}
         if(ReferenceScreens.destinations.contains(destination)){
             View view=new ReferenceScreens(this,selectedPet(),target->{render(target);},
