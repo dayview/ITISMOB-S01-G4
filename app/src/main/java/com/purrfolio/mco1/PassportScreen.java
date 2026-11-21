@@ -135,8 +135,8 @@ public class PassportScreen {
 
     private View rowView(String label, String value, String target, String verb) {
         LinearLayout line = ui.column();
-        line.setMinimumHeight(ui.dp(56));
-        line.setPadding(ui.dp(4), ui.dp(10), ui.dp(4), ui.dp(10));
+        line.setMinimumHeight(ui.dp(48));
+        line.setPadding(ui.dp(4), ui.dp(6), ui.dp(4), ui.dp(6));
         line.setFocusable(true);
         line.setClickable(true);
         line.setBackground(ui.interactiveBackground(Color.TRANSPARENT, 16));
