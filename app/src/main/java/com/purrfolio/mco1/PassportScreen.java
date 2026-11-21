@@ -100,6 +100,7 @@ public class PassportScreen {
     private LinearLayout section(LinearLayout body, String title) {
         TextView heading = ui.heading(title, 18f);
         ui.markHeading(heading);
+        heading.setPadding(ui.dp(4), 0, ui.dp(4), 0);
         body.addView(heading, ui.lp(12, 8));
         LinearLayout rows = ui.column();
         body.addView(rows, ui.lpBottom(8));
