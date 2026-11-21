@@ -461,9 +461,15 @@ public class PetUi {
      */
     public LinearLayout choiceChips(String label, boolean optional, List<String> options, String selected,
                                     Consumer<String> onSelect) {
+        return choiceChips(label, optional, options, selected, options.size(), onSelect);
+    }
+
+    /** Same, but with at most maxPerRow chips on one line (use 2 when the labels are long). */
+    public LinearLayout choiceChips(String label, boolean optional, List<String> options, String selected,
+                                    int maxPerRow, Consumer<String> onSelect) {
         LinearLayout container = column();
         container.addView(fieldLabel(label, optional), lpBottom(8));
-        int perRow = a.getResources().getConfiguration().fontScale > 1.3f ? 2 : options.size();
+        int perRow = a.getResources().getConfiguration().fontScale > 1.3f ? Math.min(2, maxPerRow) : maxPerRow;
         List<TextView> chips = new ArrayList<>();
         String[] current = {selected};
 
