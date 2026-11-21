@@ -87,6 +87,10 @@ public class MainActivity extends AppCompatActivity implements ExportFiles.Host 
             });
     private final ActivityResultLauncher<PickVisualMediaRequest> petPhotoPicker=registerForActivityResult(
             new ActivityResultContracts.PickVisualMedia(),uri->{if(uri!=null)onPetPhotoPicked(uri);});
+    // ---- 5.1 Paperless Inbox: the add form asks for a file, this hands the answer back to it ----
+    private PaperlessInboxScreen paperless;
+    private final ActivityResultLauncher<String[]> documentPicker=registerForActivityResult(
+            new ActivityResultContracts.OpenDocument(),uri->{if(uri!=null&&paperless!=null)paperless.onFilePicked(uri);});
 
     // ---- 5.5 Export: system "Save as" screen (no storage permission needed) ----
     private byte[] pendingExport;
@@ -305,7 +309,7 @@ public class MainActivity extends AppCompatActivity implements ExportFiles.Host 
             case "Create Account":case "Log In":case "Reset Password":target="Welcome";break;
             case "Pet Detail":case "Edit Pet Profile":case "Add Your Pet":case "Pet Profile":target="Pets";break;
             case "Quick Log":case "Voice Log":case "Sound Journal":case "Care History":target="Care";break;
-            case "Paperless Inbox":case "Pet Timeline":case "Pet Passport":case "Browse Records":case "Vaccination Card":target="Records";break;
+            case "Paperless Inbox":case "Add Document":case "Pet Timeline":case "Pet Passport":case "Browse Records":case "Vaccination Card":target="Records";break;
             case "Personal Information":case "Account Settings":case "Notifications":target="Profile";break;
             case "App Theme":target="Account Settings";break;
             default:target="More";
@@ -323,6 +327,7 @@ public class MainActivity extends AppCompatActivity implements ExportFiles.Host 
             case "Pets":showMyPets();return;case "Pet Profile":showPetProfile();return;
             case "Reminders":showReminders();return;case "Calendar":showCareCalendar();return;
             case "Paperless Inbox":showDocuments();return;
+            case "Add Document":showAddDocument();return;
             case "Pet Passport":showPassport();return;
             case "Pet Timeline":showTimeline();return;}
         if(ReferenceScreens.destinations.contains(destination)){
@@ -720,4 +725,21 @@ public class MainActivity extends AppCompatActivity implements ExportFiles.Host 
         ScreenDocumentsBinding binding=ScreenDocumentsBinding.inflate(getLayoutInflater());setContentView(binding.getRoot());
         applyLegacyInsets(binding.documentsRoot);bindLegacyHeader(binding.header,"Documents");bindCareDock(binding.bottomNav,"Browse Records");
         new DocumentsScreen(this,binding,currentPet()).bind();}
+    /** 5.1 add form. Opened with render("Add Document"); the list stays on "Paperless Inbox". */
+    private void showAddDocument(){
+        PaperlessInboxScreen.Host host=new PaperlessInboxScreen.Host(){
+            @Override public void pickDocument(){documentPicker.launch(new String[]{"application/pdf","image/*"});}
+            @Override public String save(String petId,String title,String type,Uri source,DocumentFileStore.Picked picked){
+                String id=UUID.randomUUID().toString();
+                String path=DocumentFileStore.save(MainActivity.this,source,petId,id,picked.fileName);
+                if(path==null)return "Could not save this file. Check that it is a PDF or image under 10 MB and try again.";
+                java.io.File saved=DocumentFileStore.fileFor(MainActivity.this,path);
+                LocalDocumentRepository.inPreferences(preferences).add(new LocalDocument(id,petId,title,type,
+                        picked.fileName,path,System.currentTimeMillis(),saved==null?0:saved.length()));
+                note("Document saved on this phone.");
+                return null;}
+            @Override public void close(){navigateBack();}
+        };
+        paperless=new PaperlessInboxScreen(this,petRefs(),petId(selectedPet()),host);
+        showContent(paperless.build());}
 }
