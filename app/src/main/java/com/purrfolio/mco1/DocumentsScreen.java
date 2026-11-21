@@ -1,6 +1,7 @@
 package com.purrfolio.mco1;
 
 import android.app.Activity;
+import android.app.AlertDialog;
 import android.content.ActivityNotFoundException;
 import android.content.Context;
 import android.content.Intent;
@@ -15,6 +16,7 @@ import android.widget.Toast;
 
 import androidx.core.content.ContextCompat;
 import androidx.core.content.FileProvider;
+import androidx.core.view.ViewCompat;
 
 import com.purrfolio.mco1.databinding.ItemDocumentBinding;
 import com.purrfolio.mco1.databinding.ScreenDocumentsBinding;
@@ -89,8 +91,7 @@ public final class DocumentsScreen {
         List<PetDocument> shown = DocumentRepository.filter(BackendHub.get().documents(), filter, query);
         // Documents saved on this phone (5.1). Same chips, search and date range as the online ones.
         List<LocalDocument> local = LocalDocumentRepository.filter(
-                LocalDocumentRepository.inPreferences(activity.getSharedPreferences("purrfolio_demo", Context.MODE_PRIVATE))
-                        .forPet(current.id),
+                localRepository().forPet(current.id),
                 filter, query, range, System.currentTimeMillis());
 
         int count = 0;
@@ -110,6 +111,27 @@ public final class DocumentsScreen {
             count++;
         }
         binding.documentsEmpty.setVisibility(count == 0 ? View.VISIBLE : View.GONE);
+    }
+
+    private LocalDocumentRepository localRepository() {
+        // Same preferences file MainActivity uses for pets and reminders.
+        return LocalDocumentRepository.inPreferences(activity.getSharedPreferences("purrfolio_demo", Context.MODE_PRIVATE));
+    }
+
+    private void confirmDelete(LocalDocument d) {
+        new AlertDialog.Builder(activity)
+                .setTitle("Delete \"" + d.title + "\"?")
+                .setMessage("This removes the saved file from this phone.")
+                .setNegativeButton("Cancel", null)
+                .setPositiveButton("Delete", (dialog, which) -> deleteLocal(d))
+                .show();
+    }
+
+    /** Record first, then the file: a failed file delete leaves an unseen leftover, never a row that points at nothing. */
+    private void deleteLocal(LocalDocument d) {
+        LocalDocument removed = localRepository().remove(d.id);
+        if (removed != null) DocumentFileStore.delete(activity, removed.path);
+        render();
     }
 
     /** Opens a saved copy in whatever app can show it. The viewer gets a temporary read-only link, not the file path. */
@@ -141,6 +163,12 @@ public final class DocumentsScreen {
         BrandType.apply(item.documentTitle, false, 700);
         BrandType.apply(item.documentMeta, false, 400);
         item.getRoot().setOnClickListener(v -> openLocal(d));
+        // Long-press for sighted users, and a named action so TalkBack users can reach it too.
+        item.getRoot().setOnLongClickListener(v -> { confirmDelete(d); return true; });
+        ViewCompat.addAccessibilityAction(item.getRoot(), "Delete", (view, arguments) -> {
+            confirmDelete(d);
+            return true;
+        });
         binding.documentContainer.addView(item.getRoot());
     }
 
