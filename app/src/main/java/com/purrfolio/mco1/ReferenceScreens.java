@@ -278,14 +278,10 @@ public class ReferenceScreens {
     }
     private void sitter(){
         header("Sitter Mode");
-        ImageView illustration=new ImageView(a);
-        illustration.setImageResource(R.drawable.sitter_friends);
-        illustration.setScaleType(ImageView.ScaleType.FIT_CENTER);
-        illustration.setContentDescription("Cat and dog illustration");add(illustration,92,8);
         TextView introduction=text("Care essentials for "+name(),22,ink,700,true);
-        introduction.setGravity(Gravity.CENTER);add(introduction,-2,6);
+        add(introduction,-2,6);
         TextView description=text("Keep notes and contacts ready for the people who care for "+name()+".",14,sub);
-        description.setGravity(Gravity.CENTER);add(description,-2,20);
+        add(description,-2,20);
 
         LinearLayout status=col();status.setBackground(shape(surface,20,true));pad(status,16,14);
         LinearLayout heading=row();
