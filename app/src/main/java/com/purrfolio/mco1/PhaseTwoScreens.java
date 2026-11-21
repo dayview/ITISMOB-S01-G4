@@ -990,9 +990,9 @@ public class PhaseTwoScreens {
         add(infoRow("Vet Visit","Veterinarian",vetDetail,"Phone",coral,()->{
             if(!vetPhone.isEmpty())dial(vetPhone);else preview("No veterinary phone number saved yet. Add one from Edit Pet Profile.");}),68,6);
         String contactDetail=contactName.isEmpty()?"No emergency contact added yet"
-                :contactName+(contactRelation.isEmpty()?"":" ("+contactRelation+")");
-        // Opens Pet Passport, which shows the same contact with its own Call button (or "Not added yet" → Edit).
-        add(infoRow("Phone","Emergency Contact",contactDetail,"Chevron",coral,()->go.accept("Pet Passport")),68,6);
+                :contactName+(contactRelation.isEmpty()?"":" ("+contactRelation+")")+(contactPhone.isEmpty()?"":" · call");
+        add(infoRow("Phone","Emergency Contact",contactDetail,"Phone",coral,()->{
+            if(!contactPhone.isEmpty())dial(contactPhone);else preview("No emergency contact phone number saved yet. Add one from Edit Pet Profile.");}),68,6);
         List<String> circle=new ArrayList<>();
         for(String[] caregiver:CAREGIVERS)if(!caregiver[1].equals("Owner")&&circle.size()<3)circle.add(caregiver[0]);
         add(infoRow("Pets","Care Circle",String.join(", ",circle),"Chevron",coral,()->go.accept("Care Circle")),68,6);
