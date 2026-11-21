@@ -36,6 +36,10 @@ public class PaperlessInboxScreen {
     private String petId;
     private String type = DocumentRules.DEFAULT_TYPE;
     private String title = "";
+    /** True once the user typed in the title, so picking another file no longer replaces it. */
+    private boolean titleEdited;
+    /** True while this class fills the title in, so that change is not counted as the user typing. */
+    private boolean fillingTitle;
     private Uri source;
     private DocumentFileStore.Picked picked;
 
@@ -86,7 +90,10 @@ public class PaperlessInboxScreen {
         drawPreview();
 
         titleField = ui.textField("Title", false, title, "Shown in the list. You can change it.",
-                PetUi.DEFAULT_TEXT_INPUT, false, DocumentRules.TITLE_MAX, value -> title = value);
+                PetUi.DEFAULT_TEXT_INPUT, false, DocumentRules.TITLE_MAX, value -> {
+                    title = value;
+                    if (!fillingTitle) titleEdited = true;
+                });
         body.addView(titleField.root, ui.lpTop(16));
 
         LinearLayout actions = ui.column();
@@ -109,8 +116,12 @@ public class PaperlessInboxScreen {
         // An unknown size (-1) is checked while copying, so only the type is judged here.
         String problem = DocumentRules.fileError(picked.fileName, picked.sizeBytes < 0 ? 1 : picked.sizeBytes);
         showFileError(problem);
-        if (title.trim().isEmpty() && titleField != null) {
+        // Suggest a title from the file name, unless the user wrote one. An emptied title counts as not written.
+        if ((!titleEdited || title.trim().isEmpty()) && titleField != null) {
+            fillingTitle = true;
             titleField.input.setText(DocumentRules.defaultTitle(picked.fileName));
+            fillingTitle = false;
+            titleEdited = false;
         }
         drawPreview();
     }
