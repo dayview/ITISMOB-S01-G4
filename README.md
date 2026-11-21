@@ -39,7 +39,7 @@ Some dynamic screens are deliberately simplified from the source reference rathe
 
 ## Seven-screen reference reconstruction
 
-The reference presentations live in `ReferenceScreens.java`, with Canvas icons and wellness arcs in `CareArtwork.java` and `PetRings.java`. Local profiles, care-log persistence, and forms remain in `MainActivity.java`. Secondary screens live in `PhaseTwoScreens.java`. Home's care schedule and wellness insights are illustrative reference data; clinical records and public sitter sharing are not fabricated.
+The reference presentations live in `ReferenceScreens.java`, with Lucide icons and wellness arcs in `CareArtwork.java` and `PetRings.java`. Local profiles, care-log persistence, and forms remain in `MainActivity.java`. Secondary screens live in `PhaseTwoScreens.java`. Home's care schedule and wellness insights are illustrative reference data. Sitter Mode creates seven-day, revocable public care snapshots through Firebase; see `docs/sitter-links.md`.
 
 Navigation: welcome → existing account/login flows → Home; pet avatar → overview; center plus → Log Care; Care dock tab → timeline; overview options → Passport or Sitter Mode. More also links to Sitter Mode.
 

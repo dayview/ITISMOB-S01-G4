@@ -2,6 +2,10 @@ package com.purrfolio.mco1;
 
 import android.app.Activity;
 import android.app.AlertDialog;
+import android.content.ClipData;
+import android.content.ClipboardManager;
+import android.content.Context;
+import android.content.Intent;
 import android.content.res.Configuration;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -21,15 +25,18 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
 import android.widget.TextView;
+import android.widget.Toast;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowCompat;
 import androidx.core.view.WindowInsetsCompat;
+import com.google.firebase.auth.FirebaseAuth;
 import com.purrfolio.mco1.databinding.FloatingBottomNavBinding;
 import com.purrfolio.mco1.databinding.ScreenReferenceBinding;
 import java.io.InputStream;
 import java.text.SimpleDateFormat;
 import java.util.Arrays;
 import java.util.Calendar;
+import java.util.Date;
 import java.util.HashSet;
 import java.util.Locale;
 import java.util.Set;
@@ -287,10 +294,68 @@ public class ReferenceScreens {
         LinearLayout heading=row();
         LinearLayout.LayoutParams lock=new LinearLayout.LayoutParams(dp(24),dp(24));lock.rightMargin=dp(10);
         heading.addView(icon("Lock",24,primary),lock);
-        heading.addView(text("Sitter links are unavailable",17,ink,700));status.addView(heading);
+        TextView statusTitle=text("Checking sitter link…",17,ink,700);
+        heading.addView(statusTitle);status.addView(heading);
         LinearLayout.LayoutParams explanation=new LinearLayout.LayoutParams(-1,-2);explanation.topMargin=dp(8);
-        status.addView(text("Sharing is not connected yet. Nothing on this page creates a public link or grants access.",14,sub),explanation);
+        TextView statusDescription=text("Connecting to Firebase.",14,sub);
+        status.addView(statusDescription,explanation);
+        TextView linkAddress=text("",13,primary,600);linkAddress.setTextIsSelectable(true);
+        LinearLayout.LayoutParams address=new LinearLayout.LayoutParams(-1,-2);address.topMargin=dp(10);
+        status.addView(linkAddress,address);linkAddress.setVisibility(View.GONE);
+        TextView primaryAction=button("Please wait…",false,()->{});
+        LinearLayout.LayoutParams primaryActionParams=new LinearLayout.LayoutParams(-1,dp(50));primaryActionParams.topMargin=dp(14);
+        status.addView(primaryAction,primaryActionParams);primaryAction.setEnabled(false);
+        TextView copyAction=button("Copy link",true,()->{});
+        LinearLayout.LayoutParams copyParams=new LinearLayout.LayoutParams(-1,dp(50));copyParams.topMargin=dp(8);
+        status.addView(copyAction,copyParams);copyAction.setVisibility(View.GONE);
+        TextView revokeAction=button("Turn off link",true,()->{});
+        LinearLayout.LayoutParams revokeParams=new LinearLayout.LayoutParams(-1,dp(50));revokeParams.topMargin=dp(8);
+        status.addView(revokeAction,revokeParams);revokeAction.setVisibility(View.GONE);
         add(status,-2,24);
+
+        SitterLinkRepository links=new SitterLinkRepository();
+        final SitterLinkRepository.Link[] current={null};
+        final Runnable[] showLink={null};
+        showLink[0]=()->{
+            SitterLinkRepository.Link link=current[0];
+            if(link==null)return;
+            statusTitle.setText("Sitter link is active");
+            statusDescription.setText("Anyone with this link can view the care information saved when it was created. Expires " +
+                    new SimpleDateFormat("MMM d, yyyy · h:mm a",Locale.getDefault()).format(new Date(link.expiresAt))+".");
+            linkAddress.setText(link.url());linkAddress.setVisibility(View.VISIBLE);
+            primaryAction.setText("Share sitter link");primaryAction.setEnabled(true);
+            primaryAction.setOnClickListener(v->{Intent send=new Intent(Intent.ACTION_SEND).setType("text/plain")
+                    .putExtra(Intent.EXTRA_TEXT,link.url());
+                a.startActivity(Intent.createChooser(send,"Share sitter link"));});
+            copyAction.setVisibility(View.VISIBLE);
+            copyAction.setOnClickListener(v->{ClipboardManager clipboard=(ClipboardManager)a.getSystemService(Context.CLIPBOARD_SERVICE);
+                clipboard.setPrimaryClip(ClipData.newPlainText("Sitter link",link.url()));
+                Toast.makeText(a,"Link copied",Toast.LENGTH_SHORT).show();});
+            revokeAction.setVisibility(View.VISIBLE);
+            revokeAction.setOnClickListener(v->new AlertDialog.Builder(a).setTitle("Turn off sitter link?")
+                    .setMessage("The link will stop opening for anyone who has it.")
+                    .setNegativeButton("Cancel",null).setPositiveButton("Turn off",(dialog,which)->{
+                        revokeAction.setEnabled(false);
+                        links.revoke(link,new SitterLinkRepository.Callback<Void>(){
+                            @Override public void success(Void ignored){current[0]=null;revokeAction.setEnabled(true);
+                                linkAddress.setVisibility(View.GONE);copyAction.setVisibility(View.GONE);revokeAction.setVisibility(View.GONE);
+                                showSitterLinkCreation(statusTitle,statusDescription,primaryAction,links,current,showLink[0]);}
+                            @Override public void error(String message){revokeAction.setEnabled(true);Toast.makeText(a,message,Toast.LENGTH_LONG).show();}
+                        });}).show());
+        };
+        if(FirebaseAuth.getInstance().getCurrentUser()==null){
+            statusTitle.setText("Sign in to create a sitter link");
+            statusDescription.setText("Your account keeps links tied to you so you can turn them off later.");
+            primaryAction.setText("Log in");primaryAction.setEnabled(true);
+            primaryAction.setOnClickListener(v->go.accept("Log In"));
+        }else links.load(pet.optString("id"),new SitterLinkRepository.Callback<SitterLinkRepository.Link>(){
+            @Override public void success(SitterLinkRepository.Link link){current[0]=link;
+                if(link==null)showSitterLinkCreation(statusTitle,statusDescription,primaryAction,links,current,showLink[0]);
+                else showLink[0].run();}
+            @Override public void error(String message){statusTitle.setText("Sitter link unavailable");statusDescription.setText(message);
+                primaryAction.setText("Try again");primaryAction.setEnabled(true);
+                primaryAction.setOnClickListener(v->go.accept("Sitter Mode"));}
+        });
 
         add(title("Care information",20),-2,8);
         LinearLayout list=col();list.setBackground(shape(surface,20,true));pad(list,2,2);
@@ -307,5 +372,21 @@ public class ReferenceScreens {
                 LinearLayout.LayoutParams line=new LinearLayout.LayoutParams(-1,dp(1));line.leftMargin=dp(54);line.rightMargin=dp(12);
                 list.addView(divider,line);}}
         add(list,-2,12);flexible(6);
+    }
+    private void showSitterLinkCreation(TextView heading,TextView description,TextView action,
+            SitterLinkRepository links,SitterLinkRepository.Link[] current,Runnable showLink){
+        heading.setText("No active sitter link");
+        description.setText("Create a link that lasts 7 days. Anyone with the link can view "+name()+
+                "'s care notes, medical information, and emergency and vet contacts as saved now.");
+        action.setText("Create sitter link");action.setEnabled(true);
+        action.setOnClickListener(v->new AlertDialog.Builder(a).setTitle("Create sitter link?")
+                .setMessage("Anyone with the link can read this pet's care notes, medical information, and contacts for 7 days. You can turn the link off at any time.")
+                .setNegativeButton("Cancel",null).setPositiveButton("Create link",(dialog,which)->{
+                    action.setEnabled(false);action.setText("Creating…");
+                    links.create(pet,new SitterLinkRepository.Callback<SitterLinkRepository.Link>(){
+                        @Override public void success(SitterLinkRepository.Link link){current[0]=link;showLink.run();}
+                        @Override public void error(String message){action.setEnabled(true);action.setText("Create sitter link");
+                            Toast.makeText(a,message,Toast.LENGTH_LONG).show();}
+                    });}).show());
     }
 }

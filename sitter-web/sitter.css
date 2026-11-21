@@ -1,0 +1,9 @@
+:root{color-scheme:light dark;font-family:system-ui,-apple-system,Roboto,sans-serif;background:#fcf9ff;color:#292130}
+*{box-sizing:border-box}body{margin:0}.page{max-width:680px;margin:auto;padding:32px 20px 72px}
+.brand{color:#8051a8;font-weight:800;letter-spacing:.12em;font-size:.78rem;margin:0 0 36px}
+h1{font-size:clamp(1.8rem,6vw,2.5rem);line-height:1.15;margin:0 0 8px}h2{font-size:1.1rem;margin:0 0 8px}
+p{line-height:1.55;margin:0 0 8px;overflow-wrap:anywhere}.sub{color:#71667b}
+article section{border:1px solid #e9deee;border-radius:20px;background:#fff;padding:20px;margin:16px 0}
+.notice{background:#f5eefa;border-radius:16px;padding:14px 16px;margin:24px 0;color:#4f3b5e}
+#expiry{margin-top:28px}
+@media(prefers-color-scheme:dark){:root{background:#101014;color:#f8f2ff}.brand{color:#d8b4f8}.sub{color:#bdb3cd}article section{background:#1c1d26;border-color:#343442}.notice{background:#242530;color:#e6c8ff}}

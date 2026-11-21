@@ -1,0 +1,1 @@
+window.PURRFOLIO_FIREBASE_API_KEY = "AIzaSyD_MtlO83cGiKpuh13us9WvW6Ebg_s4ZXw";

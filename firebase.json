@@ -1,0 +1,16 @@
+{
+  "firestore": { "rules": "firestore.rules" },
+  "hosting": {
+    "public": "sitter-web",
+    "ignore": ["firebase.json", "**/.*", "**/node_modules/**", "**/*.test.js"],
+    "rewrites": [{ "source": "/s/**", "destination": "/index.html" }],
+    "headers": [{
+      "source": "/s/**",
+      "headers": [
+        { "key": "Cache-Control", "value": "no-store" },
+        { "key": "Referrer-Policy", "value": "no-referrer" },
+        { "key": "X-Robots-Tag", "value": "noindex, nofollow, noarchive" }
+      ]
+    }]
+  }
+}

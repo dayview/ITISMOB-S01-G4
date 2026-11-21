@@ -1,0 +1,71 @@
+// Add this match block inside the existing Firestore
+// service cloud.firestore { match /databases/{database}/documents { ... } }.
+// Keep all existing rules; do not replace the live ruleset with this fragment.
+match /sitterLinks/{token} {
+  function isSitterOwner() {
+    return request.auth != null && request.auth.uid == resource.data.ownerUid;
+  }
+  function validPet() {
+    return request.resource.data.pet is map
+      && request.resource.data.pet.keys().hasAll([
+        'name', 'species', 'breed', 'notes', 'medicalInfo', 'vetClinic',
+        'vetPhone', 'emergencyContactName', 'emergencyContactPhone'])
+      && request.resource.data.pet.keys().hasOnly([
+        'name', 'species', 'breed', 'notes', 'medicalInfo', 'vetClinic',
+        'vetPhone', 'emergencyContactName', 'emergencyContactPhone'])
+      && request.resource.data.pet.name is string
+      && request.resource.data.pet.name.size() <= 500
+      && request.resource.data.pet.species is string
+      && request.resource.data.pet.species.size() <= 500
+      && request.resource.data.pet.breed is string
+      && request.resource.data.pet.breed.size() <= 500
+      && request.resource.data.pet.notes is string
+      && request.resource.data.pet.notes.size() <= 500
+      && request.resource.data.pet.medicalInfo is string
+      && request.resource.data.pet.medicalInfo.size() <= 500
+      && request.resource.data.pet.vetClinic is string
+      && request.resource.data.pet.vetClinic.size() <= 500
+      && request.resource.data.pet.vetPhone is string
+      && request.resource.data.pet.vetPhone.size() <= 500
+      && request.resource.data.pet.emergencyContactName is string
+      && request.resource.data.pet.emergencyContactName.size() <= 500
+      && request.resource.data.pet.emergencyContactPhone is string
+      && request.resource.data.pet.emergencyContactPhone.size() <= 500;
+  }
+  function validWrite() {
+    return request.resource.data.keys().hasAll([
+        'ownerUid', 'petId', 'active', 'createdAt', 'expiresAt', 'pet'])
+      && request.resource.data.keys().hasOnly([
+        'ownerUid', 'petId', 'active', 'createdAt', 'expiresAt', 'pet'])
+      && request.resource.data.ownerUid is string
+      && request.resource.data.petId is string
+      && request.resource.data.petId.size() > 0
+      && request.resource.data.petId.size() <= 128
+      && request.resource.data.active is bool
+      && request.resource.data.createdAt is int
+      && request.resource.data.expiresAt is int
+      && validPet();
+  }
+  // The token is 32 random bytes in URL-safe base64. No public listing.
+  allow get: if isSitterOwner() ||
+    (resource.data.active == true && resource.data.expiresAt > request.time.toMillis());
+  allow list: if request.auth != null && resource.data.ownerUid == request.auth.uid;
+  allow create: if request.auth != null
+    && token.matches('^[A-Za-z0-9_-]{43}$')
+    && validWrite()
+    && request.resource.data.ownerUid == request.auth.uid
+    && request.resource.data.active == true
+    && request.resource.data.createdAt <= request.time.toMillis() + 60000
+    && request.resource.data.createdAt >= request.time.toMillis() - 60000
+    && request.resource.data.expiresAt > request.time.toMillis()
+    && request.resource.data.expiresAt <= request.time.toMillis() + 604860000;
+  allow update: if isSitterOwner() && validWrite()
+    && request.resource.data.ownerUid == resource.data.ownerUid
+    && request.resource.data.petId == resource.data.petId
+    && request.resource.data.createdAt == resource.data.createdAt
+    && request.resource.data.expiresAt == resource.data.expiresAt
+    && request.resource.data.pet == resource.data.pet
+    && resource.data.active == true
+    && request.resource.data.active == false;
+  allow delete: if false;
+}

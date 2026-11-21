@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex,nofollow,noarchive">
+  <meta name="referrer" content="no-referrer">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; connect-src https://firestore.googleapis.com; base-uri 'none'; form-action 'none'">
+  <title>Sitter care notes · PURRFOLIO</title>
+  <link rel="stylesheet" href="/sitter.css">
+  <script defer src="/config.js"></script>
+  <script defer src="/sitter.js"></script>
+</head>
+<body>
+  <main class="page">
+    <p class="brand">PURRFOLIO</p>
+    <section id="loading" aria-live="polite"><h1>Opening care notes…</h1></section>
+    <section id="unavailable" hidden aria-live="polite">
+      <h1>This sitter link is unavailable</h1>
+      <p>It may have expired or been turned off. Ask the pet's owner for a new link.</p>
+    </section>
+    <article id="care" hidden>
+      <h1 id="pet-name"></h1>
+      <p id="pet-kind" class="sub"></p>
+      <p class="notice">Anyone with this link can read these notes until the link expires or its owner turns it off.</p>
+      <section><h2>Care notes</h2><p id="notes"></p></section>
+      <section><h2>Medical information</h2><p id="medical"></p></section>
+      <section><h2>Emergency contact</h2><p id="contact"></p><p id="contact-phone"></p></section>
+      <section><h2>Veterinarian</h2><p id="vet"></p><p id="vet-phone"></p></section>
+      <p id="expiry" class="sub"></p>
+    </article>
+  </main>
+</body>
+</html>
