@@ -37,6 +37,17 @@ public class DocumentRulesTest {
         assertFalse(DocumentRules.isImage("a.pdf"));
     }
 
+    @Test public void mimeTypesMatchTheFileExtension() {
+        assertEquals("application/pdf", DocumentRules.mimeTypeFor("Card.PDF"));
+        assertEquals("image/jpeg", DocumentRules.mimeTypeFor("a.jpg"));
+        assertEquals("image/jpeg", DocumentRules.mimeTypeFor("a.JPEG"));
+        assertEquals("image/png", DocumentRules.mimeTypeFor("a.png"));
+        assertEquals("image/webp", DocumentRules.mimeTypeFor("a.webp"));
+        assertEquals("application/octet-stream", DocumentRules.mimeTypeFor("a.zip"));
+        assertEquals("application/octet-stream", DocumentRules.mimeTypeFor("noextension"));
+        assertEquals("application/octet-stream", DocumentRules.mimeTypeFor(null));
+    }
+
     @Test public void fileErrorsSayHowToFixThem() {
         assertNull(DocumentRules.fileError("a.pdf", 1));
         assertNull(DocumentRules.fileError("a.pdf", DocumentRules.MAX_BYTES));

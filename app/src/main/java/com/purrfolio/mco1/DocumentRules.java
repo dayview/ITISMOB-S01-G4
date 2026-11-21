@@ -49,6 +49,18 @@ public final class DocumentRules {
         return ALLOWED_EXTENSIONS.contains(extensionOf(fileName));
     }
 
+    /** What to tell another app when opening the file, so it can pick a viewer. */
+    public static String mimeTypeFor(String fileName) {
+        switch (extensionOf(fileName)) {
+            case "pdf": return "application/pdf";
+            case "jpg":
+            case "jpeg": return "image/jpeg";
+            case "png": return "image/png";
+            case "webp": return "image/webp";
+            default: return "application/octet-stream";
+        }
+    }
+
     /** Null when the file can be saved, otherwise a message that says how to fix it. */
     public static String fileError(String fileName, long sizeBytes) {
         if (!isAllowedFile(fileName)) return "Purrfolio can save PDF, JPG, PNG or WEBP files.";
