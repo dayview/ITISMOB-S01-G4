@@ -975,14 +975,10 @@ public class PhaseTwoScreens {
         String vetClinic=pet.optString("vetClinic").trim(),vetPhone=pet.optString("vetPhone").trim();
         String contactName=pet.optString("emergencyContactName").trim(),contactRelation=pet.optString("emergencyContactRelation").trim(),
                 contactPhone=pet.optString("emergencyContactPhone").trim();
-        boolean hasEmergencyInfo=!(medical+vetClinic+vetPhone+contactName+contactPhone).isEmpty();
         LinearLayout card=row();card.setBackground(shape(night?color("#302026"):color("#FBE5EA"),20,true));pad(card,14,14);
-        card.setFocusable(true);card.setOnClickListener(v->go.accept(hasEmergencyInfo?"Pet Passport":"Edit Pet Profile"));
         LinearLayout.LayoutParams photoParams=new LinearLayout.LayoutParams(dp(102),dp(102));photoParams.rightMargin=dp(14);
         card.addView(portrait(R.drawable.pdf_mochi,102,coral),photoParams);
         LinearLayout copy=col();copy.addView(heading(name(),26));copy.addView(text(emergencyAgeLabel(),13,sub));
-        LinearLayout.LayoutParams lp=new LinearLayout.LayoutParams(-1,-2);lp.topMargin=dp(8);
-        copy.addView(text("EMERGENCY INFO",12,coral,700),lp);
         card.addView(copy,new LinearLayout.LayoutParams(0,-2,1));add(card,142,12);
         add(infoRow("Medical","Medical Information",medical.isEmpty()?"No medical information added yet":medical,"Chevron",coral,
                 ()->go.accept("Edit Pet Profile")),68,6);
