@@ -17,10 +17,13 @@ import android.text.method.PasswordTransformationMethod;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.CheckBox;
 import android.widget.EditText;
 import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.RadioButton;
+import android.widget.RadioGroup;
 import android.widget.Switch;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -710,14 +713,18 @@ public class PhaseTwoScreens {
         sectionLabel("Filter by Date");LinearLayout dateControls=col();add(dateControls,-2,4);
         TextView rangeLabel=text("",13,primary,700);rangeLabel.setVisibility(View.GONE);rangeLabel.setMinHeight(dp(36));
         rangeLabel.setGravity(Gravity.CENTER_VERTICAL);add(rangeLabel,-2,0);gap(14);
-        TextView count=section("Results");add(count,28,8);LinearLayout results=col();add(results);
+        LinearLayout resultsHeader=row();TextView count=section("Results");resultsHeader.addView(count,new LinearLayout.LayoutParams(0,-2,1));
+        TextView export=text("Export",13,primary,700);export.setContentDescription("Share or export these results");
+        export.setGravity(Gravity.CENTER_VERTICAL);pad(export,10,0);resultsHeader.addView(export,new LinearLayout.LayoutParams(-2,dp(40)));
+        add(resultsHeader,40,4);LinearLayout results=col();add(results);
+        final List<PetRecord> shown=new ArrayList<>(); // what the results list shows, i.e. what Export shares
 
         refresh[0]=()->{results.removeAllViews();
             PetRecord.Type type=PetRecord.Type.fromLabel(selectedType[0]);
             RecordSearch.DateRange range=customRange[0]!=null&&selectedDate[0].equals("Custom")?customRange[0]:
                     RecordSearch.DateRange.forLabel(selectedDate[0],System.currentTimeMillis());
             List<PetRecord> matches=RecordSearch.filter(petRecords,null,type,range,query.getText().toString());
-            count.setText(matches.size()==1?"1 Result":matches.size()+" Results");
+            count.setText(matches.size()==1?"1 Result":matches.size()+" Results");shown.clear();shown.addAll(matches);
             for(PetRecord record:matches){LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(-1,-2);p.bottomMargin=dp(5);
                 results.addView(recordRow(record),p);}
             if(matches.isEmpty())results.addView(emptyRecords(petRecords.isEmpty(),type,clearFilters[0]));};
@@ -734,6 +741,14 @@ public class PhaseTwoScreens {
         clearFilters[0]=()->{selectedType[0]="All";selectedDate[0]="All";customRange[0]=null;rangeLabel.setVisibility(View.GONE);
             drawTypeSelection(typeControls,"All");drawTypeSelection(dateControls,"All");
             if(query.getText().length()>0)query.setText("");else refresh[0].run();};
+        export.setOnClickListener(v->{
+            if(shown.isEmpty()){notice("No records to export. Try changing the filters.");return;}
+            String keyword=query.getText().toString().trim();
+            String filters=(selectedType[0].equals("All")?"All types":selectedType[0])+" · "+
+                    (selectedDate[0].equals("Custom")&&customRange[0]!=null?rangeText(customRange[0]):
+                            selectedDate[0].equals("All")?"All dates":selectedDate[0])+
+                    (keyword.isEmpty()?"":" · “"+keyword+"”");
+            exportRecords(new ArrayList<>(shown),filters);});
         drawRecordChips(typeControls,RECORD_TYPE_CHIPS,selectedType[0],pickType);
         drawRecordChips(dateControls,RECORD_DATE_CHIPS,selectedDate[0],pickDate);
         query.addTextChangedListener(new TextWatcher(){public void beforeTextChanged(CharSequence s,int start,int count,int after){}
@@ -744,6 +759,36 @@ public class PhaseTwoScreens {
         results.addOnAttachStateChangeListener(new View.OnAttachStateChangeListener(){
             @Override public void onViewAttachedToWindow(View v){}
             @Override public void onViewDetachedFromWindow(View v){hub.unobserve(reload);}});
+    }
+    // ---- 5.5 Share / Export Records ----
+    /** Lets the user pick what to include and a format, then share the results or save them to the device. */
+    private void exportRecords(List<PetRecord> records,String filters){
+        LinearLayout box=col();pad(box,22,6);
+        CheckBox petDetails=new CheckBox(a),recordNotes=new CheckBox(a),ownerContact=new CheckBox(a);
+        petDetails.setText("Pet details");petDetails.setChecked(true);
+        recordNotes.setText("Notes on each record");recordNotes.setChecked(true);
+        ownerContact.setText("My contact details (name, phone, email)");ownerContact.setChecked(false);
+        box.addView(petDetails);box.addView(recordNotes);box.addView(ownerContact);
+        TextView privacy=new TextView(a);privacy.setText("Your contact details are only included when you tick this.");
+        privacy.setTextSize(12);privacy.setAlpha(.7f);box.addView(privacy);
+        TextView formatLabel=new TextView(a);formatLabel.setText("Format");formatLabel.setTextSize(14);
+        formatLabel.setTypeface(null,android.graphics.Typeface.BOLD);
+        LinearLayout.LayoutParams labelParams=new LinearLayout.LayoutParams(-2,-2);labelParams.topMargin=dp(14);box.addView(formatLabel,labelParams);
+        RadioGroup format=new RadioGroup(a);RadioButton pdf=new RadioButton(a),plain=new RadioButton(a);
+        pdf.setId(View.generateViewId());plain.setId(View.generateViewId());
+        pdf.setText("PDF document");plain.setText("Plain text");format.addView(pdf);format.addView(plain);format.check(pdf.getId());
+        box.addView(format);
+        Supplier<RecordExport.Summary> summary=()->{
+            RecordExport.Options options=new RecordExport.Options();
+            options.includePetDetails=petDetails.isChecked();options.includeRecordDetails=recordNotes.isChecked();
+            options.includeOwnerContact=ownerContact.isChecked();
+            RecordExport.Owner owner=new RecordExport.Owner(prefs.getString("profile:name",""),
+                    prefs.getString("profile:phone",""),prefs.getString("profile:email",""));
+            return RecordExport.build(Pet.fromJson(pet),owner,records,filters,options,System.currentTimeMillis(),Locale.getDefault());};
+        new AlertDialog.Builder(a).setTitle(records.size()==1?"Export 1 record":"Export "+records.size()+" records").setView(box)
+                .setPositiveButton("Share",(d,w)->ExportFiles.share(a,summary.get(),pdf.isChecked()))
+                .setNeutralButton("Save to device",(d,w)->ExportFiles.save(a,summary.get(),pdf.isChecked()))
+                .setNegativeButton("Cancel",null).show();
     }
     private void drawRecordChips(LinearLayout container,String[][] groups,String selected,Consumer<String> onSelect){
         container.removeAllViews();for(String[] labels:groups)container.addView(chips(Arrays.asList(labels),selected,value->{

@@ -13,6 +13,11 @@
         <receiver android:name=".BootReceiver" android:exported="true">
             <intent-filter><action android:name="android.intent.action.BOOT_COMPLETED"/></intent-filter>
         </receiver>
+        <!-- Shares exported record PDFs (5.5) with other apps without needing storage permission. -->
+        <provider android:name="androidx.core.content.FileProvider" android:authorities="${applicationId}.fileprovider"
+            android:exported="false" android:grantUriPermissions="true">
+            <meta-data android:name="android.support.FILE_PROVIDER_PATHS" android:resource="@xml/file_paths"/>
+        </provider>
         <!-- Lets Android 4.4-12 devices with Google Play services use the same photo picker as Android 13+. -->
         <service android:name="com.google.android.gms.metadata.ModuleDependencies" android:enabled="false" android:exported="false" tools:ignore="MissingClass">
             <intent-filter><action android:name="com.google.android.gms.metadata.MODULE_DEPENDENCIES"/></intent-filter>
