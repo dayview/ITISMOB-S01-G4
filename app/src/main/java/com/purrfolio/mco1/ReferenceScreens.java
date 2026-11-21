@@ -40,7 +40,7 @@ import org.json.JSONObject;
 
 /** Reference screen presentation; persistence remains in MainActivity. */
 public class ReferenceScreens {
-    public static final Set<String> destinations=new HashSet<>(Arrays.asList("Home","Pet Detail","Care","Pet Timeline","Sitter Mode"));
+    public static final Set<String> destinations=new HashSet<>(Arrays.asList("Home","Pet Detail","Care","Sitter Mode"));
     private final Activity a;
     private final JSONObject pet;
     private final Consumer<String> go;
@@ -128,7 +128,7 @@ public class ReferenceScreens {
         if(screen.equals("Care")){((LinearLayout.LayoutParams)binding.referenceScroll.getLayoutParams()).topMargin=dp(38);
             binding.dockContainer.setVisibility(View.GONE);}
         switch(screen){case "Home":home();break;case "Pet Detail":overview();break;case "Care":logCare();break;
-            case "Pet Timeline":timeline();break;case "Sitter Mode":sitter();break;}
+            case "Sitter Mode":sitter();break;}
         if(!screen.equals("Care"))binding.dockContainer.addView(dock(screen));
         ViewCompat.requestApplyInsets(root);return root;
     }
@@ -260,18 +260,6 @@ public class ReferenceScreens {
         LinearLayout.LayoutParams mp=new LinearLayout.LayoutParams(dp(100),dp(100));mp.setMargins(dp(20),0,dp(20),0);wave.addView(mic,mp);wave.addView(icon("Wave",49));
         LinearLayout.LayoutParams wp=new LinearLayout.LayoutParams(-1,dp(100));wp.topMargin=dp(18);voice.addView(wave,wp);add(voice,230);
     }
-    private void timelineEntry(int index,int color,boolean last){LinearLayout r=row();
-        View rail=new View(a){final Paint paint=new Paint(Paint.ANTI_ALIAS_FLAG);
-            @Override protected void onDraw(Canvas c){paint.setColor(color);paint.setAlpha(130);paint.setStrokeWidth(dp(2));
-                c.drawLine(getWidth()/2f,0,getWidth()/2f,getHeight(),paint);paint.setAlpha(255);
-                c.drawCircle(getWidth()/2f,getHeight()*.38f,dp(9),paint);}};
-        r.addView(rail,new LinearLayout.LayoutParams(dp(25),-1));
-        LinearLayout.LayoutParams task=new LinearLayout.LayoutParams(0,dp(84),1);task.leftMargin=dp(8);task.bottomMargin=dp(last?0:7);
-        r.addView(careRow(index,true),task);add(r,last?84:91);
-    }
-    private void timeline(){header("Care Timeline");week(true);add(text("Today, Sep 25, 2026",17,primary,600,true),28,8);
-        timelineEntry(0,mint,false);timelineEntry(1,yellow,false);timelineEntry(2,pink,false);timelineEntry(3,yellow,true);
-        spacer(22);add(text("Tomorrow, Sep 26, 2026",17,primary,600,true),28,8);timelineEntry(4,lavender,true);flexible(8);}
     private View infoRow(String kind,String label,String value,Runnable callback){LinearLayout r=row();pad(r,18,6);r.setOnClickListener(v->callback.run());r.setFocusable(true);
         LinearLayout.LayoutParams iconParams=new LinearLayout.LayoutParams(dp(37),dp(38));iconParams.rightMargin=dp(16);r.addView(icon(kind,34),iconParams);
         LinearLayout labels=col();labels.addView(text(label,16,ink,800));
