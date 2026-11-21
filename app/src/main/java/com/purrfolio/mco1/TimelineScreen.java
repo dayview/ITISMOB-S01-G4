@@ -94,7 +94,7 @@ public class TimelineScreen {
         LinearLayout.LayoutParams dockParams =
                 new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ui.dp(78));
         dockParams.setMargins(ui.dp(8), 0, ui.dp(8), ui.dp(5));
-        root.addView(host.dock("Pets"), dockParams);
+        root.addView(host.dock("Care"), dockParams);
         // Listen for reminders and documents only while this screen is showing.
         root.addOnAttachStateChangeListener(new View.OnAttachStateChangeListener() {
             @Override public void onViewAttachedToWindow(View v) { BackendHub.get().observe(observer); }
