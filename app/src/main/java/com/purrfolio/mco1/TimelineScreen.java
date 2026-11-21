@@ -38,6 +38,8 @@ public class TimelineScreen {
     private LinearLayout listHolder;
     private TextView banner;
     private String filter = "All";
+    /** How many past rows to draw. "Show earlier" raises it by one page. */
+    private int limit = TimelineBuilder.DEFAULT_LIMIT;
     /** Called by BackendHub when reminders or documents change. */
     private final Runnable observer = this::fillList;
 
@@ -72,6 +74,7 @@ public class TimelineScreen {
         if (!petName.isEmpty()) body.addView(ui.text(petName, 16f, ui.sub, 600), ui.lpBottom(12));
         body.addView(ui.choiceChips("Show", false, FILTERS, filter, 2, choice -> {
             filter = choice;
+            limit = TimelineBuilder.DEFAULT_LIMIT;
             showBannerFor(choice);
             fillList();
         }), ui.lpBottom(12));
@@ -110,8 +113,7 @@ public class TimelineScreen {
 
     private void fillList() {
         listHolder.removeAllViews();
-        TimelineBuilder.Result result = TimelineBuilder.build(filtered(), System.currentTimeMillis(), zone, locale,
-                TimelineBuilder.DEFAULT_LIMIT);
+        TimelineBuilder.Result result = TimelineBuilder.build(filtered(), System.currentTimeMillis(), zone, locale, limit);
         for (TimelineBuilder.Group group : result.groups) {
             TextView header = ui.text(group.label, 15f, ui.sub, 700);
             ui.markHeading(header);
@@ -120,6 +122,13 @@ public class TimelineScreen {
             for (TimelineEntry entry : group.entries) listHolder.addView(rowView(entry, upcoming), ui.lp());
         }
         if (result.groups.isEmpty()) listHolder.addView(emptyView(), ui.lpTop(8));
+        if (result.hiddenCount > 0) {
+            String more = "Show earlier (" + result.hiddenCount + " more)";
+            listHolder.addView(ui.button(more, false, () -> {
+                limit += TimelineBuilder.DEFAULT_LIMIT;
+                fillList();
+            }), ui.lpTop(12));
+        }
     }
 
     /** No rows to show: either the pet has nothing at all, or only the chosen filter has nothing. */
