@@ -50,7 +50,7 @@ import org.json.JSONObject;
 import org.json.JSONException;
 
 /** Coordinates screen navigation, local state, and XML-backed screen controllers. */
-public class MainActivity extends AppCompatActivity {
+public class MainActivity extends AppCompatActivity implements ExportFiles.Host {
     private static final class SafeJson extends JSONObject {
         SafeJson() { super(); }
         SafeJson(String source) { super(); try { JSONObject parsed=new JSONObject(source);
@@ -87,6 +87,26 @@ public class MainActivity extends AppCompatActivity {
             });
     private final ActivityResultLauncher<PickVisualMediaRequest> petPhotoPicker=registerForActivityResult(
             new ActivityResultContracts.PickVisualMedia(),uri->{if(uri!=null)onPetPhotoPicked(uri);});
+
+    // ---- 5.5 Export: system "Save as" screen (no storage permission needed) ----
+    private byte[] pendingExport;
+    private final ActivityResultLauncher<Intent> exportSaver=registerForActivityResult(
+            new ActivityResultContracts.StartActivityForResult(),result->{
+                byte[] bytes=pendingExport;pendingExport=null;
+                Uri uri=result.getData()==null?null:result.getData().getData();
+                if(result.getResultCode()!=RESULT_OK||uri==null||bytes==null)return;
+                try(java.io.OutputStream out=getContentResolver().openOutputStream(uri)){
+                    if(out==null)throw new java.io.IOException("No output stream");
+                    out.write(bytes);note("Saved to your device.");
+                }catch(java.io.IOException|SecurityException error){note("Couldn't save the file. Please try again.");}
+            });
+    @Override public void saveAs(String fileName,String mimeType,byte[] bytes){
+        pendingExport=bytes;
+        Intent create=new Intent(Intent.ACTION_CREATE_DOCUMENT).addCategory(Intent.CATEGORY_OPENABLE)
+                .setType(mimeType).putExtra(Intent.EXTRA_TITLE,fileName);
+        try{exportSaver.launch(create);}
+        catch(android.content.ActivityNotFoundException error){pendingExport=null;note("This device has no app for saving files.");}
+    }
 
     // ---- User Management (Firebase Auth + Firestore users/{uid}) ----
     private AuthRepository auth;
@@ -302,7 +322,7 @@ public class MainActivity extends AppCompatActivity {
             case "Add Your Pet":showAddPet();return;case "Edit Pet Profile":showEditPet();return;
             case "Pets":showMyPets();return;case "Pet Profile":showPetProfile();return;
             case "Reminders":showReminders();return;case "Calendar":showCareCalendar();return;
-            case "Browse Records":showDocuments();return;
+            case "Paperless Inbox":showDocuments();return;
             case "Pet Passport":showPassport();return;
             case "Pet Timeline":showTimeline();return;}
         if(ReferenceScreens.destinations.contains(destination)){
