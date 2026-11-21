@@ -323,7 +323,8 @@ public class MainActivity extends AppCompatActivity implements ExportFiles.Host 
             case "Pets":showMyPets();return;case "Pet Profile":showPetProfile();return;
             case "Reminders":showReminders();return;case "Calendar":showCareCalendar();return;
             case "Paperless Inbox":showDocuments();return;
-            case "Pet Passport":showPassport();return;}
+            case "Pet Passport":showPassport();return;
+            case "Pet Timeline":showTimeline();return;}
         if(ReferenceScreens.destinations.contains(destination)){
             View view=new ReferenceScreens(this,selectedPet(),target->{render(target);},
                     ()->{choosePet();},()->{editPetPhoto();},
@@ -426,6 +427,20 @@ public class MainActivity extends AppCompatActivity implements ExportFiles.Host 
     }
     private void showMyPets(){showContent(new MyPetsScreen(this,savedPets(),petId(selectedPet()),petHost).build());}
     private void showPetProfile(){showContent(new PetProfileScreen(this,Pet.fromJson(selectedPet()),petHost).build());}
+    private void showTimeline(){
+        String id=petId(selectedPet());BackendHub.get().watchDocuments(id);
+        showContent(new TimelineScreen(this,selectedPet().optString("name"),()->timelineEntries(id),auth.getCurrentUser()!=null,petHost).build());}
+    /** Raw rows for one pet: its care logs (local), plus reminders and documents from BackendHub. */
+    private List<TimelineEntry> timelineEntries(String petId){
+        List<TimelineEntry> out=new ArrayList<>();
+        for(JSONObject e:logs)if(petId.equals(entryPetId(e)))
+            out.add(TimelineEntry.log(e.optString("id"),e.optString("kind"),e.optString("text"),e.optLong("occurredAt",0)));
+        BackendHub hub=BackendHub.get();
+        for(Reminder r:hub.reminders())if(petId.equals(r.petId))
+            out.add(TimelineEntry.reminder(r.id,r.category,r.title,r.detail,r.timeMillis,r.lastDoneAt,r.repeatDaily));
+        for(PetDocument d:hub.documents())
+            out.add(TimelineEntry.document(d.id,d.type,d.title,d.addedAt));
+        return out;}
     private void showPassport(){showContent(new PassportScreen(this,Pet.fromJson(selectedPet()),petHost).build());}
     private void commitPet(Pet pet,boolean adding){
         PetDraft draft=petDraft;
@@ -614,7 +629,7 @@ public class MainActivity extends AppCompatActivity implements ExportFiles.Host 
         BrandType.apply(binding.continueWithLabel,false,400);
         binding.getStartedButton.setOnClickListener(v->render("Create Account"));
         binding.logInButton.setOnClickListener(v->render("Log In"));
-        social(binding.googleButton,"Google");social(binding.appleButton,"Apple");social(binding.facebookButton,"Facebook");
+        social(binding.googleButton,"Google");
     }
     private void social(View view,String provider){view.setOnClickListener(v->new AlertDialog.Builder(this)
             .setTitle("Frontend preview").setMessage(provider+" sign-in requires authentication integration.")

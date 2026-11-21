@@ -177,3 +177,61 @@ Branch `leon/5-7-pet-passport` (base master `0404862`; merged into master as PR 
 
 - Old `ReferenceScreens.passport()` is now unreachable (the pet route in `MainActivity.render()` returns first). It was removed in a separate cleanup PR.
 - Test data used on the emulator (pet "MochiX" with fake vet and contact numbers) is not part of the repo.
+
+## Pet Timeline (5.6) — 2026-11-21
+
+Branch `leon/5-6-pet-timeline` (base master `84e47b1`, then master `4feb0f3` and `0c41a46` merged in; merged into master as PR #11). Checked on the Pixel_6a emulator (API 33, 1080 × 2400), debug build, signed out of Firebase.
+
+### Build and tests
+
+- `./gradlew :app:assembleDebug`: **passed**, also after merging master.
+- `./gradlew :app:lintDebug`: **0 errors, 186 warnings**. Master has the same 186. The branch's own base (`84e47b1`) had 179 and so did the branch before the merge, so the timeline adds none. No warning mentions `TimelineScreen`, `TimelineBuilder`, `TimelineEntry` or `PetUi`.
+- `./gradlew :app:testDebugUnitTest`: **passed**. New `TimelineBuilderTest` has 13 tests (fixed time zone, locale and "now"); the two test classes that came from master pass too (9 and 17 tests). The tests were not mutation-checked.
+
+### Functional flows
+
+| Check | Result |
+| --- | --- |
+| Care logs of the selected pet | Pass. Rows grouped Today / Yesterday / date; another pet's log does not appear. |
+| Old logs with only a pet name (no `petId`) | Pass. Matched through `entryPetId`. |
+| Log with no time | Pass. Shown last under "Earlier". |
+| Filter chips (All / Care / Reminders / Documents) | Pass. Chips are 2 per line because "Reminders" broke mid-word at 4 per line. |
+| Filter with no rows | Pass. "Nothing to show for … Try another filter." |
+| Pet with nothing at all | Pass. "Nothing on the timeline yet" card; "Log care" opens Quick Log. |
+| Signed out | Pass. Banner "Sign in to see reminders and documents…" on All, Reminders and Documents; hidden on Care. |
+| Show earlier | Pass with 120 seeded logs: 50 rows + "Show earlier (70 more)", then 100 + "(20 more)", then all 120 and no button. Changing the filter resets to 50. |
+| Entry: Home summary card → timeline → Back | Pass. Returns to Home (system Back). |
+| Entry: dock "Care" cell on Pet Detail → timeline → Back | Pass. Returns to Pet Detail (system Back). Care is highlighted. |
+| Crashes | None. `FATAL EXCEPTION` count was 0 in each run. |
+
+Reminder rows (Upcoming / Done / Missed) and document rows were checked with a temporary sample list that is not in the repo, because the signed-out emulator cannot load real ones.
+
+### Accessibility (measured from the UI dump, not heard)
+
+| Check | Result |
+| --- | --- |
+| Tap targets | Pass. Chips and Back are 48dp; rows are at least 56dp tall. |
+| Labels | Each row is one stop with one sentence, e.g. "Care log: Feeding, 2:41 PM. Half a cup of kibble". Reminder rows add the status ("Reminder: Booster shot, missed, 5:36 PM"). |
+| Rail | Pass. The line and dot views do not appear in the accessibility tree. |
+| Chips | Announced as radio buttons, with checked state. |
+| Status | Written as a word (Upcoming, Done, Missed), not only a colour. |
+| Dark mode | Pass visually (status colours, banner, rail, chips). Contrast ratios were **not measured**. |
+| Font scale 2.0× | Pass. Rows, chips and banner wrap; nothing clipped in the timeline itself. |
+| 360dp-wide screen | Pass. No clipping and no horizontal scroll. |
+
+### Known issue (not changed here)
+
+- At font scale 2.0× the bottom dock's labels are clipped, as on every other screen. Same cause as in the Pet Passport section above.
+
+### Not covered
+
+- TalkBack audio and swipe order, Accessibility Scanner, and a measured contrast ratio. Whether the date headings are announced as headings is set in code but not seen in the dump.
+- Reminders and documents from real Firestore data (signed in), and the observer being removed when leaving the screen with a live listener.
+- Whether local pet ids match the Firestore `pets/{petId}` documents and whether the rules allow reads (question for Rick in `docs/phase1/HANDOFF.md`).
+- Font scale 1.3×, landscape, a pet with many reminders, and Android 11–12 without Google Play services.
+
+### Notes
+
+- The Home summary card and the dock's "Care" cell already routed to "Pet Timeline". They now open the real screen instead of the old sample, because `MainActivity.render()` handles the route first.
+- Old `ReferenceScreens.timeline()` and `timelineEntry()` are now unreachable; to be removed in a separate cleanup PR (check that `careRow` is still used elsewhere first).
+- Test data used on the emulator (up to 120 logs for Mochi) is not part of the repo and was cleared afterwards.
