@@ -949,34 +949,45 @@ public class PhaseTwoScreens {
             r.addView(scheduleRow(task[0],"",kind,amount,i==0,()->go.accept("Quick Log:"+kind)),new LinearLayout.LayoutParams(0,dp(68),1));
             scheduleBox.addView(r,new LinearLayout.LayoutParams(-1,dp(76)));}
     }
-    protected View idCard(boolean horizontal){LinearLayout card=horizontal?row():col();
-        if(!horizontal)card.setGravity(Gravity.CENTER);card.setBackground(new PetIdBackground(horizontal));pad(card,18,16);
-        LinearLayout identity=col();identity.setGravity(horizontal?Gravity.START:Gravity.CENTER);
-        identity.addView(portrait(R.drawable.pdf_mochi,horizontal?90:138,color("#D995DF")));
-        LinearLayout.LayoutParams nameParams=new LinearLayout.LayoutParams(-2,-2);nameParams.topMargin=dp(5);
-        identity.addView(text(name(),horizontal?23:27,color("#211626"),600,true),nameParams);
-        TextView detail=text(pet.optString("species")+" · 2 years old",13,color("#33223D"));
-        detail.setGravity(horizontal?Gravity.START:Gravity.CENTER);identity.addView(detail);
-        if(horizontal){card.addView(identity,new LinearLayout.LayoutParams(0,-2,1));
-            card.addView(new DemoQr(a),new LinearLayout.LayoutParams(dp(112),dp(112)));}
-        else{card.addView(identity);LinearLayout.LayoutParams qr=new LinearLayout.LayoutParams(dp(146),dp(146));qr.topMargin=dp(10);
-            card.addView(new DemoQr(a),qr);LinearLayout.LayoutParams note=new LinearLayout.LayoutParams(-2,dp(28));note.topMargin=dp(5);
-            card.addView(text("Demo QR · not scannable",12,color("#33223D"),700),note);}
+    protected View idCard(){LinearLayout card=col();card.setGravity(Gravity.CENTER);
+        card.setBackground(shape(surface,24,true));pad(card,16,16);
+        PetUi petUi=new PetUi(a);
+        card.addView(petUi.portrait(pet.optString("photoUri",""),pet.optString("species",""),76,name()+"'s photo"),
+                new LinearLayout.LayoutParams(dp(76),dp(76)));
+        TextView petName=center(name(),23,ink,700);addCardText(card,petName,8);
+        String age=PetRules.ageLabel(pet.optString("birthday"));
+        String species=pet.optString("species","");
+        card.addView(center(species+(age==null?"":" · "+age),13,sub,400));
+        LinearLayout.LayoutParams qr=new LinearLayout.LayoutParams(dp(120),dp(120));qr.topMargin=dp(12);
+        DemoQr demo=new DemoQr(a);demo.setContentDescription("Demo QR code, not scannable");card.addView(demo,qr);
+        addCardText(card,center("Preview only · not scannable",12,sub,700),8);
         return card;
     }
-    protected void petId(){header("Pet ID QR","A safer tomorrow for your furbaby.","More");
-        add(idCard(false),398,10);add(button("Customize Info",()->go.accept("QR Privacy")),44,18);
-        sectionLabel("Share or Download");LinearLayout actions=row();
-        String[][] items={{"Share","Share"},{"Download","Download"},{"Print","Print"},{"Photo","Save to Photos"}};
-        for(String[] item:items){String kind=item[0],label=item[1];LinearLayout cell=col();cell.setGravity(Gravity.CENTER);
-            FrameLayout control=action(kind,label,()->preview("The QR card is a non-scannable demo. "+label+" is not connected to an exportable pet ID."));
-            control.setBackground(shape(surface,40,true));cell.addView(control,new LinearLayout.LayoutParams(dp(58),dp(58)));
-            cell.addView(center(label,11,ink,400),new LinearLayout.LayoutParams(-1,dp(27)));
-            actions.addView(cell,new LinearLayout.LayoutParams(0,dp(86),1));}add(actions,86,14);
-        LinearLayout info=row();info.setBackground(shape());pad(info,10,7);
-        info.addView(art(R.drawable.pdf_id_cat,64),new LinearLayout.LayoutParams(dp(88),dp(64)));
-        info.addView(text("You can choose what information\nis shown on "+name()+"'s ID card.",12,sub),new LinearLayout.LayoutParams(0,-2,1));
-        add(info,80);
+    private void addCardText(LinearLayout card,TextView value,int top){
+        LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(-1,-2);p.topMargin=dp(top);card.addView(value,p);}
+    private boolean qrIncluded(String label,boolean defaultValue){return prefs.getBoolean("privacy:"+label,defaultValue);}
+    private String qrPreviewText(){List<String> lines=new ArrayList<>();
+        if(qrIncluded("Pet Name",true))lines.add("Pet name: "+name());
+        if(qrIncluded("Photo",true))lines.add("Pet photo"+(pet.optString("photoUri","").isEmpty()?" (default image)":""));
+        if(qrIncluded("Species & Breed",true)){
+            String species=pet.optString("species","").trim(),breed=pet.optString("breed","").trim();
+            String kind=species.isEmpty()?breed:breed.isEmpty()?species:species+" · "+breed;
+            lines.add("Species and breed: "+qrValue(kind));}
+        if(qrIncluded("Age / Birthday",false)){
+            String age=PetRules.ageLabel(pet.optString("birthday"));lines.add("Age: "+(age==null?"Not added":age));}
+        if(qrIncluded("Owner Contact Number",true))lines.add("Owner phone: "+qrValue(prefs.getString("profile:phone","")));
+        if(qrIncluded("Owner Email",false))lines.add("Owner email: "+qrValue(prefs.getString("profile:email","")));
+        if(qrIncluded("Medical Information",true))lines.add("Medical information: "+qrValue(pet.optString("medicalInfo","")));
+        if(qrIncluded("Veterinarian",true))lines.add("Veterinarian: "+qrValue(PetRules.vetLine(Pet.fromJson(pet))));
+        return lines.isEmpty()?"No information selected.":String.join("\n",lines);
+    }
+    private String qrValue(String value){return value==null||value.trim().isEmpty()?"Not added":value.trim();}
+    protected void petId(){header("Pet ID QR","Preview only · QR sharing is not available yet.","More");
+        add(idCard(),-2,20);
+        sectionLabel("Selected information",8);
+        add(text(qrPreviewText(),14,ink),-2,18);
+        add(button("Choose information",()->go.accept("QR Privacy")),52,12);
+        add(text("This demo QR cannot be scanned, shared, downloaded, or printed.",13,sub),-2);
     }
     protected void emergency(){header("Emergency Mode","Quick access when it matters.","More","Lock",
             ()->preview("All emergency information stays stored on this device. Nothing is transmitted, shared, or synced automatically."),30,false);
@@ -1074,18 +1085,23 @@ public class PhaseTwoScreens {
                 LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(-1,dp(78));p.bottomMargin=dp(5);results.addView(r,p);}
         }
     }
-    protected void privacy(){header("QR Information Privacy","Choose what information to share\nwhen "+name()+"'s QR code is scanned.","Pet ID QR");
-        add(idCard(true),178);add(button("Preview QR Code",true,()->go.accept("Pet ID QR")),42,16);
-        sectionLabel("Information to Share");
-        String[][] items={{"Pets","Pet Name","true"},{"Photo","Photo","true"},{"Cat","Species & Breed","true"},
-                {"Care","Age / Birthday","false"},{"Phone","Owner Contact Number","true"},
-                {"Mail","Owner Email","false"},{"Medical","Medical Information","true"},
-                {"Vet Visit","Veterinarian","true"}};
-        for(String[] item:items){String label=item[1];String description=label.equals("Medical Information")?
-                "Allergies, medications (basic)":label.equals("Veterinarian")?"Clinic name and contact":null;
-            add(toggleRow(item[0],label,description,Boolean.parseBoolean(item[2]),"privacy:"+label,true),
-                    description==null?44:64,2);}
-        demoLabel("Privacy preferences are local · nothing is published");
+    protected void privacy(){header("QR Information Privacy","Choose what a future pet ID could show.","Pet ID QR");
+        LinearLayout preview=col();preview.setBackground(shape());pad(preview,16,14);
+        preview.addView(text("Selected information",16,primary,700));
+        TextView previewContent=text(qrPreviewText(),13,ink);
+        LinearLayout.LayoutParams previewParams=new LinearLayout.LayoutParams(-1,-2);previewParams.topMargin=dp(8);
+        preview.addView(previewContent,previewParams);add(preview,-2,18);
+        sectionLabel("Pet identity",8);
+        String[][] identity={{"Pets","Pet Name","true"},{"Photo","Photo","true"},{"Cat","Species & Breed","true"}};
+        for(String[] item:identity)add(toggleRow(item[0],item[1],null,Boolean.parseBoolean(item[2]),
+                "privacy:"+item[1],true,checked->previewContent.setText(qrPreviewText())),52,4);
+        sectionLabel("Optional details",8);
+        String[][] optional={{"Care","Age / Birthday","false"},{"Phone","Owner Contact Number","true"},
+                {"Mail","Owner Email","false"},{"Medical","Medical Information","true"},{"Vet Visit","Veterinarian","true"}};
+        for(String[] item:optional)add(toggleRow(item[0],item[1],null,Boolean.parseBoolean(item[2]),
+                "privacy:"+item[1],true,checked->previewContent.setText(qrPreviewText())),52,4);
+        add(text("Saved on this device only. Nothing is published or scannable.",13,sub),-2,16);
+        add(button("View QR preview",true,()->go.accept("Pet ID QR")),52);
     }
     protected void more(){FrameLayout brandHeader=new FrameLayout(a);
         brandHeader.addView(action("Back","Back",()->goBack.run()),
