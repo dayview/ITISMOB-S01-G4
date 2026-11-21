@@ -303,7 +303,8 @@ public class MainActivity extends AppCompatActivity {
             case "Pets":showMyPets();return;case "Pet Profile":showPetProfile();return;
             case "Reminders":showReminders();return;case "Calendar":showCareCalendar();return;
             case "Browse Records":showDocuments();return;
-            case "Pet Passport":showPassport();return;}
+            case "Pet Passport":showPassport();return;
+            case "Pet Timeline":showTimeline();return;}
         if(ReferenceScreens.destinations.contains(destination)){
             View view=new ReferenceScreens(this,selectedPet(),target->{render(target);},
                     ()->{choosePet();},()->{editPetPhoto();},
@@ -404,6 +405,20 @@ public class MainActivity extends AppCompatActivity {
     }
     private void showMyPets(){showContent(new MyPetsScreen(this,savedPets(),petId(selectedPet()),petHost).build());}
     private void showPetProfile(){showContent(new PetProfileScreen(this,Pet.fromJson(selectedPet()),petHost).build());}
+    private void showTimeline(){
+        String id=petId(selectedPet());BackendHub.get().watchDocuments(id);
+        showContent(new TimelineScreen(this,selectedPet().optString("name"),()->timelineEntries(id),petHost).build());}
+    /** Raw rows for one pet: its care logs (local), plus reminders and documents from BackendHub. */
+    private List<TimelineEntry> timelineEntries(String petId){
+        List<TimelineEntry> out=new ArrayList<>();
+        for(JSONObject e:logs)if(petId.equals(entryPetId(e)))
+            out.add(TimelineEntry.log(e.optString("id"),e.optString("kind"),e.optString("text"),e.optLong("occurredAt",0)));
+        BackendHub hub=BackendHub.get();
+        for(Reminder r:hub.reminders())if(petId.equals(r.petId))
+            out.add(TimelineEntry.reminder(r.id,r.category,r.title,r.detail,r.timeMillis,r.lastDoneAt,r.repeatDaily));
+        for(PetDocument d:hub.documents())
+            out.add(TimelineEntry.document(d.id,d.type,d.title,d.addedAt));
+        return out;}
     private void showPassport(){showContent(new PassportScreen(this,Pet.fromJson(selectedPet()),petHost).build());}
     private void commitPet(Pet pet,boolean adding){
         PetDraft draft=petDraft;

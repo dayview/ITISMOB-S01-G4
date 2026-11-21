@@ -14,6 +14,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 import java.util.TimeZone;
+import java.util.function.Supplier;
 
 /**
  * F5.6 Unified Pet Timeline: care logs, reminders and documents of one pet in a single list.
@@ -27,8 +28,7 @@ public class TimelineScreen {
 
     private final Activity a;
     private final String petName;
-    private final List<TimelineEntry> entries;
-    private final long now;
+    private final Supplier<List<TimelineEntry>> source;
     private final PetScreenHost host;
     private final PetUi ui;
     private final Locale locale = Locale.getDefault();
@@ -36,12 +36,14 @@ public class TimelineScreen {
 
     private LinearLayout listHolder;
     private String filter = "All";
+    /** Called by BackendHub when reminders or documents change. */
+    private final Runnable observer = this::fillList;
 
-    public TimelineScreen(Activity a, String petName, List<TimelineEntry> entries, long nowMillis, PetScreenHost host) {
+    /** @param source gives the pet's raw rows each time it is called, so the list can be rebuilt when data arrives. */
+    public TimelineScreen(Activity a, String petName, Supplier<List<TimelineEntry>> source, PetScreenHost host) {
         this.a = a;
         this.petName = petName == null ? "" : petName.trim();
-        this.entries = entries;
-        this.now = nowMillis;
+        this.source = source;
         this.host = host;
         this.ui = new PetUi(a);
     }
@@ -77,6 +79,11 @@ public class TimelineScreen {
                 new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ui.dp(78));
         dockParams.setMargins(ui.dp(8), 0, ui.dp(8), ui.dp(5));
         root.addView(host.dock("Pets"), dockParams);
+        // Listen for reminders and documents only while this screen is showing.
+        root.addOnAttachStateChangeListener(new View.OnAttachStateChangeListener() {
+            @Override public void onViewAttachedToWindow(View v) { BackendHub.get().observe(observer); }
+            @Override public void onViewDetachedFromWindow(View v) { BackendHub.get().unobserve(observer); }
+        });
         host.setBackHandler(null);
         return root;
     }
@@ -85,7 +92,7 @@ public class TimelineScreen {
 
     private void fillList() {
         listHolder.removeAllViews();
-        TimelineBuilder.Result result = TimelineBuilder.build(filtered(), now, zone, locale,
+        TimelineBuilder.Result result = TimelineBuilder.build(filtered(), System.currentTimeMillis(), zone, locale,
                 TimelineBuilder.DEFAULT_LIMIT);
         for (TimelineBuilder.Group group : result.groups) {
             TextView header = ui.text(group.label, 15f, ui.sub, 700);
@@ -98,7 +105,8 @@ public class TimelineScreen {
 
     private List<TimelineEntry> filtered() {
         List<TimelineEntry> kept = new ArrayList<>();
-        for (TimelineEntry entry : entries) {
+        List<TimelineEntry> all = source.get();
+        for (TimelineEntry entry : all == null ? new ArrayList<TimelineEntry>() : all) {
             if (entry == null) continue;
             boolean keep = "All".equals(filter)
                     || ("Care".equals(filter) && entry.kind == TimelineEntry.Kind.LOG)
@@ -203,24 +211,5 @@ public class TimelineScreen {
         if (!time.isEmpty()) sb.append(", ").append(time);
         if (!entry.detail.isEmpty()) sb.append(". ").append(entry.detail);
         return sb.toString();
-    }
-
-    // ---- preview data (step 2 only; step 3 replaces this with the selected pet's real data) ----
-
-    static List<TimelineEntry> sampleEntries(long now) {
-        long hour = 60L * 60 * 1000, day = 24 * hour;
-        List<TimelineEntry> list = new ArrayList<>();
-        list.add(TimelineEntry.reminder("r1", "Vet Appointment", "Annual check-up", "Bring the vaccine card",
-                now + 2 * day, 0, false));
-        list.add(TimelineEntry.reminder("r2", "Medication", "Flea medicine", "One tablet with food",
-                now - 5 * day + hour, now - 2 * hour, true));
-        list.add(TimelineEntry.reminder("r3", "Vaccination", "Booster shot", "", now - 3 * day, 0, false));
-        list.add(TimelineEntry.log("l1", "Feeding", "Half a cup of kibble", now - 3 * hour));
-        list.add(TimelineEntry.log("l2", "Medication", "Ear drops, left ear only, and a very long note so we can see how a row wraps onto several lines at the largest font size", now - day));
-        list.add(TimelineEntry.log("l3", "Playtime", "Fetch in the yard", now - 3 * day - hour));
-        list.add(TimelineEntry.document("d1", "Vaccination", "Rabies certificate", now - 6 * day));
-        list.add(TimelineEntry.document("d2", "Receipt", "Grooming receipt", 0));
-        list.add(TimelineEntry.log("l4", "Grooming", "Nail trim", now - 400 * day));
-        return list;
     }
 }
