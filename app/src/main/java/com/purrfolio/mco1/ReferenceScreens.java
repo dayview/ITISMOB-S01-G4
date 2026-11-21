@@ -40,7 +40,7 @@ import org.json.JSONObject;
 
 /** Reference screen presentation; persistence remains in MainActivity. */
 public class ReferenceScreens {
-    public static final Set<String> destinations=new HashSet<>(Arrays.asList("Home","Pet Detail","Care","Pet Timeline","Sitter Mode","Pet Passport"));
+    public static final Set<String> destinations=new HashSet<>(Arrays.asList("Home","Pet Detail","Care","Pet Timeline","Sitter Mode"));
     private final Activity a;
     private final JSONObject pet;
     private final Consumer<String> go;
@@ -128,7 +128,7 @@ public class ReferenceScreens {
         if(screen.equals("Care")){((LinearLayout.LayoutParams)binding.referenceScroll.getLayoutParams()).topMargin=dp(38);
             binding.dockContainer.setVisibility(View.GONE);}
         switch(screen){case "Home":home();break;case "Pet Detail":overview();break;case "Care":logCare();break;
-            case "Pet Timeline":timeline();break;case "Sitter Mode":sitter();break;case "Pet Passport":passport();break;}
+            case "Pet Timeline":timeline();break;case "Sitter Mode":sitter();break;}
         if(!screen.equals("Care"))binding.dockContainer.addView(dock(screen));
         ViewCompat.requestApplyInsets(root);return root;
     }
@@ -306,30 +306,5 @@ public class ReferenceScreens {
         for(int i=0;i<rows.length;i++){String[] item=rows[i];list.addView(infoRow(item[0],item[1],null,()->go.accept(item[2])),new LinearLayout.LayoutParams(-1,dp(52)));
             if(i<rows.length-1){View divider=new View(a);divider.setBackgroundColor(outline);list.addView(divider,new LinearLayout.LayoutParams(-1,dp(1)));}}
         add(list);flexible(6);
-    }
-    private String petSummary(){String species=pet.optString("species","Pet");int age=-1;
-        try{Calendar born=Calendar.getInstance();born.setTime(new SimpleDateFormat("yyyy-MM-dd",Locale.US).parse(pet.optString("birthday")));
-            Calendar now=Calendar.getInstance();age=now.get(Calendar.YEAR)-born.get(Calendar.YEAR)-
-                    (now.get(Calendar.DAY_OF_YEAR)<born.get(Calendar.DAY_OF_YEAR)?1:0);}catch(Exception ignored){}
-        return age>=0?species+" · "+age+" years old":species;
-    }
-    private void passport(){header("Pet Passport","Share");LinearLayout identity=row();identity.setBackground(shape(surface,22,true));pad(identity,15,12);
-        LinearLayout.LayoutParams photoParams=new LinearLayout.LayoutParams(dp(76),dp(76));photoParams.rightMargin=dp(16);identity.addView(portrait(76),photoParams);
-        LinearLayout labels=col();labels.addView(title(name(),29));LinearLayout.LayoutParams summary=new LinearLayout.LayoutParams(-1,-2);summary.topMargin=dp(7);
-        labels.addView(text(petSummary(),14,sub,600),summary);identity.addView(labels,new LinearLayout.LayoutParams(0,-2,1));
-        identity.addView(action("Edit","Edit pet profile",()->go.accept("Edit Pet Profile")));add(identity,108,12);
-        LinearLayout list=col();list.setBackground(shape(surface,22));
-        String[][] rows={{"Vaccinations","Vaccinations","No records added"},{"Medication","Medications","Not provided"},
-                {"Allergies","Allergies","Not provided"},{"Vet Visit","Veterinarian","Not provided"},
-                {"Emergency","Emergency Contact","Not provided"},{"Microchip","Microchip","Not provided"},
-                {"Weight","Weight","Not provided"}};
-        for(int i=0;i<rows.length;i++){String[] item=rows[i];String target=i==0?"Vaccination Card":"Edit Pet Profile";
-            list.addView(infoRow(item[0],item[1],item[2],()->go.accept(target)),new LinearLayout.LayoutParams(-1,dp(66)));
-            if(i<rows.length-1){View divider=new View(a);divider.setBackgroundColor(outline);list.addView(divider,new LinearLayout.LayoutParams(-1,dp(1)));}}
-        add(list,-2,12);
-        LinearLayout share=row();share.setGravity(Gravity.CENTER);share.setBackground(shape(lavender,36));share.setOnClickListener(v->go.accept("Pet ID QR"));
-        LinearLayout.LayoutParams iconParams=new LinearLayout.LayoutParams(dp(28),dp(28));iconParams.rightMargin=dp(12);
-        share.addView(icon("QR",28,color("#201528")),iconParams);share.addView(text("Share Passport",18,color("#201528"),700));
-        add(share,58);flexible(0);
     }
 }

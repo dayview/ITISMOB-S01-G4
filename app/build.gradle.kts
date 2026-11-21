@@ -1,6 +1,5 @@
 plugins {
     id("com.android.application")
-    // Google services Gradle plugin
     id("com.google.gms.google-services")
 }
 configurations.configureEach {
@@ -14,13 +13,11 @@ android { namespace = "com.purrfolio.mco1"; compileSdk = 35
 }
 
 dependencies {
-    implementation("androidx.core:core:1.13.0")
+    implementation("androidx.core:core:1.13.0");
     implementation("androidx.appcompat:appcompat:1.7.0")
-
-    // Firebase (free Spark plan). Kept at BoM 33.7.0, the version tested on the Kotlin branch.
-    implementation(platform("com.google.firebase:firebase-bom:33.7.0"))
-    implementation("com.google.firebase:firebase-auth")
-    implementation("com.google.firebase:firebase-firestore")
+    implementation(platform("com.google.firebase:firebase-bom:35.2.0"))
+    implementation("com.google.firebase:firebase-auth:25.0.0")
+    implementation("com.google.firebase:firebase-firestore:27.2.0")
 
     // Local unit tests (app/src/test). org.json gives the tests a working JSONObject;
     // Android's own copy only exists on a phone.

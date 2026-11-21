@@ -25,7 +25,7 @@ Start with Phase 1 only. Stop and report after each phase.
 - Java (ported from Kotlin, see the note above), **Android Views built programmatically** (no Compose, almost no XML layouts for new screens). `viewBinding = true`.
 - `applicationId com.purrfolio.mco1`, minSdk 24, compileSdk/targetSdk 35. Only deps: `androidx.core:core:1.13.0`, `androidx.appcompat:appcompat:1.7.0`.
 - `MainActivity.java` (about 645 lines): owns data (`pets/logs/reminders` as `MutableList<JSONObject>` persisted in SharedPreferences `purrfolio_demo`) and routing via `render("Screen Name")` + `screenHistory` back stack.
-- `ReferenceScreens.java`: 7 reference screens (Home, Pet Detail, Care, Pet Timeline, Sitter Mode, Pet Passport, Welcome).
+- `ReferenceScreens.java`: 6 reference screens (Home, Pet Detail, Care, Pet Timeline, Sitter Mode, Welcome). Pet Passport is served by `PassportScreen.java`; the old `passport()` here was removed in a separate cleanup PR.
 - `PhaseTwoScreens.java` (about 943 lines): everything else, incl. `petForm(edit)`, `myPets()`, `petCard()`, `careCircle()`, `records()`.
   Code style is dense one-liners with semicolons. **Do not copy that style into new code**; write readable, multi-line Java.
 - Theme tokens are duplicated hex values per file (light/dark pairs). Reuse the same hex values; do not invent new colors.
@@ -41,7 +41,8 @@ Start with Phase 1 only. Stop and report after each phase.
   teammate's imports and the existing structure stay exactly as they are. Prefix by area so ownership is obvious:
   - Phase 1 (done, see §7): `PetRules.java`, `Pet.java`, `PetDraft.java`, `PetMigrations.java`, `DemoPets.java`, `PetPhotoStore.java`, `PetUi.java`, `PetScreenHost.java`, `PetForm.java`,
     `AddPetFlow.java`, `EditPetScreen.java`, `MyPetsScreen.java`, `PetProfileScreen.java`
-  - Later phases follow the same pattern: `PassportScreen.java`, `TimelineScreen.java`, `PaperlessInboxScreen.java`, `CareCircleScreen.java`
+  - Phase 2 (5.7, merged as PR #6): `PassportScreen.java`
+  - Later phases follow the same pattern: `TimelineScreen.java`, `PaperlessInboxScreen.java`, `CareCircleScreen.java`
     (each one screen class + a callback interface, like `PetScreenHost`).
 - Touching `MainActivity.java` / `PhaseTwoScreens.java` / `ReferenceScreens.java`: only to (a) delegate to my new file, or (b) delete the code I moved. One-line routing changes. Announce in the PR description so teammates can rebase.
 - **Moving code out of shared files is a coordination step:** do it in its own small PR *first*, merge quickly, then everyone rebases. Do not mix refactor and feature in one PR.
@@ -98,7 +99,7 @@ Sources: developer.android.com accessibility guides, Material Design text-field 
 | Birthday | Framework `DatePickerDialog` (zero deps) | Avoids pulling in Material Components. `maxDate = today`. The old form already used a picker but allowed no clearing and had no date limit. |
 | Form validation UI | Existing `EditText` + `setError` or a small `FieldView` wrapper in `ui/` | Material Components' `TextInputLayout` is nicer but needs the theme change we are avoiding. Revisit only if team agrees. |
 | Later: document capture (5.1) | ML Kit Document Scanner (`play-services-mlkit-document-scanner`) with fallback to `OpenDocument` | Scanner needs no camera permission, runs on-device, returns JPEG/PDF, needs Google Play services and API 21+. It is a dependency → decide in Phase 4, keep `OpenDocument` as the no-dependency default. |
-| Later: Passport export/share (5.7) | `android.graphics.pdf.PdfDocument` + `FileProvider` + `Intent.ACTION_SEND` | All framework/androidx. FileProvider needs a manifest entry (shared file → coordinate). |
+| Passport PDF export (5.7, not built; text sharing is) | `android.graphics.pdf.PdfDocument` + `FileProvider` + `Intent.ACTION_SEND` | All framework/androidx. FileProvider needs a manifest entry (shared file → coordinate). |
 | Later: Care Circle invite (3.1) | `ACTION_SEND` text invite via Sharesheet; roles chosen in UI | No backend → show invite as "Pending (preview)". Don't fake acceptance. |
 | Later: Timeline (5.6) | `RecyclerView` (androidx) over a merged, sorted list of log/reminder/document items | Add `androidx.recyclerview` only when the data is real; use sticky date headers; each row one TalkBack stop. |
 
@@ -175,7 +176,7 @@ Functional smoke (Phase 1)
 
 ## 11. Later phases — pointers (do not start yet)
 
-- **5.7 Pet Passport:** show real pet fields; "Not provided" rows become editable inside Edit Pet Profile (allergies, vet, microchip, emergency contact — add to `Pet`); export via PdfDocument; privacy note that sharing is user-initiated.
+- **5.7 Pet Passport (merged as PR #6):** `PassportScreen` shows real pet fields; each row opens Edit Pet Profile. Seven keys were added to `Pet`: `medicalInfo` (one field, not separate allergies/medications), `vetClinic`, `vetPhone`, `emergencyContactName`, `emergencyContactRelation`, `emergencyContactPhone`, `microchipId`. Call uses `ACTION_DIAL` (no permission; the user presses call). Share sends plain text through `ACTION_SEND` after a confirm dialog. Not built: PDF export via PdfDocument, which needs a `FileProvider` manifest entry (shared file, coordinate first).
 - **5.6 Timeline:** merge care logs + reminders + documents; filter chips by type; date headers; empty state with "Log care" action; one TalkBack stop per entry ("Fed Miso, 7:30 AM, by You").
 - **5.1 Paperless Inbox:** choose pet + document type, preview before saving, copy file to `filesDir/docs/<petId>/`, list with thumbnails/icons; scanner decision per §6.
 - **3.1 Care Circle:** invite sheet (name/email + role), roles list, pending/accepted states labelled preview, owner-only controls hidden for caregivers; link to teammate-owned 11.1/11.2 screens, don't build them.

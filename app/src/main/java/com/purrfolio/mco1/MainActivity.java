@@ -229,6 +229,8 @@ public class MainActivity extends AppCompatActivity {
     }
 
     @Override protected void onCreate(Bundle state){
+        requestNotificationPermission();
+        BackendHub.get().start(getApplicationContext(), petRefs());
         AppTheme.applySaved(this);super.onCreate(state);
         auth=new AuthRepository();users=new UserRepository();
         preferences=getSharedPreferences("purrfolio_demo",MODE_PRIVATE);
@@ -298,7 +300,10 @@ public class MainActivity extends AppCompatActivity {
         switch(destination){case "Welcome":showWelcome();return;case "App Theme":showAppTheme();return;
             case "Quick Log":showQuickLog();return;case "Care History":showCareHistory();return;
             case "Add Your Pet":showAddPet();return;case "Edit Pet Profile":showEditPet();return;
-            case "Pets":showMyPets();return;case "Pet Profile":showPetProfile();return;}
+            case "Pets":showMyPets();return;case "Pet Profile":showPetProfile();return;
+            case "Reminders":showReminders();return;case "Calendar":showCareCalendar();return;
+            case "Browse Records":showDocuments();return;
+            case "Pet Passport":showPassport();return;}
         if(ReferenceScreens.destinations.contains(destination)){
             View view=new ReferenceScreens(this,selectedPet(),target->{render(target);},
                     ()->{choosePet();},()->{editPetPhoto();},
@@ -367,6 +372,20 @@ public class MainActivity extends AppCompatActivity {
             navigateBack();
         }
         @Override public void setBackHandler(Runnable handler){formBackHandler=handler;}
+        @Override public void dial(String phone){
+            try{startActivity(new Intent(Intent.ACTION_DIAL,Uri.parse("tel:"+phone.replaceAll("[^0-9+]",""))));}
+            catch(android.content.ActivityNotFoundException error){
+                new AlertDialog.Builder(MainActivity.this).setTitle("Frontend preview")
+                        .setMessage("No dialer app is available on this device.").setPositiveButton("OK",null).show();}
+        }
+        @Override public void shareText(String title,String body){
+            Intent send=new Intent(Intent.ACTION_SEND).setType("text/plain")
+                    .putExtra(Intent.EXTRA_SUBJECT,title).putExtra(Intent.EXTRA_TEXT,body);
+            try{startActivity(Intent.createChooser(send,title));}
+            catch(android.content.ActivityNotFoundException error){
+                new AlertDialog.Builder(MainActivity.this).setTitle("Frontend preview")
+                        .setMessage("No app is available to share with on this device.").setPositiveButton("OK",null).show();}
+        }
         @Override public View dock(String dockScreen){
             return new ReferenceScreens(MainActivity.this,selectedPet(),target->{render(target);},
                     ()->{choosePet();}).dock(dockScreen);
@@ -385,6 +404,7 @@ public class MainActivity extends AppCompatActivity {
     }
     private void showMyPets(){showContent(new MyPetsScreen(this,savedPets(),petId(selectedPet()),petHost).build());}
     private void showPetProfile(){showContent(new PetProfileScreen(this,Pet.fromJson(selectedPet()),petHost).build());}
+    private void showPassport(){showContent(new PassportScreen(this,Pet.fromJson(selectedPet()),petHost).build());}
     private void commitPet(Pet pet,boolean adding){
         PetDraft draft=petDraft;
         if(adding){pets.add(pet.toJson());petIndex=pets.size()-1;}
@@ -642,4 +662,27 @@ public class MainActivity extends AppCompatActivity {
             .putString("reminders",json(reminders)).apply();}
     @Override public void onBackPressed(){if(screenHistory.isEmpty()&&(screen.equals("Home")||screen.equals("Welcome")))super.onBackPressed();
         else navigateBack();}
+    private List<PetRef> petRefs(){
+        List<PetRef> refs=new ArrayList<>();
+        for(JSONObject pet:pets)refs.add(new PetRef(petId(pet),pet.optString("name","Pet")));
+        return refs;}
+    private PetRef currentPet(){
+        if(pets.isEmpty())return new PetRef("","Pet");
+        return new PetRef(petId(selectedPet()),petName());}
+    private void requestNotificationPermission(){
+        if(android.os.Build.VERSION.SDK_INT>=33&&androidx.core.content.ContextCompat.checkSelfPermission(this,
+                Manifest.permission.POST_NOTIFICATIONS)!=android.content.pm.PackageManager.PERMISSION_GRANTED){
+            androidx.core.app.ActivityCompat.requestPermissions(this,new String[]{Manifest.permission.POST_NOTIFICATIONS},4001);}}
+    private void showReminders(){
+        ScreenRemindersBinding binding=ScreenRemindersBinding.inflate(getLayoutInflater());setContentView(binding.getRoot());
+        applyLegacyInsets(binding.remindersRoot);bindLegacyHeader(binding.header,"Reminders");bindCareDock(binding.bottomNav,"Reminders");
+        new RemindersScreen(this,binding,petRefs(),currentPet()).bind();}
+    private void showCareCalendar(){
+        ScreenCareCalendarBinding binding=ScreenCareCalendarBinding.inflate(getLayoutInflater());setContentView(binding.getRoot());
+        applyLegacyInsets(binding.calendarRoot);bindLegacyHeader(binding.header,"Calendar");bindCareDock(binding.bottomNav,"Calendar");
+        new CareCalendarScreen(this,binding,petRefs()).bind();}
+    private void showDocuments(){
+        ScreenDocumentsBinding binding=ScreenDocumentsBinding.inflate(getLayoutInflater());setContentView(binding.getRoot());
+        applyLegacyInsets(binding.documentsRoot);bindLegacyHeader(binding.header,"Documents");bindCareDock(binding.bottomNav,"Browse Records");
+        new DocumentsScreen(this,binding,currentPet()).bind();}
 }

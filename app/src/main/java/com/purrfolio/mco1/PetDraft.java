@@ -30,6 +30,15 @@ public final class PetDraft {
     public String notes = "";
     public String photoUri = "";
 
+    // Passport and emergency details (Edit screen only; the Add flow leaves them blank).
+    public String medicalInfo = "";
+    public String vetClinic = "";
+    public String vetPhone = "";
+    public String emergencyContactName = "";
+    public String emergencyContactRelation = "";
+    public String emergencyContactPhone = "";
+    public String microchipId = "";
+
     /** The photo the pet had before this draft started. We never delete that one when the user changes photos. */
     public String originalPhotoUri = "";
     private String originalSnapshot = "";
@@ -41,7 +50,9 @@ public final class PetDraft {
 
     private String snapshot() {
         return String.join("\u001F", name.trim(), species, otherSpecies.trim(), breed.trim(), birthday,
-                sex, PetRules.normalizeWeight(weight), notes.trim(), photoUri);
+                sex, PetRules.normalizeWeight(weight), notes.trim(), photoUri,
+                medicalInfo.trim(), vetClinic.trim(), vetPhone.trim(), emergencyContactName.trim(),
+                emergencyContactRelation, emergencyContactPhone.trim(), microchipId.trim());
     }
 
     public boolean isDirty() { return !snapshot().equals(originalSnapshot); }
@@ -59,7 +70,9 @@ public final class PetDraft {
 
     public Pet toPet() {
         return new Pet(id, name.trim(), finalSpecies(), breed.trim(), birthday, sex,
-                PetRules.normalizeWeight(weight), notes.trim(), photoUri);
+                PetRules.normalizeWeight(weight), notes.trim(), photoUri,
+                medicalInfo.trim(), vetClinic.trim(), vetPhone.trim(), emergencyContactName.trim(),
+                emergencyContactRelation, emergencyContactPhone.trim(), microchipId.trim());
     }
 
     public Bundle toBundle() {
@@ -76,6 +89,13 @@ public final class PetDraft {
         bundle.putString("weight", weight);
         bundle.putString("notes", notes);
         bundle.putString("photoUri", photoUri);
+        bundle.putString("medicalInfo", medicalInfo);
+        bundle.putString("vetClinic", vetClinic);
+        bundle.putString("vetPhone", vetPhone);
+        bundle.putString("emergencyContactName", emergencyContactName);
+        bundle.putString("emergencyContactRelation", emergencyContactRelation);
+        bundle.putString("emergencyContactPhone", emergencyContactPhone);
+        bundle.putString("microchipId", microchipId);
         bundle.putString("originalPhotoUri", originalPhotoUri);
         bundle.putString("originalSnapshot", originalSnapshot);
         return bundle;
@@ -104,6 +124,13 @@ public final class PetDraft {
         draft.weight = pet.weightKg;
         draft.notes = pet.notes;
         draft.photoUri = pet.photoUri;
+        draft.medicalInfo = pet.medicalInfo;
+        draft.vetClinic = pet.vetClinic;
+        draft.vetPhone = pet.vetPhone;
+        draft.emergencyContactName = pet.emergencyContactName;
+        draft.emergencyContactRelation = pet.emergencyContactRelation;
+        draft.emergencyContactPhone = pet.emergencyContactPhone;
+        draft.microchipId = pet.microchipId;
         draft.markClean();
         return draft;
     }
@@ -125,6 +152,13 @@ public final class PetDraft {
         d.weight = orEmpty(bundle.getString("weight"));
         d.notes = orEmpty(bundle.getString("notes"));
         d.photoUri = orEmpty(bundle.getString("photoUri"));
+        d.medicalInfo = orEmpty(bundle.getString("medicalInfo"));
+        d.vetClinic = orEmpty(bundle.getString("vetClinic"));
+        d.vetPhone = orEmpty(bundle.getString("vetPhone"));
+        d.emergencyContactName = orEmpty(bundle.getString("emergencyContactName"));
+        d.emergencyContactRelation = orEmpty(bundle.getString("emergencyContactRelation"));
+        d.emergencyContactPhone = orEmpty(bundle.getString("emergencyContactPhone"));
+        d.microchipId = orEmpty(bundle.getString("microchipId"));
         d.originalPhotoUri = orEmpty(bundle.getString("originalPhotoUri"));
         d.originalSnapshot = orEmpty(bundle.getString("originalSnapshot"));
         return d;
