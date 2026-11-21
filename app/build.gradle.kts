@@ -18,4 +18,9 @@ dependencies {
     implementation(platform("com.google.firebase:firebase-bom:35.2.0"))
     implementation("com.google.firebase:firebase-auth:25.0.0")
     implementation("com.google.firebase:firebase-firestore:27.2.0")
+
+    // Local unit tests (app/src/test). org.json gives the tests a working JSONObject;
+    // Android's own copy only exists on a phone.
+    testImplementation("junit:junit:4.13.2")
+    testImplementation("org.json:json:20240303")
 }
