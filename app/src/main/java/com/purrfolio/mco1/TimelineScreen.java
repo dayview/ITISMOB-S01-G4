@@ -101,6 +101,26 @@ public class TimelineScreen {
             boolean upcoming = TimelineBuilder.COMING_UP.equals(group.label);
             for (TimelineEntry entry : group.entries) listHolder.addView(rowView(entry, upcoming), ui.lp());
         }
+        if (result.groups.isEmpty()) listHolder.addView(emptyView(), ui.lpTop(8));
+    }
+
+    /** No rows to show: either the pet has nothing at all, or only the chosen filter has nothing. */
+    private View emptyView() {
+        List<TimelineEntry> all = source.get();
+        boolean nothingAtAll = "All".equals(filter) || all == null || all.isEmpty();
+        LinearLayout card = ui.column();
+        card.setBackground(ui.rounded(ui.surface, 20, ui.outline));
+        card.setPadding(ui.dp(16), ui.dp(16), ui.dp(16), ui.dp(16));
+        if (nothingAtAll) {
+            String name = petName.isEmpty() ? "this pet" : petName;
+            card.addView(ui.text("Nothing on the timeline yet", 20f, ui.primary, 600, true), ui.lpBottom(6));
+            card.addView(ui.text("Care logs, reminders and documents for " + name + " will appear here.", 15f, ui.sub),
+                    ui.lpBottom(14));
+            card.addView(ui.button("Log care", () -> host.go("Quick Log")), ui.lp());
+        } else {
+            card.addView(ui.text("Nothing to show for \"" + filter + "\". Try another filter.", 15f, ui.sub), ui.lp());
+        }
+        return card;
     }
 
     private List<TimelineEntry> filtered() {
