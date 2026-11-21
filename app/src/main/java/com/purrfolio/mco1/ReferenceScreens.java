@@ -2,7 +2,6 @@ package com.purrfolio.mco1;
 
 import android.app.Activity;
 import android.app.AlertDialog;
-import android.content.res.ColorStateList;
 import android.content.res.Configuration;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
@@ -21,7 +20,6 @@ import android.widget.FrameLayout;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
-import android.widget.Switch;
 import android.widget.TextView;
 import androidx.core.view.ViewCompat;
 import androidx.core.view.WindowCompat;
@@ -265,34 +263,53 @@ public class ReferenceScreens {
         LinearLayout labels=col();labels.addView(text(label,16,ink,800));
         if(value!=null){LinearLayout.LayoutParams detail=new LinearLayout.LayoutParams(-1,-2);detail.topMargin=dp(3);labels.addView(text(value,14,sub),detail);}
         r.addView(labels,new LinearLayout.LayoutParams(0,-2,1));r.addView(icon("Chevron",22,sub));return r;}
-    private void sitter(){header("• Sitter Mode");ImageView illustration=new ImageView(a);
-        illustration.setImageResource(R.drawable.sitter_friends);illustration.setScaleType(ImageView.ScaleType.FIT_CENTER);
-        illustration.setContentDescription("Illustration of a cat and dog together");add(illustration,120,12);
-        TextView introduction=text("Share a link with your sitter so they can\nsee exactly what to feed and when —\nno app, no login.",15,sub,600);
-        introduction.setGravity(Gravity.CENTER);add(introduction,68,18);
-        LinearLayout box=col();box.setBackground(shape(surface,22,true));pad(box,18,14);
-        LinearLayout heading=row();heading.addView(icon("Link",30),new LinearLayout.LayoutParams(dp(38),dp(38)));
-        heading.addView(title("Sitter Link",21),new LinearLayout.LayoutParams(0,-2,1));
-        Switch toggle=new Switch(a);toggle.setChecked(true);toggle.setShowText(false);toggle.setSwitchMinWidth(dp(52));
-        GradientDrawable thumb=shape(Color.WHITE,20);thumb.setSize(dp(28),dp(28));toggle.setThumbDrawable(thumb);
-        GradientDrawable track=shape(lavender,20);track.setSize(dp(52),dp(30));toggle.setTrackDrawable(track);
-        toggle.setThumbTintList(ColorStateList.valueOf(Color.WHITE));toggle.setTrackTintList(ColorStateList.valueOf(lavender));
-        toggle.setContentDescription("Sitter link preview switch");toggle.setOnCheckedChangeListener((button,checked)->
-                preview("Sitter sharing is a frontend preview. No public link or access permissions have been created."));
-        heading.addView(toggle);box.addView(heading);
-        LinearLayout url=row();url.setBackground(shape(bg,16,true));pad(url,14,8);
-        url.addView(text("purrfolio.app/sit/mochi",15,sub,700),new LinearLayout.LayoutParams(0,-2,1));
-        url.addView(action("More","Sitter link details",()->preview("Example URL only. Public sitter links are not connected.")));
-        LinearLayout.LayoutParams up=new LinearLayout.LayoutParams(-1,dp(50));up.topMargin=dp(8);box.addView(url,up);
-        LinearLayout.LayoutParams hint=new LinearLayout.LayoutParams(-1,dp(32));hint.topMargin=dp(10);
-        box.addView(text("Preview link · sharing not connected",13,sub),hint);
-        box.addView(button("Copy Link",false,()->preview("This is a sample link. Copying a working sitter invitation requires account and access-control integration.")),
-                new LinearLayout.LayoutParams(-1,dp(50)));add(box,234,10);
-        LinearLayout list=col();list.setBackground(shape(surface,22));pad(list,0,2);
-        String[][] rows={{"Eye","What they can see","Care Circle Access"},{"Feeding","Feeding instructions","Edit Pet Profile"},
-                {"Medication","Medications","Pet Passport"},{"Notes","Important notes","Edit Pet Profile"}};
-        for(int i=0;i<rows.length;i++){String[] item=rows[i];list.addView(infoRow(item[0],item[1],null,()->go.accept(item[2])),new LinearLayout.LayoutParams(-1,dp(52)));
-            if(i<rows.length-1){View divider=new View(a);divider.setBackgroundColor(outline);list.addView(divider,new LinearLayout.LayoutParams(-1,dp(1)));}}
-        add(list);flexible(6);
+    private View sitterRow(String kind,String label,String detail,String target){
+        LinearLayout item=row();pad(item,14,10);item.setMinimumHeight(dp(68));
+        item.setFocusable(true);item.setOnClickListener(v->go.accept(target));
+        item.setContentDescription(label+". "+detail+(detail.endsWith(".")?"":".")+" Open.");
+        LinearLayout.LayoutParams image=new LinearLayout.LayoutParams(dp(26),dp(26));image.rightMargin=dp(14);
+        item.addView(icon(kind,26),image);
+        LinearLayout labels=col();labels.addView(text(label,16,ink,700));
+        LinearLayout.LayoutParams secondary=new LinearLayout.LayoutParams(-1,-2);secondary.topMargin=dp(3);
+        TextView summary=text(detail,13,sub);summary.setMaxLines(2);summary.setEllipsize(android.text.TextUtils.TruncateAt.END);
+        labels.addView(summary,secondary);item.addView(labels,new LinearLayout.LayoutParams(0,-2,1));
+        LinearLayout.LayoutParams arrow=new LinearLayout.LayoutParams(dp(20),dp(20));arrow.leftMargin=dp(8);
+        item.addView(icon("Chevron",20,sub),arrow);return item;
+    }
+    private void sitter(){
+        header("Sitter Mode");
+        ImageView illustration=new ImageView(a);
+        illustration.setImageResource(R.drawable.sitter_friends);
+        illustration.setScaleType(ImageView.ScaleType.FIT_CENTER);
+        illustration.setContentDescription("Cat and dog illustration");add(illustration,92,8);
+        TextView introduction=text("Care essentials for "+name(),22,ink,700,true);
+        introduction.setGravity(Gravity.CENTER);add(introduction,-2,6);
+        TextView description=text("Keep notes and contacts ready for the people who care for "+name()+".",14,sub);
+        description.setGravity(Gravity.CENTER);add(description,-2,20);
+
+        LinearLayout status=col();status.setBackground(shape(surface,20,true));pad(status,16,14);
+        LinearLayout heading=row();
+        LinearLayout.LayoutParams lock=new LinearLayout.LayoutParams(dp(24),dp(24));lock.rightMargin=dp(10);
+        heading.addView(icon("Lock",24,primary),lock);
+        heading.addView(text("Sitter links are unavailable",17,ink,700));status.addView(heading);
+        LinearLayout.LayoutParams explanation=new LinearLayout.LayoutParams(-1,-2);explanation.topMargin=dp(8);
+        status.addView(text("Sharing is not connected yet. Nothing on this page creates a public link or grants access.",14,sub),explanation);
+        add(status,-2,24);
+
+        add(title("Care information",20),-2,8);
+        LinearLayout list=col();list.setBackground(shape(surface,20,true));pad(list,2,2);
+        String notes=pet.optString("notes").trim();
+        String medical=pet.optString("medicalInfo").trim();
+        String contact=pet.optString("emergencyContactName").trim();
+        String[][] rows={{"Pets","Care Circle","Review local caregiver settings","Care Circle"},
+                {"Notes","Care notes",notes.isEmpty()?"Add notes for your pet":notes,"Edit Pet Profile"},
+                {"Medical","Medical information",medical.isEmpty()?"Add health and medication details":medical,"Pet Passport"},
+                {"Phone","Emergency contacts",contact.isEmpty()?"Add a contact in Pet Passport":contact,"Pet Passport"}};
+        for(int i=0;i<rows.length;i++){
+            String[] item=rows[i];list.addView(sitterRow(item[0],item[1],item[2],item[3]));
+            if(i<rows.length-1){View divider=new View(a);divider.setBackgroundColor(outline);
+                LinearLayout.LayoutParams line=new LinearLayout.LayoutParams(-1,dp(1));line.leftMargin=dp(54);line.rightMargin=dp(12);
+                list.addView(divider,line);}}
+        add(list,-2,12);flexible(6);
     }
 }
