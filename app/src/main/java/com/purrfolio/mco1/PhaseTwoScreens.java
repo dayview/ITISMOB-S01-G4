@@ -4,6 +4,7 @@ import android.app.Activity;
 import android.app.AlertDialog;
 import android.app.DatePickerDialog;
 import android.content.ActivityNotFoundException;
+import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.res.ColorStateList;
@@ -12,6 +13,9 @@ import android.graphics.Color;
 import android.graphics.PorterDuff;
 import android.graphics.drawable.GradientDrawable;
 import android.net.Uri;
+import android.net.ConnectivityManager;
+import android.net.Network;
+import android.net.NetworkCapabilities;
 import android.text.Editable;
 import android.text.InputType;
 import android.text.TextWatcher;
@@ -1022,25 +1026,41 @@ public class PhaseTwoScreens {
         try{a.startActivity(new Intent(Intent.ACTION_DIAL,Uri.parse("tel:"+phone.replaceAll("[^0-9+]",""))));}
         catch(ActivityNotFoundException error){preview("No dialer app is available on this device.");}
     }
-    protected void offline(){header("Offline & Sync","Keep recording, even without\ninternet connection.","More");
-        add(art(R.drawable.pdf_offline_cat,112),112);
-        add(infoRow("Wifi","You're offline","Your entries are saved locally.\nCloud sync is not connected.","",pink,
-                ()->preview("This is the offline presentation state. Device network connectivity is not being measured.")),116,20);
-        int pending=logs.isEmpty()?3:logs.size();LinearLayout h=row();
-        h.addView(section("Pending Sync ("+pending+")"),new LinearLayout.LayoutParams(0,-2,1));
-        h.addView(button("Sync Now",()->preview("Firebase synchronization is not connected. Local entries remain on this device.")),
-                new LinearLayout.LayoutParams(dp(118),dp(40)));add(h,44,10);
-        if(logs.isEmpty()){demoLabel("Offline preview · sample pending entries");
-            String[][] sample={{"Feeding","Sep 25, 8:00 AM","Feeding"},{"Medication","Sep 25, 12:00 PM","Medication"},
-                    {"Vet Visit","Sep 24, 4:00 PM","Vet Visit"}};
-            for(String[] item:sample)add(infoRow(item[2],item[0],item[1]+" · "+name(),"Cloud",primary,
-                    ()->preview("Sample pending entry; cloud sync is not connected.")),72,4);
-        }else for(JSONObject entry:logs)add(infoRow("Notes",entry.optString("kind"),entry.optString("date"),"Cloud",primary,
-                ()->go.accept("Care History")),72,4);
-        gap(12);LinearLayout info=row();info.setBackground(shape());pad(info,14,10);
-        info.addView(icon("Cloud",32),new LinearLayout.LayoutParams(dp(40),dp(42)));
-        info.addView(text("Your local records stay available\nwhile cloud sync is disconnected.",12,sub),new LinearLayout.LayoutParams(0,-2,1));
-        info.addView(art(R.drawable.pdf_sync_cat,70),new LinearLayout.LayoutParams(dp(72),dp(70)));add(info,92);
+    private boolean internetAvailable(){
+        ConnectivityManager manager=(ConnectivityManager)a.getSystemService(Context.CONNECTIVITY_SERVICE);
+        if(manager==null)return false;
+        Network network=manager.getActiveNetwork();
+        NetworkCapabilities capabilities=network==null?null:manager.getNetworkCapabilities(network);
+        return capabilities!=null&&capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_VALIDATED);
+    }
+    protected void offline(){header("Offline & Sync","Your care records on this device.","More");
+        boolean online=internetAvailable();
+        LinearLayout status=row();status.setBackground(shape());pad(status,16,14);
+        LinearLayout.LayoutParams iconParams=new LinearLayout.LayoutParams(dp(36),dp(36));iconParams.rightMargin=dp(14);
+        status.addView(icon(online?"Wifi":"WifiOff",32,online?mint:sub),iconParams);
+        LinearLayout statusText=col();statusText.addView(text(online?"Internet available":"No internet connection",16,ink,700));
+        statusText.addView(text("Connection checked when this page opened",12,sub));
+        status.addView(statusText);add(status,-2,16);
+
+        add(text("Care logs are saved on this device and remain available without internet. They are not queued for cloud sync.",
+                14,sub),-2,24);
+        String petId=pet.optString("id","");
+        List<PetRecord> local=RecordSearch.filter(RecordSearch.fromCareLogs(logs),petId,null,
+                RecordSearch.DateRange.ALL,"");
+        sectionLabel("Saved care for "+name()+" ("+local.size()+")",8);
+        if(local.isEmpty()){
+            LinearLayout empty=col();empty.setBackground(shape());pad(empty,16,16);
+            empty.addView(text("No care logs saved yet",16,ink,700));
+            LinearLayout.LayoutParams detail=new LinearLayout.LayoutParams(-1,-2);detail.topMargin=dp(5);
+            empty.addView(text("Log a feeding, medication, or other activity to see it here.",13,sub),detail);
+            add(empty,-2,16);
+        }else{
+            for(int i=0;i<Math.min(local.size(),5);i++)add(recordRow(local.get(i)),-2,5);
+            if(local.size()>5)add(text("Showing the 5 most recent care logs",12,sub),-2,12);
+        }
+        add(button(local.isEmpty()?"Log care":"View care history",
+                ()->go.accept(local.isEmpty()?"Care":"Care History")),52,10);
+        if(!local.isEmpty())add(button("Browse and export records",true,()->go.accept("Browse Records")),52);
     }
     private static final class ActivityEntry {
         final String title,detail,by,kind,type;final boolean yesterday;
