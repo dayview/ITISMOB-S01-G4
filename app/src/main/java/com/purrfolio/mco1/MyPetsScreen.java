@@ -57,16 +57,15 @@ public class MyPetsScreen {
                     pet.id.equals(selectedId), false, () -> host.selectPet(position)), ui.lpBottom(12));
         }
 
-        body.addView(ui.button("Add another pet", () -> host.go("Add Your Pet")), ui.lp(4, 8));
-
         if (DemoPets.enabled(a)) {
-            body.addView(ui.text("Demo pets (development builds only)", 15f, ui.sub, 700), ui.lp(16, 10));
             for (DemoPets.Demo demo : DemoPets.all()) {
                 Pet pet = demo.pet;
                 View portrait = ui.portrait("", pet.species, 72, pet.name + "'s demo photo", demo.portraitRes);
                 body.addView(card(pet, portrait, false, true, () -> askToAdd(pet)), ui.lpBottom(12));
             }
         }
+
+        body.addView(ui.button("Add another pet", () -> host.go("Add Your Pet")), ui.lp(4, 8));
 
         LinearLayout.LayoutParams dockParams =
                 new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ui.dp(78));
