@@ -323,7 +323,8 @@ public class MainActivity extends AppCompatActivity implements ExportFiles.Host 
             case "Pets":showMyPets();return;case "Pet Profile":showPetProfile();return;
             case "Reminders":showReminders();return;case "Calendar":showCareCalendar();return;
             case "Paperless Inbox":showDocuments();return;
-            case "Pet Passport":showPassport();return;}
+            case "Pet Passport":showPassport();return;
+            case "Pet Timeline":showTimeline();return;}
         if(ReferenceScreens.destinations.contains(destination)){
             View view=new ReferenceScreens(this,selectedPet(),target->{render(target);},
                     ()->{choosePet();},()->{editPetPhoto();},
@@ -335,7 +336,9 @@ public class MainActivity extends AppCompatActivity implements ExportFiles.Host 
                     target->{render(target);},()->{choosePet();},
                     index->{petIndex=index;render("Pet Detail");},
                     (values,adding)->{JSONObject updated=adding?new SafeJson():new SafeJson(selectedPet().toString());
-                        for(String key:new String[]{"name","species","breed","birthday","sex","notes","photoUri"})
+                        for(String key:new String[]{"name","species","breed","birthday","sex","notes","photoUri",
+                                "medicalInfo","vetClinic","vetPhone",
+                                "emergencyContactName","emergencyContactRelation","emergencyContactPhone"})
                             if(values.containsKey(key))put(updated,key,values.get(key));
                         if(adding){pets.add(updated);petIndex=pets.size()-1;}else{put(updated,"id",petId(selectedPet()));pets.set(petIndex,updated);}
                         save();note("Pet profile saved on this device.");render("Pet Detail");},
@@ -424,6 +427,20 @@ public class MainActivity extends AppCompatActivity implements ExportFiles.Host 
     }
     private void showMyPets(){showContent(new MyPetsScreen(this,savedPets(),petId(selectedPet()),petHost).build());}
     private void showPetProfile(){showContent(new PetProfileScreen(this,Pet.fromJson(selectedPet()),petHost).build());}
+    private void showTimeline(){
+        String id=petId(selectedPet());BackendHub.get().watchDocuments(id);
+        showContent(new TimelineScreen(this,selectedPet().optString("name"),()->timelineEntries(id),auth.getCurrentUser()!=null,petHost).build());}
+    /** Raw rows for one pet: its care logs (local), plus reminders and documents from BackendHub. */
+    private List<TimelineEntry> timelineEntries(String petId){
+        List<TimelineEntry> out=new ArrayList<>();
+        for(JSONObject e:logs)if(petId.equals(entryPetId(e)))
+            out.add(TimelineEntry.log(e.optString("id"),e.optString("kind"),e.optString("text"),e.optLong("occurredAt",0)));
+        BackendHub hub=BackendHub.get();
+        for(Reminder r:hub.reminders())if(petId.equals(r.petId))
+            out.add(TimelineEntry.reminder(r.id,r.category,r.title,r.detail,r.timeMillis,r.lastDoneAt,r.repeatDaily));
+        for(PetDocument d:hub.documents())
+            out.add(TimelineEntry.document(d.id,d.type,d.title,d.addedAt));
+        return out;}
     private void showPassport(){showContent(new PassportScreen(this,Pet.fromJson(selectedPet()),petHost).build());}
     private void commitPet(Pet pet,boolean adding){
         PetDraft draft=petDraft;
@@ -672,7 +689,11 @@ public class MainActivity extends AppCompatActivity implements ExportFiles.Host 
         if(!pets.isEmpty()||!logs.isEmpty())save();
         if(pets.isEmpty()){
             pets.add(new SafeJson().put("name","Mochi").put("species","Cat").put("breed","Mixed Breed")
-                    .put("birthday","2024-09-26").put("sex","Female").put("notes","Playful, loves treats and sunny spots."));
+                    .put("birthday","2024-09-26").put("sex","Female").put("notes","Playful, loves treats and sunny spots.")
+                    .put("medicalInfo","No known allergies. Due for annual vaccination booster in November.")
+                    .put("vetClinic","Paws Animal Clinic").put("vetPhone","+63 917 123 4567")
+                    .put("emergencyContactName","Gracezel Castrence").put("emergencyContactRelation","Owner")
+                    .put("emergencyContactPhone","+63 917 234 5678"));
             pets.add(new SafeJson().put("name","Bailey").put("species","Dog").put("breed","Golden Retriever")
                     .put("birthday","2022-05-13").put("sex","Male").put("notes","Enjoys long walks."));
             for(JSONObject pet:pets)put(pet,"id",UUID.randomUUID().toString());
