@@ -180,7 +180,7 @@ Branch `leon/5-7-pet-passport` (base master `0404862`; merged into master as PR 
 
 ## Pet Timeline (5.6) — 2026-11-21
 
-Branch `leon/5-6-pet-timeline` (base master `84e47b1`, then master `4feb0f3` merged in). Checked on the Pixel_6a emulator (API 33, 1080 × 2400), debug build, signed out of Firebase.
+Branch `leon/5-6-pet-timeline` (base master `84e47b1`, then master `4feb0f3` and `0c41a46` merged in; merged into master as PR #11). Checked on the Pixel_6a emulator (API 33, 1080 × 2400), debug build, signed out of Firebase.
 
 ### Build and tests
 
