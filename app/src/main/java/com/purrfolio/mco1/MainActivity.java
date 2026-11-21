@@ -443,6 +443,9 @@ public class MainActivity extends AppCompatActivity implements ExportFiles.Host 
             out.add(TimelineEntry.reminder(r.id,r.category,r.title,r.detail,r.timeMillis,r.lastDoneAt,r.repeatDaily));
         for(PetDocument d:hub.documents())
             out.add(TimelineEntry.document(d.id,d.type,d.title,d.addedAt));
+        // Documents saved on this phone (5.1) need no sign-in, so they show here either way.
+        for(LocalDocument d:LocalDocumentRepository.inPreferences(preferences).forPet(petId))
+            out.add(TimelineEntry.document(d.id,d.type,d.title,d.addedAt));
         return out;}
     private void showPassport(){showContent(new PassportScreen(this,Pet.fromJson(selectedPet()),petHost).build());}
     private void commitPet(Pet pet,boolean adding){

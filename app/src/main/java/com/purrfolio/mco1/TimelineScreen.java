@@ -79,7 +79,7 @@ public class TimelineScreen {
             fillList();
         }), ui.lpBottom(12));
 
-        banner = ui.text("Sign in to see reminders and documents. Care logs still show here.", 14f, ui.sub, 600);
+        banner = ui.text("Sign in to see reminders and online documents. Care logs and documents saved on this phone still show here.", 14f, ui.sub, 600);
         banner.setBackground(ui.rounded(ui.surface, 16, ui.outline));
         banner.setPadding(ui.dp(14), ui.dp(12), ui.dp(14), ui.dp(12));
         banner.setFocusable(true);
