@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Folders the FileProvider may share (5.5 Share / Export Records). Only cache/exports, nothing else. -->
+<!-- Folders the FileProvider may share: cache/exports (5.5 Share / Export Records) and
+     files/docs (5.1 Paperless Inbox, so a saved document can be opened in a viewer). Nothing else. -->
 <paths>
     <cache-path name="exports" path="exports/"/>
+    <files-path name="docs" path="docs/"/>
 </paths>

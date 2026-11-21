@@ -1,7 +1,10 @@
 package com.purrfolio.mco1;
 
 import android.app.Activity;
+import android.content.ActivityNotFoundException;
 import android.content.Context;
+import android.content.Intent;
+import android.net.Uri;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.view.View;
@@ -11,10 +14,12 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.core.content.ContextCompat;
+import androidx.core.content.FileProvider;
 
 import com.purrfolio.mco1.databinding.ItemDocumentBinding;
 import com.purrfolio.mco1.databinding.ScreenDocumentsBinding;
 
+import java.io.File;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
@@ -107,7 +112,25 @@ public final class DocumentsScreen {
         binding.documentsEmpty.setVisibility(count == 0 ? View.VISIBLE : View.GONE);
     }
 
-    /** A document saved on this phone. Opening it comes in the next step, so a tap says so for now. */
+    /** Opens a saved copy in whatever app can show it. The viewer gets a temporary read-only link, not the file path. */
+    private void openLocal(LocalDocument d) {
+        File file = DocumentFileStore.fileFor(activity, d.path);
+        if (file == null || !file.isFile()) {
+            Toast.makeText(activity, "This file is no longer on this phone.", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        try {
+            Uri uri = FileProvider.getUriForFile(activity, activity.getPackageName() + ".fileprovider", file);
+            Intent view = new Intent(Intent.ACTION_VIEW)
+                    .setDataAndType(uri, DocumentRules.mimeTypeFor(file.getName()))
+                    .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            activity.startActivity(view);
+        } catch (ActivityNotFoundException | IllegalArgumentException e) {
+            Toast.makeText(activity, "No app can open this file.", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    /** A document saved on this phone (5.1). */
     private void addLocalRow(LocalDocument d) {
         ItemDocumentBinding item = ItemDocumentBinding.inflate(activity.getLayoutInflater(), binding.documentContainer, false);
         item.documentIcon.setText(d.looksLikeImage() ? "▣" : "▤");
@@ -117,8 +140,7 @@ public final class DocumentsScreen {
         BrandType.apply(item.documentIcon, true, 600);
         BrandType.apply(item.documentTitle, false, 700);
         BrandType.apply(item.documentMeta, false, 400);
-        item.getRoot().setOnClickListener(v ->
-                Toast.makeText(activity, "Opening saved documents is coming soon.", Toast.LENGTH_SHORT).show());
+        item.getRoot().setOnClickListener(v -> openLocal(d));
         binding.documentContainer.addView(item.getRoot());
     }
 
