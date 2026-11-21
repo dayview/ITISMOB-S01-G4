@@ -592,7 +592,7 @@ public class MainActivity extends AppCompatActivity {
         BrandType.apply(binding.continueWithLabel,false,400);
         binding.getStartedButton.setOnClickListener(v->render("Create Account"));
         binding.logInButton.setOnClickListener(v->render("Log In"));
-        social(binding.googleButton,"Google");social(binding.appleButton,"Apple");social(binding.facebookButton,"Facebook");
+        social(binding.googleButton,"Google");
     }
     private void social(View view,String provider){view.setOnClickListener(v->new AlertDialog.Builder(this)
             .setTitle("Frontend preview").setMessage(provider+" sign-in requires authentication integration.")

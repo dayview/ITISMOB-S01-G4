@@ -278,7 +278,7 @@ public class PhaseTwoScreens {
         divider.addView(left,new LinearLayout.LayoutParams(0,dp(1),1));divider.addView(center("or continue with",13,sub,400),new LinearLayout.LayoutParams(dp(136),dp(26)));
         divider.addView(right,new LinearLayout.LayoutParams(0,dp(1),1));add(divider,30,8);
         LinearLayout r=row();r.setGravity(Gravity.CENTER);
-        for(String provider:new String[]{"Apple","Google","Facebook"}){int size=provider.equals("Apple")?30:34;
+        for(String provider:new String[]{"Google"}){int size=34;
             FrameLayout cell=new FrameLayout(a);cell.setBackground(shape(surface,40,true));
             cell.setContentDescription("Continue with "+provider);cell.setOnClickListener(v->preview(provider+" sign-in is not connected."));
             cell.addView(icon(provider,size,primary),new FrameLayout.LayoutParams(dp(size),dp(size),Gravity.CENTER));
@@ -298,7 +298,7 @@ public class PhaseTwoScreens {
         top.addView(steps(3),new LinearLayout.LayoutParams(0,dp(44),1));top.addView(new View(a),new LinearLayout.LayoutParams(dp(44),1));add(top,48,12);
         TextView title=heading("Create Account",32);title.setGravity(Gravity.CENTER);add(title,48,4);
         add(center("Let's get to know you!",17,ink,600),28,24);
-        EditText fullName=field("Full Name","","Person","Gracezel Castrence",false,false,null,null);
+        EditText fullName=field("Full Name","","Person","Juan dela Cruz",false,false,null,null);
         EditText email=field("Email Address","","Mail","youremail@dlsu.edu.ph",false,false,null,null);
         EditText password=field("Password","","Lock","",true,false,null,null);
         LinearLayout requirements=col();requirements.setBackground(shape());pad(requirements,18,12);
@@ -371,7 +371,7 @@ public class PhaseTwoScreens {
     protected void personalInformation(){header("Personal Information",null,"Profile");add(portraitHero(125,false,true),155,18);
         // Keys are the Firestore field names; MainActivity mirrors them into the profile:* preferences.
         Map<String,EditText> fields=new LinkedHashMap<>();
-        fields.put("fullName",field("Full Name",prefs.getString("profile:name",""),"Person","Gracezel Castrence",false,false,null,null));
+        fields.put("fullName",field("Full Name",prefs.getString("profile:name",""),"Person","Juan dela Cruz",false,false,null,null));
         // Changing the sign-in email belongs to Account Settings, so it is read-only here.
         EditText email=field("Email Address",prefs.getString("profile:email",""),"Mail");email.setFocusable(false);email.setAlpha(.6f);
         fields.put("phone",field("Phone Number",prefs.getString("profile:phone",""),"Phone","+63 912 345 6789",false,false,null,null));
