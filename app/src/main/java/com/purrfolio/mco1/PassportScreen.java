@@ -46,24 +46,27 @@ public class PassportScreen {
         LinearLayout body = scrollBody.body;
         root.addView(scrollBody.scroll);
 
-        body.addView(identityCard(), ui.lpBottom(16));
-        if (!hasPassportDetails()) body.addView(emptyCard(), ui.lpBottom(16));
+        body.addView(identityCard(), ui.lpBottom(20));
+        if (!hasPassportDetails()) body.addView(ui.text(
+                "Add health and contact details so they're ready when you need them.", 15f, ui.sub),
+                ui.lpBottom(16));
 
-        LinearLayout rows = ui.column();
-        rows.setBackground(ui.rounded(ui.surface, 20, ui.outline));
-        rows.setPadding(ui.dp(4), ui.dp(4), ui.dp(4), ui.dp(4));
-        infoRow(rows, "Vaccinations", "Sample document", "Vaccination Card", "open");
-        infoRow(rows, "Medical information", blankToNull(pet.medicalInfo), "Edit Pet Profile", "edit");
-        callRow(rows, "Veterinarian", PetRules.vetLine(pet), blankToNull(pet.vetPhone),
+        LinearLayout health = section(body, "Health");
+        infoRow(health, "Medical information", blankToNull(pet.medicalInfo), "Edit Pet Profile", "edit");
+        infoRow(health, "Vaccination documents", "View saved documents", "Paperless Inbox", "open");
+
+        LinearLayout contacts = section(body, "Care contacts");
+        callRow(contacts, "Veterinarian", PetRules.vetLine(pet), blankToNull(pet.vetPhone),
                 "Call " + (blankToNull(pet.vetClinic) == null ? "the veterinarian" : pet.vetClinic.trim()));
-        callRow(rows, "Emergency contact", PetRules.contactLine(pet), blankToNull(pet.emergencyContactPhone),
+        callRow(contacts, "Emergency contact", PetRules.contactLine(pet), blankToNull(pet.emergencyContactPhone),
                 "Call " + (blankToNull(pet.emergencyContactName) == null ? "the emergency contact"
                         : pet.emergencyContactName.trim()));
-        infoRow(rows, "Microchip", blankToNull(pet.microchipId), "Edit Pet Profile", "edit");
+
+        LinearLayout identity = section(body, "Identification");
+        infoRow(identity, "Microchip", blankToNull(pet.microchipId), "Edit Pet Profile", "edit");
         String weight = blankToNull(pet.weightKg);
-        infoRow(rows, "Weight", weight == null ? null : weight + " kg", "Edit Pet Profile", "edit");
-        body.addView(rows, ui.lpBottom(20));
-        body.addView(ui.button("Share passport", false, this::confirmShare), ui.lpBottom(8));
+        infoRow(identity, "Weight", weight == null ? null : weight + " kg", "Edit Pet Profile", "edit");
+        body.addView(ui.button("Share passport", true, this::confirmShare), ui.lp(20, 8));
 
         LinearLayout.LayoutParams dockParams =
                 new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ui.dp(78));
@@ -94,19 +97,18 @@ public class PassportScreen {
         return card;
     }
 
-    private View emptyCard() {
-        LinearLayout card = ui.column();
-        card.setBackground(ui.rounded(ui.surface, 20, ui.outline));
-        card.setPadding(ui.dp(16), ui.dp(16), ui.dp(16), ui.dp(16));
-        card.addView(ui.text("No passport details yet", 20f, ui.primary, 600, true), ui.lpBottom(6));
-        card.addView(ui.text("Add health, vet and emergency details so they are in one place.", 15f, ui.sub),
-                ui.lpBottom(14));
-        card.addView(ui.button("Add passport details", () -> host.go("Edit Pet Profile")), ui.lp());
-        return card;
+    private LinearLayout section(LinearLayout body, String title) {
+        TextView heading = ui.heading(title, 18f);
+        ui.markHeading(heading);
+        body.addView(heading, ui.lp(12, 8));
+        LinearLayout rows = ui.column();
+        body.addView(rows, ui.lpBottom(8));
+        return rows;
     }
 
     /** One tap stop: label, value, and a single spoken sentence for TalkBack. */
     private void infoRow(LinearLayout into, String label, String value, String target, String verb) {
+        if (into.getChildCount() > 0) into.addView(divider());
         into.addView(rowView(label, value, target, verb), ui.lp());
     }
 
@@ -115,6 +117,7 @@ public class PassportScreen {
      * The text still opens Edit; only the button opens the dialer (and the user presses call themselves).
      */
     private void callRow(LinearLayout into, String label, String value, String phone, String callDescription) {
+        if (into.getChildCount() > 0) into.addView(divider());
         View text = rowView(label, value, "Edit Pet Profile", "edit");
         if (phone == null) {
             into.addView(text, ui.lp());
@@ -132,7 +135,7 @@ public class PassportScreen {
     private View rowView(String label, String value, String target, String verb) {
         LinearLayout line = ui.column();
         line.setMinimumHeight(ui.dp(56));
-        line.setPadding(ui.dp(14), ui.dp(10), ui.dp(14), ui.dp(10));
+        line.setPadding(ui.dp(4), ui.dp(10), ui.dp(4), ui.dp(10));
         line.setFocusable(true);
         line.setClickable(true);
         line.setBackground(ui.interactiveBackground(Color.TRANSPARENT, 16));
@@ -140,10 +143,25 @@ public class PassportScreen {
         line.setContentDescription(value == null
                 ? label + ", not added yet. Double tap to add."
                 : label + ", " + value + ". Double tap to " + verb + ".");
-        line.addView(ui.text(label, 13f, ui.sub, 600), ui.lp());
-        line.addView(ui.text(value == null ? "Not added yet" : value, 16f,
-                value == null ? ui.sub : ui.ink, 600), ui.lpTop(2));
+        if (value == null) {
+            LinearLayout empty = ui.row();
+            empty.addView(ui.text(label, 16f, ui.ink, 600),
+                    new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+            empty.addView(ui.text("Add", 14f, ui.primary, 700));
+            line.addView(empty, ui.lp());
+        } else {
+            line.addView(ui.text(label, 13f, ui.sub, 600), ui.lp());
+            line.addView(ui.text(value, 16f, ui.ink, 600), ui.lpTop(2));
+        }
         ui.role(line, Button.class);
+        return line;
+    }
+
+    private View divider() {
+        View line = new View(a);
+        line.setBackgroundColor(ui.outline);
+        line.setLayoutParams(new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ui.dp(1)));
+        line.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO);
         return line;
     }
 
