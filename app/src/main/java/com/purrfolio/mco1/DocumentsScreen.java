@@ -1,12 +1,14 @@
 package com.purrfolio.mco1;
 
 import android.app.Activity;
+import android.content.Context;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import androidx.core.content.ContextCompat;
 
@@ -80,14 +82,44 @@ public final class DocumentsScreen {
         String query = binding.documentSearch.getText().toString();
         int range = binding.documentDateSpinner.getSelectedItemPosition();
         List<PetDocument> shown = DocumentRepository.filter(BackendHub.get().documents(), filter, query);
+        // Documents saved on this phone (5.1). Same chips, search and date range as the online ones.
+        List<LocalDocument> local = LocalDocumentRepository.filter(
+                LocalDocumentRepository.inPreferences(activity.getSharedPreferences("purrfolio_demo", Context.MODE_PRIVATE))
+                        .forPet(current.id),
+                filter, query, range, System.currentTimeMillis());
 
         int count = 0;
+        int nextLocal = 0;
         for (PetDocument d : shown) {
             if (!DocumentRepository.inRange(d, range)) continue;
+            // Both lists are newest first, so phone documents newer than this one go above it.
+            while (nextLocal < local.size() && local.get(nextLocal).addedAt >= d.addedAt) {
+                addLocalRow(local.get(nextLocal++));
+                count++;
+            }
             addRow(d);
             count++;
         }
+        while (nextLocal < local.size()) {
+            addLocalRow(local.get(nextLocal++));
+            count++;
+        }
         binding.documentsEmpty.setVisibility(count == 0 ? View.VISIBLE : View.GONE);
+    }
+
+    /** A document saved on this phone. Opening it comes in the next step, so a tap says so for now. */
+    private void addLocalRow(LocalDocument d) {
+        ItemDocumentBinding item = ItemDocumentBinding.inflate(activity.getLayoutInflater(), binding.documentContainer, false);
+        item.documentIcon.setText(d.looksLikeImage() ? "▣" : "▤");
+        item.documentTitle.setText(d.title);
+        String date = new SimpleDateFormat("MMM d, yyyy", Locale.US).format(new Date(d.addedAt));
+        item.documentMeta.setText(date + " · " + d.type + " · On this phone");
+        BrandType.apply(item.documentIcon, true, 600);
+        BrandType.apply(item.documentTitle, false, 700);
+        BrandType.apply(item.documentMeta, false, 400);
+        item.getRoot().setOnClickListener(v ->
+                Toast.makeText(activity, "Opening saved documents is coming soon.", Toast.LENGTH_SHORT).show());
+        binding.documentContainer.addView(item.getRoot());
     }
 
     private void addRow(PetDocument d) {
