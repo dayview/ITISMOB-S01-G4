@@ -24,6 +24,7 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.RadioButton;
 import android.widget.RadioGroup;
+import android.widget.ScrollView;
 import android.widget.Switch;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -703,16 +704,15 @@ public class PhaseTwoScreens {
         final RecordSearch.DateRange[] customRange={null};
         final Runnable[] refresh={null},clearFilters={null};
 
-        LinearLayout search=row();EditText query=new EditText(a);query.setHint("Search by keyword…");query.setContentDescription("Search records by keyword");
+        LinearLayout search=row();EditText query=new EditText(a);query.setHint("Search records");query.setContentDescription("Search records by keyword");
         query.setTextSize(15);BrandType.apply(query,false,400);query.setTextColor(ink);query.setHintTextColor(sub);
         query.setBackground(shape(surface,30,true));query.setSingleLine();pad(query,18,10);
         search.addView(query,new LinearLayout.LayoutParams(0,dp(48),1));
-        FrameLayout clear=action("Filter","Clear all filters",()->{clearFilters[0].run();notice("Filters cleared.");});clear.setBackground(shape(elevated,28,true));
-        LinearLayout.LayoutParams fp=new LinearLayout.LayoutParams(dp(48),dp(48));fp.leftMargin=dp(10);search.addView(clear,fp);add(search,48,22);
-        sectionLabel("Filter by Type");LinearLayout typeControls=col();add(typeControls,-2,18);
-        sectionLabel("Filter by Date");LinearLayout dateControls=col();add(dateControls,-2,4);
-        TextView rangeLabel=text("",13,primary,700);rangeLabel.setVisibility(View.GONE);rangeLabel.setMinHeight(dp(36));
-        rangeLabel.setGravity(Gravity.CENTER_VERTICAL);add(rangeLabel,-2,0);gap(14);
+        TextView filterButton=text("Filters",14,primary,700);filterButton.setGravity(Gravity.CENTER);
+        filterButton.setContentDescription("Filter records by type and date");filterButton.setBackground(shape(elevated,24,true));
+        LinearLayout.LayoutParams fp=new LinearLayout.LayoutParams(dp(88),dp(48));fp.leftMargin=dp(10);search.addView(filterButton,fp);add(search,48,8);
+        TextView activeFilters=text("",13,sub,600);activeFilters.setVisibility(View.GONE);
+        activeFilters.setMinHeight(dp(36));activeFilters.setGravity(Gravity.CENTER_VERTICAL);add(activeFilters,-2,12);
         LinearLayout resultsHeader=row();TextView count=section("Results");resultsHeader.addView(count,new LinearLayout.LayoutParams(0,-2,1));
         TextView export=text("Export",13,primary,700);export.setContentDescription("Share or export these results");
         export.setGravity(Gravity.CENTER_VERTICAL);pad(export,10,0);resultsHeader.addView(export,new LinearLayout.LayoutParams(-2,dp(40)));
@@ -725,22 +725,33 @@ public class PhaseTwoScreens {
                     RecordSearch.DateRange.forLabel(selectedDate[0],System.currentTimeMillis());
             List<PetRecord> matches=RecordSearch.filter(petRecords,null,type,range,query.getText().toString());
             count.setText(matches.size()==1?"1 Result":matches.size()+" Results");shown.clear();shown.addAll(matches);
+            boolean filtered=!selectedType[0].equals("All")||!selectedDate[0].equals("All");
+            filterButton.setText(filtered?"Filters •":"Filters");
+            activeFilters.setText((selectedType[0].equals("All")?"All types":selectedType[0])+"  ·  "+
+                    (selectedDate[0].equals("Custom")&&customRange[0]!=null?rangeText(customRange[0]):selectedDate[0]));
+            activeFilters.setVisibility(filtered?View.VISIBLE:View.GONE);
             for(PetRecord record:matches){LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(-1,-2);p.bottomMargin=dp(5);
                 results.addView(recordRow(record),p);}
             if(matches.isEmpty())results.addView(emptyRecords(petRecords.isEmpty(),type,clearFilters[0]));};
-        Consumer<String> pickType=value->{selectedType[0]=value;refresh[0].run();};
-        Runnable[] pickCustom={null};
-        Consumer<String> pickDate=value->{
-            if(!value.equals("Custom")){selectedDate[0]=value;customRange[0]=null;rangeLabel.setVisibility(View.GONE);refresh[0].run();return;}
-            pickCustom[0].run();};
-        pickCustom[0]=()->pickDateRange(range->{selectedDate[0]="Custom";customRange[0]=range;
-                    rangeLabel.setText(rangeText(range)+"  ·  Change");rangeLabel.setVisibility(View.VISIBLE);
-                    drawTypeSelection(dateControls,"Custom");refresh[0].run();},
-                ()->drawTypeSelection(dateControls,selectedDate[0])); // cancelled: keep the previous chip
-        rangeLabel.setOnClickListener(v->pickCustom[0].run());
-        clearFilters[0]=()->{selectedType[0]="All";selectedDate[0]="All";customRange[0]=null;rangeLabel.setVisibility(View.GONE);
-            drawTypeSelection(typeControls,"All");drawTypeSelection(dateControls,"All");
+        clearFilters[0]=()->{selectedType[0]="All";selectedDate[0]="All";customRange[0]=null;
             if(query.getText().length()>0)query.setText("");else refresh[0].run();};
+        filterButton.setOnClickListener(v->{
+            LinearLayout panel=col();pad(panel,20,8);
+            panel.addView(section("Record type"),new LinearLayout.LayoutParams(-1,dp(36)));
+            LinearLayout typeControls=col();panel.addView(typeControls);
+            LinearLayout.LayoutParams dateHeading=new LinearLayout.LayoutParams(-1,dp(44));dateHeading.topMargin=dp(12);
+            panel.addView(section("Date"),dateHeading);
+            LinearLayout dateControls=col();panel.addView(dateControls);
+            drawRecordChips(typeControls,RECORD_TYPE_CHIPS,selectedType[0],value->{selectedType[0]=value;refresh[0].run();});
+            drawRecordChips(dateControls,RECORD_DATE_CHIPS,selectedDate[0],value->{
+                if(!value.equals("Custom")){selectedDate[0]=value;customRange[0]=null;refresh[0].run();return;}
+                pickDateRange(range->{selectedDate[0]="Custom";customRange[0]=range;
+                    drawTypeSelection(dateControls,"Custom");refresh[0].run();},
+                    ()->drawTypeSelection(dateControls,selectedDate[0]));});
+            ScrollView scroll=new ScrollView(a);scroll.addView(panel);
+            new AlertDialog.Builder(a).setTitle("Filter records").setView(scroll)
+                    .setPositiveButton("Done",null)
+                    .setNeutralButton("Clear filters",(dialog,which)->clearFilters[0].run()).show();});
         export.setOnClickListener(v->{
             if(shown.isEmpty()){notice("No records to export. Try changing the filters.");return;}
             String keyword=query.getText().toString().trim();
@@ -749,8 +760,6 @@ public class PhaseTwoScreens {
                             selectedDate[0].equals("All")?"All dates":selectedDate[0])+
                     (keyword.isEmpty()?"":" · “"+keyword+"”");
             exportRecords(new ArrayList<>(shown),filters);});
-        drawRecordChips(typeControls,RECORD_TYPE_CHIPS,selectedType[0],pickType);
-        drawRecordChips(dateControls,RECORD_DATE_CHIPS,selectedDate[0],pickDate);
         query.addTextChangedListener(new TextWatcher(){public void beforeTextChanged(CharSequence s,int start,int count,int after){}
             public void afterTextChanged(Editable s){}public void onTextChanged(CharSequence s,int start,int before,int count){refresh[0].run();}});
         refresh[0].run();
@@ -815,18 +824,16 @@ public class PhaseTwoScreens {
         case MEDICATIONS:return "Medication";case VACCINATIONS:return "Medical";case APPOINTMENTS:return "Vet Visit";
         case DOCUMENTS:return "Document";case OBSERVATIONS:return "Wave";
         default:return CARE_KINDS.contains(record.title)?record.title:"Notes";}}
-    protected View recordRow(PetRecord record){LinearLayout r=row();r.setBackground(shape());pad(r,13,9);r.setMinimumHeight(dp(62));
+    protected View recordRow(PetRecord record){LinearLayout r=row();r.setBackground(shape());pad(r,14,12);r.setMinimumHeight(dp(68));
         r.setFocusable(true);r.setOnClickListener(v->openRecord(record));
         LinearLayout.LayoutParams iconParams=new LinearLayout.LayoutParams(dp(34),dp(36));iconParams.rightMargin=dp(14);
         r.addView(icon(recordIcon(record),32),iconParams);
-        LinearLayout copy=col();copy.addView(text(record.title,14,ink,700));
-        TextView detail=text(recordTime(record)+(record.detail.isEmpty()?"":" · "+record.detail),12,sub);
+        LinearLayout copy=col();copy.addView(text(record.title,16,ink,700));
+        TextView detail=text(record.type.label+" · "+recordTime(record)+(record.detail.isEmpty()?"":" · "+record.detail),12,sub);
         detail.setMaxLines(2);detail.setEllipsize(android.text.TextUtils.TruncateAt.END);
         LinearLayout.LayoutParams dp5=new LinearLayout.LayoutParams(-1,-2);dp5.topMargin=dp(5);copy.addView(detail,dp5);
         r.addView(copy,new LinearLayout.LayoutParams(0,-2,1));
         String tag=record.type.label.endsWith("s")?record.type.label.substring(0,record.type.label.length()-1):record.type.label;
-        TextView label=text(tag,10,primary,500);label.setBackground(shape(elevated,18,false));pad(label,7,5);
-        LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(-2,-2);p.leftMargin=dp(6);p.rightMargin=dp(7);r.addView(label,p);
         r.addView(icon("Chevron",20));
         r.setContentDescription(tag+": "+record.title+", "+recordTime(record)+(record.detail.isEmpty()?"":", "+record.detail));
         return r;
