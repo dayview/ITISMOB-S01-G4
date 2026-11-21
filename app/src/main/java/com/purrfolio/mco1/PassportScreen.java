@@ -135,7 +135,8 @@ public class PassportScreen {
 
     private View rowView(String label, String value, String target, String verb) {
         LinearLayout line = ui.column();
-        line.setMinimumHeight(ui.dp(48));
+        line.setMinimumHeight(ui.dp(64));
+        line.setGravity(Gravity.CENTER_VERTICAL);
         line.setPadding(ui.dp(4), ui.dp(6), ui.dp(4), ui.dp(6));
         line.setFocusable(true);
         line.setClickable(true);
@@ -144,16 +145,12 @@ public class PassportScreen {
         line.setContentDescription(value == null
                 ? label + ", not added yet. Double tap to add."
                 : label + ", " + value + ". Double tap to " + verb + ".");
-        if (value == null) {
-            LinearLayout empty = ui.row();
-            empty.addView(ui.text(label, 16f, ui.ink, 600),
-                    new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
-            empty.addView(ui.text("Add", 14f, ui.primary, 700));
-            line.addView(empty, ui.lp());
-        } else {
-            line.addView(ui.text(label, 13f, ui.sub, 600), ui.lp());
-            line.addView(ui.text(value, 16f, ui.ink, 600), ui.lpTop(2));
-        }
+        line.addView(ui.text(label, 13f, ui.sub, 600), ui.lp());
+        TextView detail = ui.text(value == null ? "Add details" : value, 16f,
+                value == null ? ui.primary : ui.ink, 600);
+        detail.setSingleLine(true);
+        detail.setEllipsize(android.text.TextUtils.TruncateAt.END);
+        line.addView(detail, ui.lpTop(2));
         ui.role(line, Button.class);
         return line;
     }
