@@ -29,21 +29,25 @@ public class TimelineScreen {
     private final Activity a;
     private final String petName;
     private final Supplier<List<TimelineEntry>> source;
+    private final boolean signedIn;
     private final PetScreenHost host;
     private final PetUi ui;
     private final Locale locale = Locale.getDefault();
     private final TimeZone zone = TimeZone.getDefault();
 
     private LinearLayout listHolder;
+    private TextView banner;
     private String filter = "All";
     /** Called by BackendHub when reminders or documents change. */
     private final Runnable observer = this::fillList;
 
     /** @param source gives the pet's raw rows each time it is called, so the list can be rebuilt when data arrives. */
-    public TimelineScreen(Activity a, String petName, Supplier<List<TimelineEntry>> source, PetScreenHost host) {
+    public TimelineScreen(Activity a, String petName, Supplier<List<TimelineEntry>> source, boolean signedIn,
+                          PetScreenHost host) {
         this.a = a;
         this.petName = petName == null ? "" : petName.trim();
         this.source = source;
+        this.signedIn = signedIn;
         this.host = host;
         this.ui = new PetUi(a);
     }
@@ -68,8 +72,17 @@ public class TimelineScreen {
         if (!petName.isEmpty()) body.addView(ui.text(petName, 16f, ui.sub, 600), ui.lpBottom(12));
         body.addView(ui.choiceChips("Show", false, FILTERS, filter, 2, choice -> {
             filter = choice;
+            showBannerFor(choice);
             fillList();
         }), ui.lpBottom(12));
+
+        banner = ui.text("Sign in to see reminders and documents. Care logs still show here.", 14f, ui.sub, 600);
+        banner.setBackground(ui.rounded(ui.surface, 16, ui.outline));
+        banner.setPadding(ui.dp(14), ui.dp(12), ui.dp(14), ui.dp(12));
+        banner.setFocusable(true);
+        banner.setVisibility(View.GONE);
+        body.addView(banner, ui.lpBottom(4));
+        showBannerFor(filter);
 
         listHolder = ui.column();
         body.addView(listHolder, ui.lp());
@@ -86,6 +99,11 @@ public class TimelineScreen {
         });
         host.setBackHandler(null);
         return root;
+    }
+
+    /** Reminders and documents need a signed-in user. The Care filter doesn't use them, so no note there. */
+    private void showBannerFor(String choice) {
+        banner.setVisibility(!signedIn && !"Care".equals(choice) ? View.VISIBLE : View.GONE);
     }
 
     // ---- list ----

@@ -407,7 +407,7 @@ public class MainActivity extends AppCompatActivity {
     private void showPetProfile(){showContent(new PetProfileScreen(this,Pet.fromJson(selectedPet()),petHost).build());}
     private void showTimeline(){
         String id=petId(selectedPet());BackendHub.get().watchDocuments(id);
-        showContent(new TimelineScreen(this,selectedPet().optString("name"),()->timelineEntries(id),petHost).build());}
+        showContent(new TimelineScreen(this,selectedPet().optString("name"),()->timelineEntries(id),auth.getCurrentUser()!=null,petHost).build());}
     /** Raw rows for one pet: its care logs (local), plus reminders and documents from BackendHub. */
     private List<TimelineEntry> timelineEntries(String petId){
         List<TimelineEntry> out=new ArrayList<>();
