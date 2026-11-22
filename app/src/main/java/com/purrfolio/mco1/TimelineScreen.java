@@ -37,7 +37,7 @@ public class TimelineScreen {
     private final TimeZone zone = TimeZone.getDefault();
 
     private LinearLayout listHolder;
-    private TextView banner;
+    private LinearLayout banner;
     private String filter = "All";
     /** How many past rows to draw. "Show earlier" raises it by one page. */
     private int limit = TimelineBuilder.DEFAULT_LIMIT;
@@ -92,10 +92,17 @@ public class TimelineScreen {
             fillList();
         }), ui.lpBottom(12));
 
-        banner = ui.text("Sign in to see reminders and online documents. Care logs and documents saved on this phone still show here.", 14f, ui.sub, 600);
+        banner = ui.column();
         banner.setBackground(ui.rounded(ui.surface, 16, ui.outline));
-        banner.setPadding(ui.dp(14), ui.dp(12), ui.dp(14), ui.dp(12));
-        banner.setFocusable(true);
+        banner.setPadding(ui.dp(14), ui.dp(12), ui.dp(14), ui.dp(4));
+        TextView bannerText = ui.text("Sign in to see reminders and online documents. Care logs and documents saved on this phone still show here.", 14f, ui.sub, 600);
+        bannerText.setFocusable(true);
+        banner.addView(bannerText, ui.lp());
+        TextView signIn = ui.textButton("Sign in", () -> host.go("Log In"));
+        LinearLayout.LayoutParams signInParams =
+                new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        signInParams.gravity = Gravity.END;
+        banner.addView(signIn, signInParams);
         banner.setVisibility(View.GONE);
         body.addView(banner, ui.lpBottom(4));
         showBannerFor(filter);
