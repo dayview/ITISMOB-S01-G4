@@ -215,8 +215,9 @@ public class TimelineScreen {
         String time = timeText(entry, showDate);
         String meta = status.isEmpty() ? time : (time.isEmpty() ? status : status + " · " + time);
         if (!meta.isEmpty()) {
+            // Done is finished, so it stays quiet. Upcoming and Missed ask for attention.
             int color = entry.status == TimelineEntry.Status.MISSED ? ui.coral
-                    : entry.status == TimelineEntry.Status.NONE ? ui.sub : ui.primary;
+                    : entry.status == TimelineEntry.Status.UPCOMING ? ui.primary : ui.sub;
             labels.addView(ui.text(meta, 13f, color, 700), ui.lpTop(2));
         }
         if (!entry.detail.isEmpty()) labels.addView(ui.text(entry.detail, 14f, ui.sub), ui.lpTop(2));
@@ -232,13 +233,44 @@ public class TimelineScreen {
         View stem = new View(a);
         stem.setBackgroundColor(ui.outline);
         rail.addView(stem, new FrameLayout.LayoutParams(ui.dp(2), ViewGroup.LayoutParams.MATCH_PARENT, Gravity.CENTER_HORIZONTAL));
-        View dot = new View(a);
-        dot.setBackground(ui.rounded(entry.status == TimelineEntry.Status.MISSED ? ui.coral : ui.primary, 6));
-        FrameLayout.LayoutParams dotParams = new FrameLayout.LayoutParams(ui.dp(12), ui.dp(12),
+        int size = entry.status == TimelineEntry.Status.DONE ? 18
+                : entry.status == TimelineEntry.Status.UPCOMING ? 14 : 12;
+        FrameLayout.LayoutParams dotParams = new FrameLayout.LayoutParams(ui.dp(size), ui.dp(size),
                 Gravity.CENTER_HORIZONTAL | Gravity.TOP);
-        dotParams.topMargin = ui.dp(16);
-        rail.addView(dot, dotParams);
+        dotParams.topMargin = ui.dp(16 - (size - 12) / 2);
+        rail.addView(marker(entry.status, size), dotParams);
         return rail;
+    }
+
+    /**
+     * The shape tells the status without colour: a check for Done, a ring for Upcoming and a solid
+     * coral dot for Missed. Logs and documents keep the small solid dot.
+     */
+    private View marker(TimelineEntry.Status status, int sizeDp) {
+        switch (status) {
+            case DONE: {
+                FrameLayout done = new FrameLayout(a);
+                done.setBackground(ui.rounded(ui.primary, sizeDp / 2));
+                done.addView(ui.icon("Check", sizeDp - 4, ui.bg), new FrameLayout.LayoutParams(
+                        ui.dp(sizeDp - 4), ui.dp(sizeDp - 4), Gravity.CENTER));
+                return done;
+            }
+            case UPCOMING: {
+                View ring = new View(a);
+                ring.setBackground(ui.rounded(ui.bg, sizeDp / 2, ui.primary, ui.dp(2)));
+                return ring;
+            }
+            case MISSED: {
+                View dot = new View(a);
+                dot.setBackground(ui.rounded(ui.coral, sizeDp / 2));
+                return dot;
+            }
+            default: {
+                View dot = new View(a);
+                dot.setBackground(ui.rounded(ui.primary, sizeDp / 2));
+                return dot;
+            }
+        }
     }
 
     // ---- text ----
