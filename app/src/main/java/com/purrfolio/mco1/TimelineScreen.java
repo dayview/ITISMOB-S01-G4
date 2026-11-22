@@ -14,6 +14,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 import java.util.TimeZone;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 /**
@@ -43,9 +44,21 @@ public class TimelineScreen {
     /** Called by BackendHub when reminders or documents change. */
     private final Runnable observer = this::fillList;
 
-    /** @param source gives the pet's raw rows each time it is called, so the list can be rebuilt when data arrives. */
+    /** Called with a document row's id when the user taps it. Null means document rows are not tappable. */
+    private final Consumer<String> onOpenDocument;
+
     public TimelineScreen(Activity a, String petName, Supplier<List<TimelineEntry>> source, boolean signedIn,
                           PetScreenHost host) {
+        this(a, petName, source, signedIn, host, null);
+    }
+
+    /**
+     * @param source gives the pet's raw rows each time it is called, so the list can be rebuilt when data arrives.
+     * @param onOpenDocument opens the document with this id. The host decides where the file lives.
+     */
+    public TimelineScreen(Activity a, String petName, Supplier<List<TimelineEntry>> source, boolean signedIn,
+                          PetScreenHost host, Consumer<String> onOpenDocument) {
+        this.onOpenDocument = onOpenDocument;
         this.a = a;
         this.petName = petName == null ? "" : petName.trim();
         this.source = source;
@@ -171,6 +184,13 @@ public class TimelineScreen {
         line.setMinimumHeight(ui.dp(56));
         line.setFocusable(true);
         line.setContentDescription(spoken(entry, showDate));
+        if (entry.kind == TimelineEntry.Kind.DOCUMENT && onOpenDocument != null) {
+            // Tapping a document opens the file. The background shows pressed and focus states.
+            line.setBackground(ui.interactiveBackground(ui.bg, 12));
+            line.setClickable(true);
+            ui.role(line, android.widget.Button.class);
+            line.setOnClickListener(v -> onOpenDocument.accept(entry.id));
+        }
 
         line.addView(rail(entry), new LinearLayout.LayoutParams(ui.dp(24), ViewGroup.LayoutParams.MATCH_PARENT));
 

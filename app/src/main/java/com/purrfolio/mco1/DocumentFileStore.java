@@ -1,10 +1,15 @@
 package com.purrfolio.mco1;
 
+import android.app.Activity;
+import android.content.ActivityNotFoundException;
 import android.content.ContentResolver;
 import android.content.Context;
+import android.content.Intent;
 import android.database.Cursor;
 import android.net.Uri;
 import android.provider.OpenableColumns;
+import android.widget.Toast;
+import androidx.core.content.FileProvider;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -124,6 +129,27 @@ public final class DocumentFileStore {
             if (left != null && left.length == 0) folder.delete();
         }
         return gone;
+    }
+
+    /**
+     * Opens a saved copy in whatever app can show it. The viewer gets a temporary read-only link, not the
+     * file path. Tells the user with a short message when the file is gone or no app can open it.
+     */
+    public static void open(Activity activity, LocalDocument document) {
+        File file = fileFor(activity, document.path);
+        if (file == null || !file.isFile()) {
+            Toast.makeText(activity, "This file is no longer on this phone.", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        try {
+            Uri uri = FileProvider.getUriForFile(activity, activity.getPackageName() + ".fileprovider", file);
+            Intent view = new Intent(Intent.ACTION_VIEW)
+                    .setDataAndType(uri, DocumentRules.mimeTypeFor(file.getName()))
+                    .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+            activity.startActivity(view);
+        } catch (ActivityNotFoundException | IllegalArgumentException e) {
+            Toast.makeText(activity, "No app can open this file.", Toast.LENGTH_SHORT).show();
+        }
     }
 
     private static InputStream openInput(ContentResolver resolver, Uri source) throws IOException {
