@@ -191,7 +191,8 @@ public class TimelineScreen {
         line.setMinimumHeight(ui.dp(56));
         line.setFocusable(true);
         line.setContentDescription(spoken(entry, showDate));
-        if (entry.kind == TimelineEntry.Kind.DOCUMENT && onOpenDocument != null) {
+        boolean tappable = entry.kind == TimelineEntry.Kind.DOCUMENT && onOpenDocument != null;
+        if (tappable) {
             // Tapping a document opens the file. The background shows pressed and focus states.
             line.setBackground(ui.interactiveBackground(ui.bg, 12));
             line.setClickable(true);
@@ -222,6 +223,13 @@ public class TimelineScreen {
         }
         if (!entry.detail.isEmpty()) labels.addView(ui.text(entry.detail, 14f, ui.sub), ui.lpTop(2));
         content.addView(labels, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+        if (tappable) {
+            // Shows that this row opens something. The row itself is the touch target.
+            LinearLayout.LayoutParams chevronParams = new LinearLayout.LayoutParams(ui.dp(20), ui.dp(20));
+            chevronParams.gravity = Gravity.CENTER_VERTICAL;
+            chevronParams.leftMargin = ui.dp(8);
+            content.addView(ui.icon("Chevron", 20, ui.sub), chevronParams);
+        }
         line.addView(content, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
         return line;
     }
