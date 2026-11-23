@@ -135,9 +135,9 @@ public class TimelineScreen {
         listHolder.removeAllViews();
         TimelineBuilder.Result result = TimelineBuilder.build(filtered(), System.currentTimeMillis(), zone, locale, limit);
         for (TimelineBuilder.Group group : result.groups) {
-            TextView header = ui.text(group.label, 15f, ui.sub, 700);
+            TextView header = ui.text(group.label, 18f, ui.ink, 700);
             ui.markHeading(header);
-            listHolder.addView(header, ui.lp(12, 4));
+            listHolder.addView(header, ui.lp(20, 4));
             boolean upcoming = TimelineBuilder.COMING_UP.equals(group.label);
             for (TimelineEntry entry : group.entries) listHolder.addView(rowView(entry, upcoming), ui.lp());
         }
