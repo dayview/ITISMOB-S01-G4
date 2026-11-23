@@ -214,13 +214,13 @@ public class TimelineScreen {
         labels.addView(title, ui.lp());
         String status = statusWord(entry.status);
         String time = timeText(entry, showDate);
-        String meta = status.isEmpty() ? time : (time.isEmpty() ? status : status + " · " + time);
-        if (!meta.isEmpty()) {
-            // Done is finished, so it stays quiet. Upcoming and Missed ask for attention.
-            int color = entry.status == TimelineEntry.Status.MISSED ? ui.coral
-                    : entry.status == TimelineEntry.Status.UPCOMING ? ui.primary : ui.sub;
-            labels.addView(ui.text(meta, 13f, color, 700), ui.lpTop(2));
-        }
+        StringBuilder metaText = new StringBuilder(kindWord(entry.kind));
+        if (!status.isEmpty()) metaText.append(" · ").append(status);
+        if (!time.isEmpty()) metaText.append(" · ").append(time);
+        // Done is finished, so it stays quiet. Upcoming and Missed ask for attention.
+        int color = entry.status == TimelineEntry.Status.MISSED ? ui.coral
+                : entry.status == TimelineEntry.Status.UPCOMING ? ui.primary : ui.sub;
+        labels.addView(ui.text(metaText.toString(), 13f, color, 700), ui.lpTop(2));
         if (!entry.detail.isEmpty()) labels.addView(ui.text(entry.detail, 14f, ui.sub), ui.lpTop(2));
         content.addView(labels, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
         if (tappable) {
