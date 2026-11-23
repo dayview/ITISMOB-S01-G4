@@ -220,7 +220,7 @@ public class TimelineScreen {
         // Done is finished, so it stays quiet. Upcoming and Missed ask for attention.
         int color = entry.status == TimelineEntry.Status.MISSED ? ui.coral
                 : entry.status == TimelineEntry.Status.UPCOMING ? ui.primary : ui.sub;
-        labels.addView(ui.text(metaText.toString(), 13f, color, 700), ui.lpTop(2));
+        labels.addView(ui.text(metaText.toString(), 14f, color), ui.lpTop(2));
         if (!entry.detail.isEmpty()) labels.addView(ui.text(entry.detail, 14f, ui.sub), ui.lpTop(2));
         content.addView(labels, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
         if (tappable) {
