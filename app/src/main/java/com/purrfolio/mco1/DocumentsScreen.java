@@ -18,6 +18,7 @@ import com.purrfolio.mco1.databinding.ItemDocumentBinding;
 import com.purrfolio.mco1.databinding.ScreenDocumentsBinding;
 
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
@@ -84,29 +85,22 @@ public final class DocumentsScreen {
         binding.documentContainer.removeAllViews();
         String query = binding.documentSearch.getText().toString();
         int range = binding.documentDateSpinner.getSelectedItemPosition();
-        List<PetDocument> shown = DocumentRepository.filter(BackendHub.get().documents(), filter, query);
+        List<PetDocument> online = new ArrayList<>();
+        for (PetDocument d : DocumentRepository.filter(BackendHub.get().documents(), filter, query)) {
+            if (DocumentRepository.inRange(d, range)) online.add(d);
+        }
         // Documents saved on this phone (5.1). Same chips, search and date range as the online ones.
         List<LocalDocument> local = LocalDocumentRepository.filter(
                 localRepository().forPet(current.id),
                 filter, query, range, System.currentTimeMillis());
 
-        int count = 0;
-        int nextLocal = 0;
-        for (PetDocument d : shown) {
-            if (!DocumentRepository.inRange(d, range)) continue;
-            // Both lists are newest first, so phone documents newer than this one go above it.
-            while (nextLocal < local.size() && local.get(nextLocal).addedAt >= d.addedAt) {
-                addLocalRow(local.get(nextLocal++));
-                count++;
-            }
-            addRow(d);
-            count++;
+        // One newest-first list of both kinds. DocumentRow.merge is shared with the Records screen.
+        List<DocumentRow> rows = DocumentRow.merge(online, local);
+        for (DocumentRow row : rows) {
+            if (row.isLocal()) addLocalRow(row.local);
+            else addRow(row.online);
         }
-        while (nextLocal < local.size()) {
-            addLocalRow(local.get(nextLocal++));
-            count++;
-        }
-        binding.documentsEmpty.setVisibility(count == 0 ? View.VISIBLE : View.GONE);
+        binding.documentsEmpty.setVisibility(rows.isEmpty() ? View.VISIBLE : View.GONE);
         // Long-press delete only works on documents saved on this phone, so hint only when one is listed.
         binding.documentsHint.setVisibility(local.isEmpty() ? View.GONE : View.VISIBLE);
     }
