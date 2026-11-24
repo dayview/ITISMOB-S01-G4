@@ -153,6 +153,13 @@ public final class DocumentsScreen {
         }
     }
 
+    /** Draws a Photo icon for images and a Document icon for everything else, the same icons used elsewhere in the app. */
+    private void addFileIcon(ItemDocumentBinding item, boolean isImage) {
+        int tint = ContextCompat.getColor(activity, R.color.primary);
+        item.documentIcon.addView(new DetailIcon(activity, isImage ? "Photo" : "Document", tint),
+                new FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT));
+    }
+
     /** Draws the chevron in the row's slot, the same icon the Pet Timeline uses. */
     private void addChevron(ItemDocumentBinding item) {
         int tint = ContextCompat.getColor(activity, R.color.primary);
@@ -163,12 +170,11 @@ public final class DocumentsScreen {
     /** A document saved on this phone (5.1). */
     private void addLocalRow(LocalDocument d) {
         ItemDocumentBinding item = ItemDocumentBinding.inflate(activity.getLayoutInflater(), binding.documentContainer, false);
-        item.documentIcon.setText(d.looksLikeImage() ? "▣" : "▤");
+        addFileIcon(item, d.looksLikeImage());
         item.documentTitle.setText(d.title);
         String date = new SimpleDateFormat("MMM d, yyyy", Locale.US).format(new Date(d.addedAt));
         item.documentMeta.setText(date + " · " + d.type + " · On this phone");
         addChevron(item);
-        BrandType.apply(item.documentIcon, true, 600);
         BrandType.apply(item.documentTitle, false, 700);
         BrandType.apply(item.documentMeta, false, 400);
         item.getRoot().setOnClickListener(v -> openLocal(d));
@@ -183,12 +189,11 @@ public final class DocumentsScreen {
 
     private void addRow(PetDocument d) {
         ItemDocumentBinding item = ItemDocumentBinding.inflate(activity.getLayoutInflater(), binding.documentContainer, false);
-        item.documentIcon.setText(d.looksLikeImage() ? "▣" : "▤");
+        addFileIcon(item, d.looksLikeImage());
         item.documentTitle.setText(d.title);
         String date = new SimpleDateFormat("MMM d, yyyy", Locale.US).format(new Date(d.addedAt));
         item.documentMeta.setText(date + " · " + d.type);
         addChevron(item);
-        BrandType.apply(item.documentIcon, true, 600);
         BrandType.apply(item.documentTitle, false, 700);
         BrandType.apply(item.documentMeta, false, 400);
         item.getRoot().setOnClickListener(v -> DocumentRepository.view(activity, d));
