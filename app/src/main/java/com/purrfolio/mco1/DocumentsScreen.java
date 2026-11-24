@@ -2,10 +2,7 @@ package com.purrfolio.mco1;
 
 import android.app.Activity;
 import android.app.AlertDialog;
-import android.content.ActivityNotFoundException;
 import android.content.Context;
-import android.content.Intent;
-import android.net.Uri;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.view.View;
@@ -13,16 +10,13 @@ import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.FrameLayout;
 import android.widget.TextView;
-import android.widget.Toast;
 
 import androidx.core.content.ContextCompat;
-import androidx.core.content.FileProvider;
 import androidx.core.view.ViewCompat;
 
 import com.purrfolio.mco1.databinding.ItemDocumentBinding;
 import com.purrfolio.mco1.databinding.ScreenDocumentsBinding;
 
-import java.io.File;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
@@ -138,22 +132,9 @@ public final class DocumentsScreen {
         render();
     }
 
-    /** Opens a saved copy in whatever app can show it. The viewer gets a temporary read-only link, not the file path. */
+    /** Opens a saved copy in whatever app can show it. The same code the Pet Timeline uses, so the two can't drift apart. */
     private void openLocal(LocalDocument d) {
-        File file = DocumentFileStore.fileFor(activity, d.path);
-        if (file == null || !file.isFile()) {
-            Toast.makeText(activity, "This file is no longer on this phone.", Toast.LENGTH_SHORT).show();
-            return;
-        }
-        try {
-            Uri uri = FileProvider.getUriForFile(activity, activity.getPackageName() + ".fileprovider", file);
-            Intent view = new Intent(Intent.ACTION_VIEW)
-                    .setDataAndType(uri, DocumentRules.mimeTypeFor(file.getName()))
-                    .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-            activity.startActivity(view);
-        } catch (ActivityNotFoundException | IllegalArgumentException e) {
-            Toast.makeText(activity, "No app can open this file.", Toast.LENGTH_SHORT).show();
-        }
+        DocumentFileStore.open(activity, d);
     }
 
     /** Draws a Photo icon for images and a Document icon for everything else, the same icons used elsewhere in the app. */
