@@ -165,9 +165,20 @@ public class TimelineScreen {
                     ui.lpBottom(14));
             card.addView(ui.button("Log care", () -> host.go("Quick Log")), ui.lp());
         } else {
-            card.addView(ui.text("Nothing to show for \"" + filter + "\". Try another filter.", 15f, ui.sub), ui.lp());
+            card.addView(ui.text(emptyFilterMessage(), 15f, ui.sub), ui.lp());
         }
         return card;
+    }
+
+    /** One plain sentence for a filter that has no rows, so the user knows what is missing. */
+    private String emptyFilterMessage() {
+        String name = petName.isEmpty() ? "this pet" : petName;
+        switch (filter) {
+            case "Care": return "No care logs for " + name + " yet. Log care and it will show here.";
+            case "Reminders": return "No reminders for " + name + " yet.";
+            case "Documents": return "No documents for " + name + " yet.";
+            default: return "Nothing to show for this filter.";
+        }
     }
 
     private List<TimelineEntry> filtered() {
