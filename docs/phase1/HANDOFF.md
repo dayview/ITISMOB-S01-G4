@@ -35,7 +35,7 @@ Order of work: **Phase 1 = 2.1 to 2.4**, then 5.7, then 5.6, then 5.1, then 3.1.
 | Draft state | `PetDraft` lives in `MainActivity` and is saved in the instance-state Bundle, so typing survives the photo picker and rotation. |
 | Forms | Single column, labels above, errors replace helper text, optional fields marked "(optional)". Chips for Species and Sex. |
 | Accessibility bar | 48dp touch targets, 4.5:1 text contrast, 3:1 for input borders (`fieldBorder`), TalkBack roles and labels, visible focus rings. |
-| Dependencies | None added. ML Kit Document Scanner is only a candidate for 5.1, to be decided in that phase. |
+| Dependencies | None added. 5.1 uses the plain `OpenDocument` file picker (decided); the ML Kit Document Scanner is not used. |
 | Strings | The repo has no `strings.xml`. Text stays in the screen files for now. |
 
 ## 5. What exists
@@ -84,6 +84,7 @@ Expect the first real build to surface small errors. Fix them as they appear.
 6. Later, in separate PRs: delete the dead code (risk 4), and ask Zel to stop hard-coding the adb path in `docs/visual-qa/capture.py`.
 7. Phase 2 (5.7 Pet Passport) is built and merged (PR #6). It follows the same pattern (`PassportScreen.java`, two new `PetScreenHost` methods `dial` and `shareText`, seven new `Pet` keys, state still held by `MainActivity`). Results and gaps are in `docs/visual-qa/RESULTS.md`. The dead `ReferenceScreens.passport()` and `petSummary()` were removed in a separate cleanup PR. Still to do: the team questions in section 9.
 8. Phase 3 (5.6 Pet Timeline) is built and merged (PR #11), same pattern again. `TimelineEntry.java` and `TimelineBuilder.java` are plain Java (no Android or Firebase types; `now`, time zone and locale are passed in), so `TimelineBuilderTest` can check the rules. `TimelineScreen.java` only draws. `MainActivity.showTimeline()` collects the selected pet's care logs (local, matched with `entryPetId`), reminders from `BackendHub.get().reminders()` and documents from `BackendHub.get().documents()` after `watchDocuments(petId)`. The screen listens with `BackendHub.observe` while attached and stops on detach. `PetUi` gained one overload, `choiceChips(..., maxPerRow, ...)`. Results and gaps are in `docs/visual-qa/RESULTS.md`. Still to do: remove the old `ReferenceScreens.timeline()` and `timelineEntry()` in a separate cleanup PR, and the questions below.
+9. Phase 4 (5.1 Paperless Inbox) is built on `leon/5-1-paperless-inbox` (draft PR #14, not merged yet). New files: `PaperlessInboxScreen.java`, `DocumentFileStore.java`, and the plain-Java `DocumentRules.java`, `LocalDocument.java` and `LocalDocumentRepository.java` (tests: `DocumentRulesTest`, `LocalDocumentRepositoryTest`; run `./gradlew testDebugUnitTest`). Shared files touched, so teammates can rebase: `MainActivity.java` (a `documentPicker` launcher, `showAddDocument()`, the `"Add Document"` route and back target, and phone documents added to `timelineEntries`), `PhaseTwoScreens.java` (one line: the "Add Document" button on Pet Records now opens the form), `DocumentsScreen.java` (phone documents listed, opened and deleted next to the online ones), `TimelineScreen.java` (one banner string) and `res/xml/file_paths.xml` (new `docs` path). The documents list stays on `"Paperless Inbox"`. Checked on an emulator: PDF and image saves, oversize and empty files, open, delete, rotation. Not checked: two pets with the same name, and the TalkBack "Delete" action. Still to do: the questions below.
 
 **Audit prompt for the start of a session:**
 
@@ -93,9 +94,10 @@ Expect the first real build to surface small errors. Fix them as they appear.
 
 - Keep the single-column form layout, or restore the wireframe's side-by-side Weight and Sex?
 - Add a `strings.xml` (one dedicated PR) or keep strings inline?
-- For 5.1, adopt the ML Kit Document Scanner (adds a Play services dependency) or keep the plain file picker?
 - 5.7 Pet Passport, for Paoski (`feat/emergency`): port that branch to Java, or rebase it onto the keys now in `Pet`? Is a single `medicalInfo` field acceptable instead of separate Allergies and Medications?
 - 5.7 Pet Passport, for the owner of Pet ID QR: Share Passport now shares text and no longer opens "Pet ID QR". Is that okay?
 - 5.7 Pet Passport, for everyone: is it okay that `PetScreenHost` and `MainActivity` gained `dial` and `shareText`? Should the Vaccinations row stay a "Sample document" link?
 - 5.6 Pet Timeline, for Rick: do the local pet ids (`id` in `purrfolio_demo`) match the Firestore `pets/{petId}` documents, and do the rules (`members`) allow reading reminders and documents for them? Without that the timeline shows only care logs. Also: is it intended that `app/google-services.json` is now tracked (`.gitignore` still lists it)?
 - 5.6 Pet Timeline, for everyone: `MainActivity` gained a `showTimeline()` route that comes before the `ReferenceScreens` route, so the Home summary card and the dock's "Care" cell now open the real timeline. Is that the behaviour you want? The dock labels are clipped at font scale 2.0× on every screen; who owns the fix in `styles.xml`?
+- 5.1 Paperless Inbox, for the owner of `DocumentsScreen`: it now also lists documents saved on the phone, marked "On this phone", beside the Firebase ones, with open and delete. Is that okay, and should the Records screen's "Recent Documents" sample rows show them too?
+- 5.1 Paperless Inbox, decided: phone documents are local only by design. They are not uploaded, not shared with Care Circle members, and they disappear if the app's data is cleared. Each phone starts fresh.

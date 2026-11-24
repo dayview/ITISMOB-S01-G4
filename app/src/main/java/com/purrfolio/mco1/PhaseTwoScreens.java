@@ -656,7 +656,7 @@ public class PhaseTwoScreens {
         TextView title=section("Scan or upload a document");title.setGravity(Gravity.CENTER);upload.addView(title,new LinearLayout.LayoutParams(-1,dp(32)));
         upload.addView(center("Vaccination cards, prescriptions,\nreceipts, and more."),new LinearLayout.LayoutParams(-1,dp(45)));
         LinearLayout.LayoutParams bp=new LinearLayout.LayoutParams(-1,dp(48));bp.topMargin=dp(8);
-        upload.addView(button("Add Document",()->preview("Document upload requires file selection and storage integration. No sample file has been uploaded.")),bp);
+        upload.addView(button("Add Document",()->go.accept("Add Document")),bp);
         add(upload,278,18);
         LinearLayout h=row();h.addView(section("Recent Documents"),new LinearLayout.LayoutParams(0,-2,1));
         TextView all=text("See All",12,primary,700);all.setOnClickListener(v->go.accept("Paperless Inbox"));h.addView(all);add(h,28,8);
