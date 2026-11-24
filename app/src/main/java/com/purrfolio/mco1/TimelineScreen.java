@@ -134,10 +134,13 @@ public class TimelineScreen {
     private void fillList() {
         listHolder.removeAllViews();
         TimelineBuilder.Result result = TimelineBuilder.build(filtered(), System.currentTimeMillis(), zone, locale, limit);
+        boolean first = true;
         for (TimelineBuilder.Group group : result.groups) {
             TextView header = ui.text(group.label, 18f, ui.ink, 700);
             ui.markHeading(header);
-            listHolder.addView(header, ui.lp(20, 4));
+            // Space separates one group from the one above it, so the first header needs little.
+            listHolder.addView(header, ui.lp(first ? 4 : 20, 6));
+            first = false;
             boolean upcoming = TimelineBuilder.COMING_UP.equals(group.label);
             for (TimelineEntry entry : group.entries) listHolder.addView(rowView(entry, upcoming), ui.lp());
         }
