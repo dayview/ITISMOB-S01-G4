@@ -14,6 +14,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 import java.util.TimeZone;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 
 /**
@@ -36,16 +37,28 @@ public class TimelineScreen {
     private final TimeZone zone = TimeZone.getDefault();
 
     private LinearLayout listHolder;
-    private TextView banner;
+    private LinearLayout banner;
     private String filter = "All";
     /** How many past rows to draw. "Show earlier" raises it by one page. */
     private int limit = TimelineBuilder.DEFAULT_LIMIT;
     /** Called by BackendHub when reminders or documents change. */
     private final Runnable observer = this::fillList;
 
-    /** @param source gives the pet's raw rows each time it is called, so the list can be rebuilt when data arrives. */
+    /** Called with a document row's id when the user taps it. Null means document rows are not tappable. */
+    private final Consumer<String> onOpenDocument;
+
     public TimelineScreen(Activity a, String petName, Supplier<List<TimelineEntry>> source, boolean signedIn,
                           PetScreenHost host) {
+        this(a, petName, source, signedIn, host, null);
+    }
+
+    /**
+     * @param source gives the pet's raw rows each time it is called, so the list can be rebuilt when data arrives.
+     * @param onOpenDocument opens the document with this id. The host decides where the file lives.
+     */
+    public TimelineScreen(Activity a, String petName, Supplier<List<TimelineEntry>> source, boolean signedIn,
+                          PetScreenHost host, Consumer<String> onOpenDocument) {
+        this.onOpenDocument = onOpenDocument;
         this.a = a;
         this.petName = petName == null ? "" : petName.trim();
         this.source = source;
@@ -71,7 +84,7 @@ public class TimelineScreen {
         LinearLayout body = scrollBody.body;
         root.addView(scrollBody.scroll);
 
-        if (!petName.isEmpty()) body.addView(ui.text(petName, 16f, ui.sub, 600), ui.lpBottom(12));
+        if (!petName.isEmpty()) body.addView(ui.text("For " + petName, 16f, ui.ink, 600), ui.lpBottom(10));
         body.addView(ui.choiceChips("Show", false, FILTERS, filter, 2, choice -> {
             filter = choice;
             limit = TimelineBuilder.DEFAULT_LIMIT;
@@ -79,10 +92,17 @@ public class TimelineScreen {
             fillList();
         }), ui.lpBottom(12));
 
-        banner = ui.text("Sign in to see reminders and online documents. Care logs and documents saved on this phone still show here.", 14f, ui.sub, 600);
+        banner = ui.column();
         banner.setBackground(ui.rounded(ui.surface, 16, ui.outline));
-        banner.setPadding(ui.dp(14), ui.dp(12), ui.dp(14), ui.dp(12));
-        banner.setFocusable(true);
+        banner.setPadding(ui.dp(14), ui.dp(12), ui.dp(14), ui.dp(4));
+        TextView bannerText = ui.text("Sign in to see reminders and online documents. Care logs and documents saved on this phone still show here.", 14f, ui.sub, 600);
+        bannerText.setFocusable(true);
+        banner.addView(bannerText, ui.lp());
+        TextView signIn = ui.textButton("Sign in", () -> host.go("Log In"));
+        LinearLayout.LayoutParams signInParams =
+                new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        signInParams.gravity = Gravity.END;
+        banner.addView(signIn, signInParams);
         banner.setVisibility(View.GONE);
         body.addView(banner, ui.lpBottom(4));
         showBannerFor(filter);
@@ -114,16 +134,33 @@ public class TimelineScreen {
     private void fillList() {
         listHolder.removeAllViews();
         TimelineBuilder.Result result = TimelineBuilder.build(filtered(), System.currentTimeMillis(), zone, locale, limit);
-        for (TimelineBuilder.Group group : result.groups) {
-            TextView header = ui.text(group.label, 15f, ui.sub, 700);
+        boolean first = true;
+        for (int g = 0; g < result.groups.size(); g++) {
+            TimelineBuilder.Group group = result.groups.get(g);
+            TextView header = ui.text(group.label, 18f, ui.ink, 700);
             ui.markHeading(header);
-            listHolder.addView(header, ui.lp(12, 4));
+            // Space separates one group from the one above it, so the first header needs little.
+            // It is padding, not margin, so the rail line is not cut by the gap.
+            header.setPadding(0, ui.dp(first ? 4 : 20), 0, ui.dp(6));
+            LinearLayout headerRow = ui.row();
+            // The first header starts the line, so it has no line above it.
+            headerRow.addView(railColumn(!first), new LinearLayout.LayoutParams(ui.dp(24), ViewGroup.LayoutParams.MATCH_PARENT));
+            headerRow.addView(header, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+            listHolder.addView(headerRow, ui.lp());
+            first = false;
             boolean upcoming = TimelineBuilder.COMING_UP.equals(group.label);
-            for (TimelineEntry entry : group.entries) listHolder.addView(rowView(entry, upcoming), ui.lp());
+            boolean lastGroup = g == result.groups.size() - 1;
+            for (int i = 0; i < group.entries.size(); i++) {
+                boolean isLast = lastGroup && i == group.entries.size() - 1;
+                listHolder.addView(rowView(group.entries.get(i), upcoming, isLast), ui.lp());
+            }
         }
         if (result.groups.isEmpty()) listHolder.addView(emptyView(), ui.lpTop(8));
         if (result.hiddenCount > 0) {
-            String more = "Show earlier (" + result.hiddenCount + " more)";
+            // Say what one tap adds: a full page, or whatever is left if that is less.
+            int next = Math.min(result.hiddenCount, TimelineBuilder.DEFAULT_LIMIT);
+            int left = result.hiddenCount - next;
+            String more = "Show " + next + " earlier" + (left > 0 ? " (" + left + " left)" : "");
             listHolder.addView(ui.button(more, false, () -> {
                 limit += TimelineBuilder.DEFAULT_LIMIT;
                 fillList();
@@ -145,9 +182,20 @@ public class TimelineScreen {
                     ui.lpBottom(14));
             card.addView(ui.button("Log care", () -> host.go("Quick Log")), ui.lp());
         } else {
-            card.addView(ui.text("Nothing to show for \"" + filter + "\". Try another filter.", 15f, ui.sub), ui.lp());
+            card.addView(ui.text(emptyFilterMessage(), 15f, ui.sub), ui.lp());
         }
         return card;
+    }
+
+    /** One plain sentence for a filter that has no rows, so the user knows what is missing. */
+    private String emptyFilterMessage() {
+        String name = petName.isEmpty() ? "this pet" : petName;
+        switch (filter) {
+            case "Care": return "No care logs for " + name + " yet. Log care and it will show here.";
+            case "Reminders": return "No reminders for " + name + " yet.";
+            case "Documents": return "No documents for " + name + " yet.";
+            default: return "Nothing to show for this filter.";
+        }
     }
 
     private List<TimelineEntry> filtered() {
@@ -166,13 +214,21 @@ public class TimelineScreen {
 
     // ---- one row ----
 
-    private View rowView(TimelineEntry entry, boolean showDate) {
+    private View rowView(TimelineEntry entry, boolean showDate, boolean isLast) {
         LinearLayout line = ui.row();
         line.setMinimumHeight(ui.dp(56));
         line.setFocusable(true);
         line.setContentDescription(spoken(entry, showDate));
+        boolean tappable = entry.kind == TimelineEntry.Kind.DOCUMENT && onOpenDocument != null;
+        if (tappable) {
+            // Tapping a document opens the file. The background shows pressed and focus states.
+            line.setBackground(ui.interactiveBackground(ui.bg, 12));
+            line.setClickable(true);
+            ui.role(line, android.widget.Button.class);
+            line.setOnClickListener(v -> onOpenDocument.accept(entry.id));
+        }
 
-        line.addView(rail(entry), new LinearLayout.LayoutParams(ui.dp(24), ViewGroup.LayoutParams.MATCH_PARENT));
+        line.addView(rail(entry, isLast), new LinearLayout.LayoutParams(ui.dp(24), ViewGroup.LayoutParams.MATCH_PARENT));
 
         LinearLayout content = ui.row();
         content.setPadding(ui.dp(8), ui.dp(10), ui.dp(4), ui.dp(10));
@@ -186,32 +242,88 @@ public class TimelineScreen {
         labels.addView(title, ui.lp());
         String status = statusWord(entry.status);
         String time = timeText(entry, showDate);
-        String meta = status.isEmpty() ? time : (time.isEmpty() ? status : status + " · " + time);
-        if (!meta.isEmpty()) {
-            int color = entry.status == TimelineEntry.Status.MISSED ? ui.coral
-                    : entry.status == TimelineEntry.Status.NONE ? ui.sub : ui.primary;
-            labels.addView(ui.text(meta, 13f, color, 700), ui.lpTop(2));
-        }
+        StringBuilder metaText = new StringBuilder(kindWord(entry.kind));
+        if (!status.isEmpty()) metaText.append(" · ").append(status);
+        if (!time.isEmpty()) metaText.append(" · ").append(time);
+        // Done is finished, so it stays quiet. Upcoming and Missed ask for attention.
+        int color = entry.status == TimelineEntry.Status.MISSED ? ui.coral
+                : entry.status == TimelineEntry.Status.UPCOMING ? ui.primary : ui.sub;
+        labels.addView(ui.text(metaText.toString(), 14f, color), ui.lpTop(2));
         if (!entry.detail.isEmpty()) labels.addView(ui.text(entry.detail, 14f, ui.sub), ui.lpTop(2));
         content.addView(labels, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+        if (tappable) {
+            // Shows that this row opens something. The row itself is the touch target.
+            LinearLayout.LayoutParams chevronParams = new LinearLayout.LayoutParams(ui.dp(20), ui.dp(20));
+            chevronParams.gravity = Gravity.CENTER_VERTICAL;
+            chevronParams.leftMargin = ui.dp(8);
+            content.addView(ui.icon("Chevron", 20, ui.sub), chevronParams);
+        }
         line.addView(content, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
         return line;
     }
 
     /** The vertical line with a dot. Decoration only, so TalkBack skips it. */
-    private View rail(TimelineEntry entry) {
+    private View rail(TimelineEntry entry, boolean isLast) {
+        FrameLayout rail = railColumn(true, isLast ? 22 : 0);
+        int size = entry.status == TimelineEntry.Status.DONE ? 18
+                : entry.status == TimelineEntry.Status.UPCOMING ? 14 : 12;
+        FrameLayout.LayoutParams dotParams = new FrameLayout.LayoutParams(ui.dp(size), ui.dp(size),
+                Gravity.CENTER_HORIZONTAL | Gravity.TOP);
+        dotParams.topMargin = ui.dp(16 - (size - 12) / 2);
+        rail.addView(marker(entry.status, size), dotParams);
+        return rail;
+    }
+
+    /** The rail column for a date header: the same line as the rows, so it runs on through the header. */
+    private FrameLayout railColumn(boolean withLine) {
+        return railColumn(withLine, 0);
+    }
+
+    /**
+     * An empty rail column with the vertical line in it. Rows and headers both use it so they line up.
+     * @param stemHeightDp height of the line, or 0 to fill the whole column. The last row stops at its dot.
+     */
+    private FrameLayout railColumn(boolean withLine, int stemHeightDp) {
         FrameLayout rail = new FrameLayout(a);
         rail.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS);
-        View stem = new View(a);
-        stem.setBackgroundColor(ui.outline);
-        rail.addView(stem, new FrameLayout.LayoutParams(ui.dp(2), ViewGroup.LayoutParams.MATCH_PARENT, Gravity.CENTER_HORIZONTAL));
-        View dot = new View(a);
-        dot.setBackground(ui.rounded(entry.status == TimelineEntry.Status.MISSED ? ui.coral : ui.primary, 6));
-        FrameLayout.LayoutParams dotParams = new FrameLayout.LayoutParams(ui.dp(12), ui.dp(12),
-                Gravity.CENTER_HORIZONTAL | Gravity.TOP);
-        dotParams.topMargin = ui.dp(16);
-        rail.addView(dot, dotParams);
+        if (withLine) {
+            View stem = new View(a);
+            stem.setBackgroundColor(ui.outline);
+            int height = stemHeightDp > 0 ? ui.dp(stemHeightDp) : ViewGroup.LayoutParams.MATCH_PARENT;
+            rail.addView(stem, new FrameLayout.LayoutParams(ui.dp(2), height, Gravity.CENTER_HORIZONTAL | Gravity.TOP));
+        }
         return rail;
+    }
+
+    /**
+     * The shape tells the status without colour: a check for Done, a ring for Upcoming and a solid
+     * coral dot for Missed. Logs and documents keep the small solid dot.
+     */
+    private View marker(TimelineEntry.Status status, int sizeDp) {
+        switch (status) {
+            case DONE: {
+                FrameLayout done = new FrameLayout(a);
+                done.setBackground(ui.rounded(ui.primary, sizeDp / 2));
+                done.addView(ui.icon("Check", sizeDp - 4, ui.bg), new FrameLayout.LayoutParams(
+                        ui.dp(sizeDp - 4), ui.dp(sizeDp - 4), Gravity.CENTER));
+                return done;
+            }
+            case UPCOMING: {
+                View ring = new View(a);
+                ring.setBackground(ui.rounded(ui.bg, sizeDp / 2, ui.primary, ui.dp(2)));
+                return ring;
+            }
+            case MISSED: {
+                View dot = new View(a);
+                dot.setBackground(ui.rounded(ui.coral, sizeDp / 2));
+                return dot;
+            }
+            default: {
+                View dot = new View(a);
+                dot.setBackground(ui.rounded(ui.primary, sizeDp / 2));
+                return dot;
+            }
+        }
     }
 
     // ---- text ----

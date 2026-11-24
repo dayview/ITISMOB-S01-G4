@@ -434,7 +434,17 @@ public class MainActivity extends AppCompatActivity implements ExportFiles.Host 
     private void showPetProfile(){showContent(new PetProfileScreen(this,Pet.fromJson(selectedPet()),petHost).build());}
     private void showTimeline(){
         String id=petId(selectedPet());BackendHub.get().watchDocuments(id);
-        showContent(new TimelineScreen(this,selectedPet().optString("name"),()->timelineEntries(id),auth.getCurrentUser()!=null,petHost).build());}
+        showContent(new TimelineScreen(this,selectedPet().optString("name"),()->timelineEntries(id),auth.getCurrentUser()!=null,petHost,this::openTimelineDocument).build());}
+    /** A document row was tapped in the timeline. It is either saved on this phone or an online one. */
+    private void openTimelineDocument(String documentId){
+        for(LocalDocument local:LocalDocumentRepository.inPreferences(preferences).list()){
+            if(local.id.equals(documentId)){DocumentFileStore.open(this,local);return;}
+        }
+        for(PetDocument online:BackendHub.get().documents()){
+            if(online.id.equals(documentId)){DocumentRepository.open(this,online);return;}
+        }
+        Toast.makeText(this,"This document is no longer available.",Toast.LENGTH_SHORT).show();
+    }
     /** Raw rows for one pet: its care logs (local), plus reminders and documents from BackendHub. */
     private List<TimelineEntry> timelineEntries(String petId){
         List<TimelineEntry> out=new ArrayList<>();

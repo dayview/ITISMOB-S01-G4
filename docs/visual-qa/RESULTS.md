@@ -235,3 +235,56 @@ Reminder rows (Upcoming / Done / Missed) and document rows were checked with a t
 - The Home summary card and the dock's "Care" cell already routed to "Pet Timeline". They now open the real screen instead of the old sample, because `MainActivity.render()` handles the route first.
 - Old `ReferenceScreens.timeline()` and `timelineEntry()` are now unreachable; to be removed in a separate cleanup PR (check that `careRow` is still used elsewhere first).
 - Test data used on the emulator (up to 120 logs for Mochi) is not part of the repo and was cleared afterwards.
+
+## Pet Timeline and Documents polish — 2026-11-24
+
+Branch `leon/ui-ux-polish`. Pixel_6a emulator, debug build. Same caveat as above: measured and seen, not heard.
+
+### Build and tests
+
+- `./gradlew :app:assembleDebug :app:testDebugUnitTest` finished with no errors. Gradle was run quietly, so there is no pass count to quote.
+
+### Pet Timeline (5.6)
+
+| Check | Result |
+| --- | --- |
+| "For <pet>" label above the filters | Pass. Main text colour, 16sp. Hidden when the pet has no name (checked in code, not on screen). |
+| Pet with nothing at all, any filter | Pass. Full "Nothing on the timeline yet" card, as before. |
+| Pet with care logs, filter has no rows | Pass. Reminders: "No reminders for Lilo yet." Documents: "No documents for Lilo yet." The Care sentence was not reached because Lilo has care logs. |
+| Date headers | Pass. First header has a small gap above; later headers have a larger one. |
+| Rail through date headers | Pass with two groups ("Yesterday" and "Nov 22"). The line runs through the second header and stops at the last row's dot. The first header has no line above it. |
+| Dark mode | Pass visually (text, chips, rail, markers, chevrons). Contrast ratios not measured. |
+| Font scale 2.0× | Pass. Header, chips and rows wrap and the rail grows with the rows. Nothing clipped in the timeline itself. |
+
+### Documents list (5.1)
+
+| Check | Result |
+| --- | --- |
+| Row chevron | Pass. Drawn with the same `Chevron` icon as the Pet Timeline and More menu. Hidden from TalkBack. |
+| Row file icon | Pass. `Document` icon for a PDF; `Photo` icon for a saved `.png`. |
+| Delete hint | Pass. "Press and hold a document on this phone to delete it." shows above the list when a phone document is listed, and is hidden when the chosen filter has none. |
+| Open a document from its row | Pass. A PDF opened in the emulator's viewer. |
+
+### Add Document form (5.1)
+
+| Check | Result |
+| --- | --- |
+| Image preview | Pass. The whole image shows (`FIT_CENTER`, 220dp) instead of a cropped middle band. |
+| Title from file name | Pass. "test_photo.png" gave the title "test photo". |
+| Save | Pass. "Document saved on this phone." The row appears in Documents and in the Pet Timeline. |
+
+### Known issue (not changed here)
+
+- At font scale 2.0× the bottom dock's labels are clipped, as on every other screen. Same cause as above; the owner of `styles.xml` is still an open question in `HANDOFF.md`.
+
+### Not covered
+
+- The "Show N earlier" label. The page size is 50, so it needs 51 or more past entries. Only the earlier 120-log run of the old label was seen.
+- Reminder rows (Done, Upcoming, Missed markers) and the "Coming up" group. Neither emulator pet has reminders.
+- TalkBack audio, Accessibility Scanner, measured contrast, font scale 1.3×, landscape, a 360dp-wide screen, and the date-range dropdown on Documents.
+- The Documents chevron and file icon in dark mode and at large font scale.
+
+### Notes
+
+- Test data on the emulator, not in the repo: 12 care logs on Lilo (`Test_log_1` to `Test_log_13`, no `_3`) and a "test photo" document on Mochi. Both are saved on the phone only.
+- Pet Records' "Recent Documents" still shows sample rows. A suggested answer is in `HANDOFF.md`; the file belongs to someone else.

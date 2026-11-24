@@ -133,10 +133,13 @@ public class PaperlessInboxScreen {
         card.setPadding(ui.dp(14), ui.dp(14), ui.dp(14), ui.dp(14));
         if (DocumentRules.isImage(picked.fileName)) {
             ImageView image = new ImageView(a);
-            image.setScaleType(ImageView.ScaleType.CENTER_CROP);
+            // Show the whole image so the user can check it is the right file. Cropping would hide
+            // the top or bottom of a tall photo, such as a vaccination card or a receipt.
+            image.setScaleType(ImageView.ScaleType.FIT_CENTER);
+            image.setBackground(ui.rounded(ui.bg, 12));
             image.setContentDescription("Preview of " + picked.fileName);
             try { image.setImageURI(source); } catch (RuntimeException ignored) { }
-            card.addView(image, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ui.dp(160)));
+            card.addView(image, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ui.dp(220)));
         }
         card.addView(ui.text(picked.fileName, 16f, ui.ink, 700), ui.lpTop(8));
         String size = picked.sizeBytes < 0 ? "Size unknown" : DocumentRules.sizeLabel(picked.sizeBytes);

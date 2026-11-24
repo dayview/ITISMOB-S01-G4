@@ -159,6 +159,16 @@
 
             <Space android:layout_width="1dp" android:layout_height="8dp" />
 
+            <!-- Shown only while the list has a document saved on this phone. -->
+            <TextView
+                android:id="@+id/documentsHint"
+                style="@style/LegacyBodyText"
+                android:layout_marginBottom="10dp"
+                android:text="Press and hold a document on this phone to delete it."
+                android:textColor="@color/text_secondary"
+                android:textSize="13sp"
+                android:visibility="gone" />
+
             <LinearLayout
                 android:id="@+id/documentContainer"
                 android:layout_width="match_parent"
