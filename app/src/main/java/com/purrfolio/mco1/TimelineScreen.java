@@ -135,14 +135,25 @@ public class TimelineScreen {
         listHolder.removeAllViews();
         TimelineBuilder.Result result = TimelineBuilder.build(filtered(), System.currentTimeMillis(), zone, locale, limit);
         boolean first = true;
-        for (TimelineBuilder.Group group : result.groups) {
+        for (int g = 0; g < result.groups.size(); g++) {
+            TimelineBuilder.Group group = result.groups.get(g);
             TextView header = ui.text(group.label, 18f, ui.ink, 700);
             ui.markHeading(header);
             // Space separates one group from the one above it, so the first header needs little.
-            listHolder.addView(header, ui.lp(first ? 4 : 20, 6));
+            // It is padding, not margin, so the rail line is not cut by the gap.
+            header.setPadding(0, ui.dp(first ? 4 : 20), 0, ui.dp(6));
+            LinearLayout headerRow = ui.row();
+            // The first header starts the line, so it has no line above it.
+            headerRow.addView(railColumn(!first), new LinearLayout.LayoutParams(ui.dp(24), ViewGroup.LayoutParams.MATCH_PARENT));
+            headerRow.addView(header, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+            listHolder.addView(headerRow, ui.lp());
             first = false;
             boolean upcoming = TimelineBuilder.COMING_UP.equals(group.label);
-            for (TimelineEntry entry : group.entries) listHolder.addView(rowView(entry, upcoming), ui.lp());
+            boolean lastGroup = g == result.groups.size() - 1;
+            for (int i = 0; i < group.entries.size(); i++) {
+                boolean isLast = lastGroup && i == group.entries.size() - 1;
+                listHolder.addView(rowView(group.entries.get(i), upcoming, isLast), ui.lp());
+            }
         }
         if (result.groups.isEmpty()) listHolder.addView(emptyView(), ui.lpTop(8));
         if (result.hiddenCount > 0) {
@@ -200,7 +211,7 @@ public class TimelineScreen {
 
     // ---- one row ----
 
-    private View rowView(TimelineEntry entry, boolean showDate) {
+    private View rowView(TimelineEntry entry, boolean showDate, boolean isLast) {
         LinearLayout line = ui.row();
         line.setMinimumHeight(ui.dp(56));
         line.setFocusable(true);
@@ -214,7 +225,7 @@ public class TimelineScreen {
             line.setOnClickListener(v -> onOpenDocument.accept(entry.id));
         }
 
-        line.addView(rail(entry), new LinearLayout.LayoutParams(ui.dp(24), ViewGroup.LayoutParams.MATCH_PARENT));
+        line.addView(rail(entry, isLast), new LinearLayout.LayoutParams(ui.dp(24), ViewGroup.LayoutParams.MATCH_PARENT));
 
         LinearLayout content = ui.row();
         content.setPadding(ui.dp(8), ui.dp(10), ui.dp(4), ui.dp(10));
@@ -249,18 +260,35 @@ public class TimelineScreen {
     }
 
     /** The vertical line with a dot. Decoration only, so TalkBack skips it. */
-    private View rail(TimelineEntry entry) {
-        FrameLayout rail = new FrameLayout(a);
-        rail.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS);
-        View stem = new View(a);
-        stem.setBackgroundColor(ui.outline);
-        rail.addView(stem, new FrameLayout.LayoutParams(ui.dp(2), ViewGroup.LayoutParams.MATCH_PARENT, Gravity.CENTER_HORIZONTAL));
+    private View rail(TimelineEntry entry, boolean isLast) {
+        FrameLayout rail = railColumn(true, isLast ? 22 : 0);
         int size = entry.status == TimelineEntry.Status.DONE ? 18
                 : entry.status == TimelineEntry.Status.UPCOMING ? 14 : 12;
         FrameLayout.LayoutParams dotParams = new FrameLayout.LayoutParams(ui.dp(size), ui.dp(size),
                 Gravity.CENTER_HORIZONTAL | Gravity.TOP);
         dotParams.topMargin = ui.dp(16 - (size - 12) / 2);
         rail.addView(marker(entry.status, size), dotParams);
+        return rail;
+    }
+
+    /** The rail column for a date header: the same line as the rows, so it runs on through the header. */
+    private FrameLayout railColumn(boolean withLine) {
+        return railColumn(withLine, 0);
+    }
+
+    /**
+     * An empty rail column with the vertical line in it. Rows and headers both use it so they line up.
+     * @param stemHeightDp height of the line, or 0 to fill the whole column. The last row stops at its dot.
+     */
+    private FrameLayout railColumn(boolean withLine, int stemHeightDp) {
+        FrameLayout rail = new FrameLayout(a);
+        rail.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS);
+        if (withLine) {
+            View stem = new View(a);
+            stem.setBackgroundColor(ui.outline);
+            int height = stemHeightDp > 0 ? ui.dp(stemHeightDp) : ViewGroup.LayoutParams.MATCH_PARENT;
+            rail.addView(stem, new FrameLayout.LayoutParams(ui.dp(2), height, Gravity.CENTER_HORIZONTAL | Gravity.TOP));
+        }
         return rail;
     }
 
