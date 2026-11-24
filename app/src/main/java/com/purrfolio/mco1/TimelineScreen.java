@@ -157,7 +157,10 @@ public class TimelineScreen {
         }
         if (result.groups.isEmpty()) listHolder.addView(emptyView(), ui.lpTop(8));
         if (result.hiddenCount > 0) {
-            String more = "Show earlier (" + result.hiddenCount + " more)";
+            // Say what one tap adds: a full page, or whatever is left if that is less.
+            int next = Math.min(result.hiddenCount, TimelineBuilder.DEFAULT_LIMIT);
+            int left = result.hiddenCount - next;
+            String more = "Show " + next + " earlier" + (left > 0 ? " (" + left + " left)" : "");
             listHolder.addView(ui.button(more, false, () -> {
                 limit += TimelineBuilder.DEFAULT_LIMIT;
                 fillList();
