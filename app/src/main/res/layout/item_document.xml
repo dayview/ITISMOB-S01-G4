@@ -40,12 +40,11 @@
 
     </LinearLayout>
 
-    <TextView
-        style="@style/LegacyBodyText"
-        android:layout_width="wrap_content"
-        android:importantForAccessibility="no"
-        android:text=">"
-        android:textColor="@color/primary"
-        android:textSize="27sp" />
+    <!-- Empty slot. DocumentsScreen draws the same chevron icon the Pet Timeline uses. -->
+    <FrameLayout
+        android:id="@+id/documentChevron"
+        android:layout_width="22dp"
+        android:layout_height="22dp"
+        android:importantForAccessibility="no" />
 
 </LinearLayout>

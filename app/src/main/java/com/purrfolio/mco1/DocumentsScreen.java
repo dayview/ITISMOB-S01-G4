@@ -11,6 +11,7 @@ import android.text.TextWatcher;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
+import android.widget.FrameLayout;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -152,6 +153,13 @@ public final class DocumentsScreen {
         }
     }
 
+    /** Draws the chevron in the row's slot, the same icon the Pet Timeline uses. */
+    private void addChevron(ItemDocumentBinding item) {
+        int tint = ContextCompat.getColor(activity, R.color.primary);
+        item.documentChevron.addView(new CareArtwork(activity, "Chevron", tint),
+                new FrameLayout.LayoutParams(FrameLayout.LayoutParams.MATCH_PARENT, FrameLayout.LayoutParams.MATCH_PARENT));
+    }
+
     /** A document saved on this phone (5.1). */
     private void addLocalRow(LocalDocument d) {
         ItemDocumentBinding item = ItemDocumentBinding.inflate(activity.getLayoutInflater(), binding.documentContainer, false);
@@ -159,6 +167,7 @@ public final class DocumentsScreen {
         item.documentTitle.setText(d.title);
         String date = new SimpleDateFormat("MMM d, yyyy", Locale.US).format(new Date(d.addedAt));
         item.documentMeta.setText(date + " · " + d.type + " · On this phone");
+        addChevron(item);
         BrandType.apply(item.documentIcon, true, 600);
         BrandType.apply(item.documentTitle, false, 700);
         BrandType.apply(item.documentMeta, false, 400);
@@ -178,6 +187,7 @@ public final class DocumentsScreen {
         item.documentTitle.setText(d.title);
         String date = new SimpleDateFormat("MMM d, yyyy", Locale.US).format(new Date(d.addedAt));
         item.documentMeta.setText(date + " · " + d.type);
+        addChevron(item);
         BrandType.apply(item.documentIcon, true, 600);
         BrandType.apply(item.documentTitle, false, 700);
         BrandType.apply(item.documentMeta, false, 400);
