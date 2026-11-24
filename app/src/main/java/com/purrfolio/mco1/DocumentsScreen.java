@@ -52,6 +52,7 @@ public final class DocumentsScreen {
         BrandType.apply(binding.documentsTitle, true, 600);
         BrandType.apply(binding.documentsSubtitle, false, 400);
         BrandType.apply(binding.documentsEmpty, false, 400);
+        BrandType.apply(binding.documentsHint, false, 400);
         for (int i = 0; i < chips.length; i++) {
             String tab = TABS[i];
             BrandType.apply(chips[i], false, 700);
@@ -112,6 +113,8 @@ public final class DocumentsScreen {
             count++;
         }
         binding.documentsEmpty.setVisibility(count == 0 ? View.VISIBLE : View.GONE);
+        // Long-press delete only works on documents saved on this phone, so hint only when one is listed.
+        binding.documentsHint.setVisibility(local.isEmpty() ? View.GONE : View.VISIBLE);
     }
 
     private LocalDocumentRepository localRepository() {
