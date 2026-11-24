@@ -84,7 +84,7 @@ public class TimelineScreen {
         LinearLayout body = scrollBody.body;
         root.addView(scrollBody.scroll);
 
-        if (!petName.isEmpty()) body.addView(ui.text(petName, 16f, ui.sub, 600), ui.lpBottom(12));
+        if (!petName.isEmpty()) body.addView(ui.text("For " + petName, 16f, ui.ink, 600), ui.lpBottom(10));
         body.addView(ui.choiceChips("Show", false, FILTERS, filter, 2, choice -> {
             filter = choice;
             limit = TimelineBuilder.DEFAULT_LIMIT;
