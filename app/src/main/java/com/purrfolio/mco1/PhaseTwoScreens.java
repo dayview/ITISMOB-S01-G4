@@ -651,7 +651,44 @@ public class PhaseTwoScreens {
         add(upload,278,18);
         LinearLayout h=row();h.addView(section("Recent Documents"),new LinearLayout.LayoutParams(0,-2,1));
         TextView all=text("See All",12,primary,700);all.setOnClickListener(v->go.accept("Paperless Inbox"));h.addView(all);add(h,28,8);
-        for(int i=0;i<2;i++)add(documentRow(documents.get(i),false),66,5);demoLabel("Sample documents");
+        recentDocuments();
+    }
+    /** "Recent Documents": the pet's two newest real documents (phone and online), or the samples when it has none. */
+    private void recentDocuments(){
+        String petId=pet.optString("id");BackendHub hub=BackendHub.get();
+        List<PetRef> petRefs=new ArrayList<>();
+        for(JSONObject p:pets)if(!p.optString("id").isEmpty())petRefs.add(new PetRef(p.optString("id"),p.optString("name","Pet")));
+        hub.start(a,petRefs);hub.watchDocuments(petId);
+        LinearLayout list=col();add(list);
+        Runnable draw=()->{list.removeAllViews();
+            List<DocumentRow> rows=DocumentRow.merge(hub.documents(),
+                    LocalDocumentRepository.inPreferences(prefs).forPet(petId));
+            for(int i=0;i<Math.min(2,rows.size());i++){
+                LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(-1,dp(66));p.bottomMargin=dp(5);
+                list.addView(realDocumentRow(rows.get(i)),p);}
+            if(rows.isEmpty()){
+                for(int i=0;i<2;i++){LinearLayout.LayoutParams p=new LinearLayout.LayoutParams(-1,dp(66));p.bottomMargin=dp(5);
+                    list.addView(documentRow(documents.get(i),false),p);}
+                TextView label=text("Sample documents",11,sub,500);label.setGravity(Gravity.END);
+                list.addView(label,new LinearLayout.LayoutParams(-1,dp(18)));}};
+        draw.run();
+        // Online documents arrive from Firestore after the screen opens (and change live).
+        hub.observe(draw);
+        list.addOnAttachStateChangeListener(new View.OnAttachStateChangeListener(){
+            @Override public void onViewAttachedToWindow(View v){}
+            @Override public void onViewDetachedFromWindow(View v){hub.unobserve(draw);}});
+    }
+    /** A saved document drawn like a sample row. A phone document opens its saved copy, an online one opens in a viewer. */
+    private View realDocumentRow(DocumentRow d){LinearLayout r=row();r.setBackground(shape());pad(r,13,9);
+        r.setOnClickListener(v->{if(d.isLocal())DocumentFileStore.open(a,d.local);else DocumentRepository.view(a,d.online);});
+        LinearLayout.LayoutParams iconParams=new LinearLayout.LayoutParams(dp(34),dp(36));iconParams.rightMargin=dp(14);
+        r.addView(icon(d.looksLikeImage()?"Photo":"Document",32),iconParams);
+        LinearLayout copy=col();copy.addView(text(d.title(),14,ink,700));
+        LinearLayout.LayoutParams date=new LinearLayout.LayoutParams(-1,-2);date.topMargin=dp(5);
+        String when=new SimpleDateFormat("MMM d, yyyy",Locale.US).format(new java.util.Date(d.addedAt()));
+        copy.addView(text(when+(d.isLocal()?" · On this phone":""),12,sub),date);
+        r.addView(copy,new LinearLayout.LayoutParams(0,-2,1));
+        r.addView(icon("Chevron",20));return r;
     }
     protected void vaccination(){header("Vaccination Card","Added on Sep 12, 2026 · Sample document","Records","More",
             ()->preview("This document is a supplied wireframe sample."),30,false);
